@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { getOrCreateCsrfToken, rotateCsrfToken, clearCsrfToken } from '~/utils/security'
+import * as Sentry from '@sentry/nuxt'
 
 interface Admin {
   id: string
@@ -149,6 +150,7 @@ export const useAuthStore = defineStore('auth', {
         return verificationResponse.verified
       } catch (err: any) {
         rateLimit.record('register')
+        Sentry.captureException(err, { tags: { operation: 'webauthn_register' } })
 
         // Provide user-friendly error messages
         if (err.name === 'NotAllowedError') {
@@ -234,6 +236,7 @@ export const useAuthStore = defineStore('auth', {
         return false
       } catch (err: any) {
         rateLimit.record('login')
+        Sentry.captureException(err, { tags: { operation: 'webauthn_login' } })
 
         // Provide user-friendly error messages
         if (err.name === 'NotAllowedError') {
@@ -302,6 +305,7 @@ export const useAuthStore = defineStore('auth', {
         return false
       } catch (err: any) {
         rateLimit.record('login')
+        Sentry.captureException(err, { tags: { operation: 'password_login' } })
         if (err.statusCode === 401 || err.status === 401) {
           this.error = 'Invalid email or password'
         } else if (err.statusCode === 403 || err.status === 403) {
@@ -344,8 +348,8 @@ export const useAuthStore = defineStore('auth', {
           credentials: 'include',
           headers: { 'X-CSRF-Token': getOrCreateCsrfToken() }
         })
-      } catch {
-        // logout errors don't need UI feedback — session is cleared client-side regardless
+      } catch (err) {
+        Sentry.captureException(err, { level: 'warning', tags: { operation: 'logout' } })
       } finally {
         this.admin = null
         clearCsrfToken()

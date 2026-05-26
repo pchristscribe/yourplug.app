@@ -85,6 +85,7 @@ export async function buildApp(opts = {}) {
       () => cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException),
       5 * 60 * 1000
     )
+    interval.unref()
     fastify.addHook('onClose', async () => clearInterval(interval))
   })
 

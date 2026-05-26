@@ -48,17 +48,6 @@ async function loadProductFull(sql, id) {
   }
 }
 
-async function delByPattern(redis, pattern) {
-  let cursor = '0'
-  const keys = []
-  do {
-    const [nextCursor, found] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
-    cursor = nextCursor
-    keys.push(...found)
-  } while (cursor !== '0')
-  if (keys.length > 0) await redis.del(...keys)
-}
-
 export default async function adminProductRoutes(fastify, options) {
   const { sql, redis } = fastify
 
@@ -172,7 +161,11 @@ export default async function adminProductRoutes(fastify, options) {
         ? await sql`select * from categories where id = ${created.categoryId}`
         : [null]
 
-      await delPattern(redis, 'products:list:*')
+      try {
+        await delPattern(redis, 'products:list:*')
+      } catch (cacheErr) {
+        request.log.error({ err: cacheErr }, 'Redis cache eviction failed — stale data possible')
+      }
 
       reply.code(201)
       return { ...created, category: category || null }
@@ -244,8 +237,12 @@ export default async function adminProductRoutes(fastify, options) {
       sql`select * from affiliate_links where product_id = ${id}`
     ])
 
-    await redis.del(`product:${id}`)
-    await delPattern(redis, 'products:list:*')
+    try {
+      await redis.del(`product:${id}`)
+      await delPattern(redis, 'products:list:*')
+    } catch (cacheErr) {
+      request.log.error({ err: cacheErr }, 'Redis cache eviction failed — stale data possible')
+    }
 
     return {
       ...updated,
@@ -270,8 +267,12 @@ export default async function adminProductRoutes(fastify, options) {
       return { error: 'Product not found' }
     }
 
-    await redis.del(`product:${id}`)
-    await delPattern(redis, 'products:list:*')
+    try {
+      await redis.del(`product:${id}`)
+      await delPattern(redis, 'products:list:*')
+    } catch (cacheErr) {
+      request.log.error({ err: cacheErr }, 'Redis cache eviction failed — stale data possible')
+    }
 
     reply.code(204)
     return
@@ -302,8 +303,12 @@ export default async function adminProductRoutes(fastify, options) {
       where id in ${sql(productIds)}
     `
 
-    await delPattern(redis, 'products:list:*')
-    await Promise.all(productIds.map(id => redis.del(`product:${id}`)))
+    try {
+      await delPattern(redis, 'products:list:*')
+      await Promise.all(productIds.map(id => redis.del(`product:${id}`)))
+    } catch (cacheErr) {
+      request.log.error({ err: cacheErr }, 'Redis cache eviction failed — stale data possible')
+    }
 
     return {
       success: true,
@@ -329,8 +334,12 @@ export default async function adminProductRoutes(fastify, options) {
       delete from products where id in ${sql(productIds)}
     `
 
-    await delPattern(redis, 'products:list:*')
-    await Promise.all(productIds.map(id => redis.del(`product:${id}`)))
+    try {
+      await delPattern(redis, 'products:list:*')
+      await Promise.all(productIds.map(id => redis.del(`product:${id}`)))
+    } catch (cacheErr) {
+      request.log.error({ err: cacheErr }, 'Redis cache eviction failed — stale data possible')
+    }
 
     return {
       success: true,

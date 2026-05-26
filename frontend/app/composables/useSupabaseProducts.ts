@@ -201,6 +201,7 @@ export const useSupabaseProducts = () => {
     const sanitized = query
       .replace(/[%_\\]/g, '\\$&')
       .replace(/[,()]/g, ' ')
+      .replace(/['"]/g, '')
     const { data, error, count } = await supabase
       .from('products')
       .select('*, categories(*)', { count: 'exact' })

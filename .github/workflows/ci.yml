@@ -91,9 +91,12 @@ jobs:
         run: npm ci
       - name: Apply Supabase migrations
         run: |
-          for f in supabase/migrations/*.sql; do
-            psql postgresql://swordfighters:test@localhost:5432/swordfighters_test -f "$f" || true
-          done
+          psql postgresql://swordfighters:test@localhost:5432/swordfighters_test \
+            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
+          find supabase/migrations -name '*.sql' | sort | \
+            xargs cat | \
+            psql postgresql://swordfighters:test@localhost:5432/swordfighters_test -1
         env:
           PGPASSWORD: test
       - name: Run tests
@@ -102,7 +105,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://swordfighters:test@localhost:5432/swordfighters_test
           TEST_REDIS_URL: redis://localhost:6379
-          SESSION_SECRET: test-session-secret-at-least-32-chars-long
+          SESSION_SECRET: ${{ secrets.TEST_SESSION_SECRET || 'test-session-secret-at-least-32-chars-long' }}
           NODE_ENV: test
 
   e2e:
@@ -145,7 +148,7 @@ jobs:
   build:
     name: Build verification
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, backend-test]
     strategy:
       fail-fast: false
       matrix:
