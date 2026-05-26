@@ -3,7 +3,8 @@ import { useSupabaseProducts } from '../app/composables/useSupabaseProducts'
 
 // Chainable Supabase client mock — each method returns mockChain so the fluent
 // builder resolves; range() resolves the promise so searchProducts() can await.
-const mockChain: Record<string, any> = {}
+type MockChain = Record<string, ReturnType<typeof vi.fn>>
+const mockChain: MockChain = {} as MockChain
 mockChain.select = vi.fn(() => mockChain)
 mockChain.eq = vi.fn(() => mockChain)
 mockChain.or = vi.fn(() => mockChain)
