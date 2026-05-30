@@ -17,20 +17,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        include:
+          - workspace: frontend
+            package_manager: npm
+            lock_file: package-lock.json
+            install_cmd: npm ci
+            audit_cmd: npm audit --omit=dev --audit-level=high
+          - workspace: admin-frontend
+            package_manager: pnpm
+            lock_file: pnpm-lock.yaml
+            install_cmd: pnpm install --frozen-lockfile
+            audit_cmd: pnpm audit --audit-level=high --prod
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        if: matrix.package_manager == 'pnpm'
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          cache: ${{ matrix.package_manager }}
+          cache-dependency-path: ${{ matrix.workspace }}/${{ matrix.lock_file }}
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
-      - name: Run npm audit
+        run: ${{ matrix.install_cmd }}
+      - name: Run audit
         working-directory: ${{ matrix.workspace }}
-        run: npm audit --omit=dev --audit-level=high
+        run: ${{ matrix.audit_cmd }}
 
   test:
     name: Unit tests
@@ -38,20 +52,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        include:
+          - workspace: frontend
+            package_manager: npm
+            lock_file: package-lock.json
+            install_cmd: npm ci
+            test_cmd: npm test -- --coverage
+          - workspace: admin-frontend
+            package_manager: pnpm
+            lock_file: pnpm-lock.yaml
+            install_cmd: pnpm install --frozen-lockfile
+            test_cmd: pnpm test -- --coverage
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        if: matrix.package_manager == 'pnpm'
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          cache: ${{ matrix.package_manager }}
+          cache-dependency-path: ${{ matrix.workspace }}/${{ matrix.lock_file }}
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: ${{ matrix.install_cmd }}
       - name: Run tests
         working-directory: ${{ matrix.workspace }}
-        run: npm test -- --coverage
+        run: ${{ matrix.test_cmd }}
 
   backend-test:
     name: Backend unit tests
@@ -117,17 +145,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        include:
+          - workspace: frontend
+            package_manager: npm
+            lock_file: package-lock.json
+            install_cmd: npm ci
+          - workspace: admin-frontend
+            package_manager: pnpm
+            lock_file: pnpm-lock.yaml
+            install_cmd: pnpm install --frozen-lockfile
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        if: matrix.package_manager == 'pnpm'
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          cache: ${{ matrix.package_manager }}
+          cache-dependency-path: ${{ matrix.workspace }}/${{ matrix.lock_file }}
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: ${{ matrix.install_cmd }}
       - name: Install Playwright browsers
         working-directory: ${{ matrix.workspace }}
         run: npx playwright install --with-deps chromium
@@ -152,17 +192,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        include:
+          - workspace: frontend
+            package_manager: npm
+            lock_file: package-lock.json
+            install_cmd: npm ci
+          - workspace: admin-frontend
+            package_manager: pnpm
+            lock_file: pnpm-lock.yaml
+            install_cmd: pnpm install --frozen-lockfile
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        if: matrix.package_manager == 'pnpm'
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          cache: ${{ matrix.package_manager }}
+          cache-dependency-path: ${{ matrix.workspace }}/${{ matrix.lock_file }}
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: ${{ matrix.install_cmd }}
       - name: Build
         working-directory: ${{ matrix.workspace }}
         run: npm run build
