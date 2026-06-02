@@ -40,6 +40,7 @@ export const useFilterStore = defineStore('filters', {
       if (state.platform) filters.platform = state.platform as Platform
       if (state.minPrice > 0) filters.minPrice = state.minPrice
       if (state.maxPrice < 500) filters.maxPrice = state.maxPrice
+      if (state.minRating > 0) filters.minRating = state.minRating
 
       return filters
     },

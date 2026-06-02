@@ -1,0 +1,53 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      nuxt-ecosystem:
+        patterns: ["nuxt*", "@nuxt/*", "@nuxtjs/*", "@pinia/*", "pinia"]
+      sentry:
+        patterns: ["@sentry/*"]
+      testing:
+        patterns: ["vitest", "@vitest/*", "@vue/test-utils", "happy-dom", "@playwright/*"]
+
+  - package-ecosystem: npm
+    directory: /admin-frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      nuxt-ecosystem:
+        patterns: ["nuxt*", "@nuxt/*", "@nuxtjs/*", "@pinia/*", "pinia"]
+      webauthn:
+        patterns: ["@simplewebauthn/*"]
+      sentry:
+        patterns: ["@sentry/*"]
+      testing:
+        patterns: ["vitest", "@vitest/*", "@vue/test-utils", "happy-dom", "@playwright/*"]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      fastify:
+        patterns: ["fastify", "@fastify/*"]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      sentry:
+        patterns: ["@sentry/*"]
+      webauthn:
+        patterns: ["@simplewebauthn/*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

@@ -1,5 +1,5 @@
 {
-  "file_count": 179,
+  "file_count": 221,
   "hubs": [
     {
       "path": "backend/src/app.js",
@@ -11,6 +11,18 @@
     },
     {
       "path": "backend/src/lib/sentry.js",
+      "importers": 4
+    },
+    {
+      "path": "backend/src/utils/cleanupExpiredChallenges.js",
+      "importers": 4
+    },
+    {
+      "path": "backend/src/lib/prisma.js",
+      "importers": 3
+    },
+    {
+      "path": "backend/src/lib/redis.js",
       "importers": 3
     },
     {
@@ -18,7 +30,7 @@
       "importers": 3
     },
     {
-      "path": "backend/src/utils/cleanupExpiredChallenges.js",
+      "path": "frontend/app/components/ProductCard.vue",
       "importers": 3
     }
   ]

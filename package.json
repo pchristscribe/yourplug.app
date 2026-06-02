@@ -2,8 +2,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
     "@sentry/bun": "^10.47.0",
-    "@types/bun": "^1.3.11",
-    "bun": "^1.3.11"
+    "@types/bun": "^1.3.11"
   },
   "name": "swordfighters-fullstack",
   "module": "index.ts",

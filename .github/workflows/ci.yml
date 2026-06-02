@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   security-audit:
-    name: Security audit
+    name: Security audit (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,20 +20,23 @@ jobs:
         workspace: [frontend, admin-frontend]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
-      - name: Run npm audit
+        run: pnpm install --frozen-lockfile
+      - name: Run audit
         working-directory: ${{ matrix.workspace }}
-        run: npm audit --omit=dev --audit-level=high
+        run: pnpm audit --audit-level=high --prod
 
   test:
-    name: Unit tests
+    name: Unit tests (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,43 +44,108 @@ jobs:
         workspace: [frontend, admin-frontend]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Run tests
         working-directory: ${{ matrix.workspace }}
-        run: npm test
+        run: pnpm test -- --coverage
+
+  backend-test:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: swordfighters
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: swordfighters_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+      - name: Apply Supabase migrations
+        run: |
+          psql postgresql://swordfighters:test@localhost:5432/swordfighters_test \
+            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
+          find supabase/migrations -name '*.sql' | sort | \
+            xargs cat | \
+            psql postgresql://swordfighters:test@localhost:5432/swordfighters_test -1
+        env:
+          PGPASSWORD: test
+      - name: Run tests
+        working-directory: backend
+        run: pnpm test -- --coverage
+        env:
+          TEST_DATABASE_URL: postgresql://swordfighters:test@localhost:5432/swordfighters_test
+          TEST_REDIS_URL: redis://localhost:6379
+          SESSION_SECRET: ${{ secrets.TEST_SESSION_SECRET || 'test-session-secret-at-least-32-chars-long' }}
+          NODE_ENV: test
 
   e2e:
-    name: E2E tests
+    name: E2E tests (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     needs: [build]
-    if: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL != '' }}
+    # Only run when explicitly enabled (set vars.E2E_ENABLED = 'true' in repo/env settings)
+    if: ${{ vars.E2E_ENABLED == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         workspace: [frontend, admin-frontend]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         working-directory: ${{ matrix.workspace }}
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Run E2E tests
         working-directory: ${{ matrix.workspace }}
-        run: npx playwright test
+        run: pnpm exec playwright test
         env:
           NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL }}
           NUXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NUXT_PUBLIC_SUPABASE_KEY }}
@@ -90,23 +158,26 @@ jobs:
           retention-days: 14
 
   build:
-    name: Build verification
+    name: Build verification (${{ matrix.workspace }})
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, backend-test]
     strategy:
       fail-fast: false
       matrix:
         workspace: [frontend, admin-frontend]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
       - name: Install dependencies
         working-directory: ${{ matrix.workspace }}
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Build
         working-directory: ${{ matrix.workspace }}
-        run: npm run build
+        run: pnpm run build

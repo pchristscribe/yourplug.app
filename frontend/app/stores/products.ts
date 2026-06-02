@@ -88,17 +88,6 @@ export const useProductStore = defineStore('products', {
 
     totalProducts: (state) => state.pagination?.total ?? 0,
 
-    filteredProducts: (state) => {
-      let filtered = [...state.products]
-
-      // Client-side rating filter if needed
-      if (state.filters.minRating && state.filters.minRating > 0) {
-        filtered = filtered.filter((p) => {
-          return p.rating && p.rating >= (state.filters.minRating ?? 0)
-        })
-      }
-
-      return filtered
-    },
+    filteredProducts: (state) => state.products,
   },
 })

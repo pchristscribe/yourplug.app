@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ref } from 'vue'
 
+const _lsStore: Record<string, string> = {}
+vi.stubGlobal('localStorage', {
+  getItem: (k: string) => _lsStore[k] ?? null,
+  setItem: (k: string, v: string) => { _lsStore[k] = v },
+  removeItem: (k: string) => { delete _lsStore[k] },
+  clear: () => { for (const k in _lsStore) delete _lsStore[k] },
+})
+
 // Mock Nuxt's useState to return a plain Vue ref
 vi.stubGlobal('useState', (_key: string, init: () => boolean) => ref(init()))
 

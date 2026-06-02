@@ -12,7 +12,7 @@ import adminWebAuthnRoutes from './routes/admin/webauthn.js';
 import adminProductRoutes from './routes/admin/products.js';
 import adminCategoryRoutes from './routes/admin/categories.js';
 import adminReviewRoutes from './routes/admin/reviews.js';
-import { cleanupMiddleware } from './utils/cleanupExpiredChallenges.js';
+import { cleanupExpiredChallenges } from './utils/cleanupExpiredChallenges.js';
 import { initSentry, captureException } from './lib/sentry.js';
 import * as Sentry from '@sentry/node';
 
@@ -76,9 +76,18 @@ export async function buildApp(opts = {}) {
     }
   });
 
-  // Add cleanup middleware for expired WebAuthn challenges
-  // Runs asynchronously on each request without blocking
-  fastify.addHook('onRequest', cleanupMiddleware);
+  // Schedule periodic WebAuthn challenge cleanup. The Bull worker (npm run worker)
+  // handles this when deployed as a separate process; this interval is the fallback
+  // for environments (e.g. Railway single-service) where the worker isn't running.
+  fastify.addHook('onReady', async () => {
+    cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException)
+    const interval = setInterval(
+      () => cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException),
+      5 * 60 * 1000
+    )
+    interval.unref()
+    fastify.addHook('onClose', async () => clearInterval(interval))
+  })
 
   // Global error handler - capture all unhandled errors in Sentry
   fastify.setErrorHandler(async (error, request, reply) => {

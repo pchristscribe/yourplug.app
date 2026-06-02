@@ -163,8 +163,9 @@ Login flow mirrors registration but uses `/authenticate/options` and `/authentic
 
 ```bash
 npm run build
-vercel deploy
 ```
+
+Deploy via Railway (see `RAILWAY.md` in the repo root).
 
 Required environment variables:
 ```bash

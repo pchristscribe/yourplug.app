@@ -1,82 +1,52 @@
 {
   "changed": [
     {
-      "path": "admin-frontend/app/utils/security.ts",
-      "hash": "928f7559f3c2745f8bf5b6e3762c6f7497bfe68199b14bb14f03dbcc6c9c5c2a",
-      "size": 3917,
+      "path": ".gitignore",
+      "hash": "02c0fb540f92b5f2fdde192cbb2a35a9cc38023e5790e4c7fafe8ebaa0e7738f",
+      "size": 796,
       "status": "modified"
     },
     {
+      "path": "admin-frontend/.yarnclean",
+      "hash": "2f2821b16dfca1a944d4e9be0b1d05fb2e6a87310e2844cca04e9eefbfa2010e",
+      "size": 469,
+      "status": "untracked"
+    },
+    {
+      "path": "admin-frontend/package.json",
+      "hash": "96852905b90c1a3edd2a4d0c2103337e8abb5546d845fa6b79ee92db905be1f1",
+      "size": 1248,
+      "status": "modified"
+    },
+    {
+      "path": "admin-frontend/yarn.lock",
+      "hash": "81e32a6a78fe25712c27aea14035b84ee52301539d48ce3c570817bbb6ab0586",
+      "size": 408039,
+      "status": "untracked"
+    },
+    {
+      "path": "backend/.gone",
+      "hash": "3503e404a57a12f41ad1ed5c1dab8bbc0755d16f8b48824db22b125013b19b97",
+      "size": 230153,
+      "status": "untracked"
+    },
+    {
       "path": "backend/package-lock.json",
-      "hash": "4654517d947e7037e0fe5926db03a7047bf494aeee5f5bd66cb35b1b75fcb187",
-      "size": 260530,
+      "hash": "e02700f6b49da4a1e7884d0f998b7a57e1a323e3127d0d62e08653e4695d4d76",
+      "size": 240423,
       "status": "modified"
     },
     {
       "path": "backend/package.json",
-      "hash": "828c93445b516c70f5cc783e14285f32ef02a9b5ab32109f38989cee41d15111",
-      "size": 1480,
+      "hash": "fdaef93e87f9496f204342f078fbe29635afdb4d3a985ef5019d86126118f41f",
+      "size": 1580,
       "status": "modified"
     },
     {
-      "path": "backend/src/routes/admin/.prettierrc",
-      "hash": "b90a2d062e9a3cb7c7e9cca9b74684c4e906456954909e2fc15d0a616b964993",
-      "size": 40,
+      "path": "backend/yarn.lock",
+      "hash": "5a3cc4d2192009e8c6b3eb784cc92bef82036d5ca1e9dd5ce10502962e69e2f3",
+      "size": 134574,
       "status": "untracked"
-    },
-    {
-      "path": "frontend/app/components/ProductFilters.vue",
-      "hash": "e2d36802f6fc54a7aa6fd03bcf019f3f4e9800d2b217dff785c67d0daab483ee",
-      "size": 150,
-      "status": "untracked"
-    },
-    {
-      "path": "frontend/app/components/SortingControls.vue",
-      "hash": "70e6bf71c18ce0f768c2ba5f8e89d4badb50d06693531ff274128ecbe9c99a7e",
-      "size": 170,
-      "status": "untracked"
-    },
-    {
-      "path": "frontend/app/stores/cart.ts",
-      "hash": "92b8db5498914eaee7a93fb33b86c482b31a1ad0b9a31caad1c633e393a47432",
-      "size": 1355,
-      "status": "modified"
-    },
-    {
-      "path": "frontend/nuxt.config.ts",
-      "hash": "b4a47a0732eef7ec238e25cd20fb4c28171d69f2c2c3e12d93949b378e46e833",
-      "size": 1304,
-      "status": "modified"
-    },
-    {
-      "path": "frontend/package-lock.json",
-      "hash": "6c21d5d4a92fdb2a6b5012f20f3cbdec1a4c7cf72d0e7172fc94c31fb4d58375",
-      "size": 543784,
-      "status": "modified"
-    },
-    {
-      "path": "frontend/package.json",
-      "hash": "3d3fe7c3a6f353476796b8cedae8397c8df0002365fa854110e444510e2e3c08",
-      "size": 1085,
-      "status": "modified"
-    },
-    {
-      "path": "frontend/tests/cart.test.ts",
-      "hash": "a20479e470168d8fcb4981328c77376f7d31c234207434cca0baace15613a8f3",
-      "size": 12629,
-      "status": "modified"
-    },
-    {
-      "path": "package-lock.json",
-      "hash": "51313c06849a76a784e4296034b588e1e0da2dbf1c924ed33f71281a8cdf4dfd",
-      "size": 47763,
-      "status": "untracked"
-    },
-    {
-      "path": "package.json",
-      "hash": "c81bd2764028c6cee84f950757329c431e26d3cc4af54be11352c2c0c9f455f1",
-      "size": 109,
-      "status": "modified"
     }
   ],
   "risk_files": [],

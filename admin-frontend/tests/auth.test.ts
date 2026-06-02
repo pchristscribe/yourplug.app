@@ -19,8 +19,13 @@ if (typeof window === 'undefined') {
 global.window.PublicKeyCredential = class MockPublicKeyCredential {}
 
 // Stub rate limiter so it never blocks during auth unit tests
-vi.mock('../app/composables/useRateLimit', () => ({
-  useRateLimit: () => ({ check: () => ({ allowed: true }), record: () => {}, reset: () => {} }),
+// useRateLimit is a Nuxt auto-import (no explicit import in auth.ts), so stubGlobal
+// intercepts it correctly where vi.mock on the module path would not.
+vi.stubGlobal('useRateLimit', () => ({ check: () => ({ allowed: true }), record: () => {}, reset: () => {} }))
+
+vi.mock('@simplewebauthn/browser', () => ({
+  startAuthentication: vi.fn().mockResolvedValue({ id: 'cred-id' }),
+  startRegistration: vi.fn().mockResolvedValue({ id: 'cred-id' }),
 }))
 
 // Import after mocks are set up
@@ -533,12 +538,6 @@ describe('Auth Store - Input Validation', () => {
             verified: true,
             admin: mockAdmin
           })
-
-        // Mock startAuthentication from @simplewebauthn/browser
-        vi.mock('@simplewebauthn/browser', () => ({
-          startAuthentication: vi.fn().mockResolvedValue({ id: 'cred-id' }),
-          startRegistration: vi.fn().mockResolvedValue({ id: 'cred-id' })
-        }))
 
         try {
           const result = await store.loginWithSecurityKey('test@example.com')
@@ -1207,17 +1206,14 @@ describe('Auth Store - Security Edge Cases', () => {
     })
 
     it('should short-circuit when rate limit is exhausted', async () => {
-      vi.resetModules()
-      vi.doMock('../app/composables/useRateLimit', () => ({
-        useRateLimit: () => ({
-          check: () => ({ allowed: false, retryAfterMs: 12000 }),
-          record: () => {},
-          reset: () => {}
-        })
+      // Temporarily stub global to return denied state (useRateLimit is a Nuxt auto-import global)
+      vi.stubGlobal('useRateLimit', () => ({
+        check: () => ({ allowed: false, retryAfterMs: 12000 }),
+        record: () => {},
+        reset: () => {}
       }))
 
-      const { useAuthStore: useStoreWithLimit } = await import('../app/stores/auth')
-      const store = useStoreWithLimit()
+      const store = useAuthStore()
       const fetchSpy = vi.fn()
       global.$fetch = fetchSpy
 
@@ -1226,7 +1222,9 @@ describe('Auth Store - Security Edge Cases', () => {
       expect(result).toBe(false)
       expect(store.error).toContain('Too many attempts')
       expect(fetchSpy).not.toHaveBeenCalled()
-      vi.doUnmock('../app/composables/useRateLimit')
+
+      // Restore permissive stub for remaining tests
+      vi.stubGlobal('useRateLimit', () => ({ check: () => ({ allowed: true }), record: () => {}, reset: () => {} }))
     })
   })
 })

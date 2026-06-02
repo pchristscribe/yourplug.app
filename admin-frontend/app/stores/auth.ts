@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { getOrCreateCsrfToken, rotateCsrfToken, clearCsrfToken } from '~/utils/security'
-import { useRateLimit } from '~/composables/useRateLimit'
-
-const rateLimit = useRateLimit()
+import * as Sentry from '@sentry/nuxt'
 
 interface Admin {
   id: string
@@ -98,7 +96,6 @@ export const useAuthStore = defineStore('auth', {
     async registerSecurityKey(email: unknown, deviceName?: unknown) {
       // WebAuthn is client-side only, guard against SSR
       if (typeof window === 'undefined') {
-        console.warn('registerSecurityKey called on server-side, skipping')
         return false
       }
 
@@ -112,6 +109,7 @@ export const useAuthStore = defineStore('auth', {
       const validatedEmail = emailValidation.normalized!
       const sanitizedDeviceName = sanitizeDeviceName(deviceName)
 
+      const rateLimit = useRateLimit()
       const rateLimitCheck = rateLimit.check('register')
       if (!rateLimitCheck.allowed) {
         const seconds = Math.ceil((rateLimitCheck.retryAfterMs || 0) / 1000)
@@ -125,9 +123,6 @@ export const useAuthStore = defineStore('auth', {
       try {
         const config = useRuntimeConfig()
 
-        console.log('🔐 Starting WebAuthn registration for:', validatedEmail)
-        console.log('📍 API Base:', config.public.apiBase)
-
         // Get registration options from server
         const optionsResponse = await $fetch(`${config.public.apiBase}/api/admin/webauthn/register/options`, {
           method: 'POST',
@@ -136,15 +131,10 @@ export const useAuthStore = defineStore('auth', {
           headers: { 'X-CSRF-Token': getOrCreateCsrfToken() }
         }) as any
 
-        console.log('✅ Registration options received:', optionsResponse)
-
         // Trigger browser WebAuthn registration
-        console.log('🔑 Requesting TouchID/Security Key from browser...')
         const credential = await startRegistration({ optionsJSON: optionsResponse })
-        console.log('✅ Credential created:', credential)
 
         // Send credential to server for verification
-        console.log('📤 Sending credential to server for verification...')
         const verificationResponse = await $fetch(`${config.public.apiBase}/api/admin/webauthn/register/verify`, {
           method: 'POST',
           credentials: 'include',
@@ -156,12 +146,11 @@ export const useAuthStore = defineStore('auth', {
           }
         })
 
-        console.log('✅ Registration verified:', verificationResponse)
         if (verificationResponse.verified) rateLimit.reset('register')
         return verificationResponse.verified
       } catch (err: any) {
         rateLimit.record('register')
-        console.error('❌ Registration error:', err)
+        Sentry.captureException(err, { tags: { operation: 'webauthn_register' } })
 
         // Provide user-friendly error messages
         if (err.name === 'NotAllowedError') {
@@ -191,7 +180,6 @@ export const useAuthStore = defineStore('auth', {
     async loginWithSecurityKey(email: unknown) {
       // WebAuthn is client-side only, guard against SSR
       if (typeof window === 'undefined') {
-        console.warn('loginWithSecurityKey called on server-side, skipping')
         return false
       }
 
@@ -204,6 +192,7 @@ export const useAuthStore = defineStore('auth', {
 
       const validatedEmail = emailValidation.normalized!
 
+      const rateLimit = useRateLimit()
       const rateLimitCheck = rateLimit.check('login')
       if (!rateLimitCheck.allowed) {
         const seconds = Math.ceil((rateLimitCheck.retryAfterMs || 0) / 1000)
@@ -217,8 +206,6 @@ export const useAuthStore = defineStore('auth', {
       try {
         const config = useRuntimeConfig()
 
-        console.log('🔐 Starting WebAuthn authentication for:', validatedEmail)
-
         // Get authentication options from server
         const optionsResponse = await $fetch(`${config.public.apiBase}/api/admin/webauthn/authenticate/options`, {
           method: 'POST',
@@ -226,12 +213,8 @@ export const useAuthStore = defineStore('auth', {
           headers: { 'X-CSRF-Token': getOrCreateCsrfToken() }
         })
 
-        console.log('✅ Authentication options received')
-
         // Trigger browser WebAuthn authentication
-        console.log('🔑 Requesting TouchID/Security Key from browser...')
         const credential = await startAuthentication({ optionsJSON: optionsResponse })
-        console.log('✅ Credential received from browser')
 
         // Send credential to server for verification
         const verificationResponse = await $fetch(`${config.public.apiBase}/api/admin/webauthn/authenticate/verify`, {
@@ -245,7 +228,6 @@ export const useAuthStore = defineStore('auth', {
         })
 
         if (verificationResponse.verified && verificationResponse.admin) {
-          console.log('✅ Authentication successful')
           this.admin = verificationResponse.admin
           rateLimit.reset('login')
           rotateCsrfToken()
@@ -254,7 +236,7 @@ export const useAuthStore = defineStore('auth', {
         return false
       } catch (err: any) {
         rateLimit.record('login')
-        console.error('❌ Authentication error:', err)
+        Sentry.captureException(err, { tags: { operation: 'webauthn_login' } })
 
         // Provide user-friendly error messages
         if (err.name === 'NotAllowedError') {
@@ -293,6 +275,7 @@ export const useAuthStore = defineStore('auth', {
 
       const validatedEmail = emailValidation.normalized!
 
+      const rateLimit = useRateLimit()
       const rateLimitCheck = rateLimit.check('login')
       if (!rateLimitCheck.allowed) {
         const seconds = Math.ceil((rateLimitCheck.retryAfterMs || 0) / 1000)
@@ -322,7 +305,7 @@ export const useAuthStore = defineStore('auth', {
         return false
       } catch (err: any) {
         rateLimit.record('login')
-
+        Sentry.captureException(err, { tags: { operation: 'password_login' } })
         if (err.statusCode === 401 || err.status === 401) {
           this.error = 'Invalid email or password'
         } else if (err.statusCode === 403 || err.status === 403) {
@@ -366,7 +349,7 @@ export const useAuthStore = defineStore('auth', {
           headers: { 'X-CSRF-Token': getOrCreateCsrfToken() }
         })
       } catch (err) {
-        console.error('Logout error:', err)
+        Sentry.captureException(err, { level: 'warning', tags: { operation: 'logout' } })
       } finally {
         this.admin = null
         clearCsrfToken()

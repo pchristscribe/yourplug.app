@@ -156,9 +156,9 @@ GitHub Actions workflows in `.github/workflows/`:
 
 | Service | Platform |
 |---------|---------|
-| Admin Frontend | Vercel |
-| User Frontend | Vercel |
-| Backend API | Railway or Render |
+| Admin Frontend | Railway |
+| User Frontend | Railway |
+| Backend API | Railway |
 | Database | Supabase |
 | Monitoring | Sentry |
 | Scraping Jobs | GitHub Actions + Bull queue |

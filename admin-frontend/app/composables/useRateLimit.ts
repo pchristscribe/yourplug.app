@@ -4,10 +4,12 @@ const LOCKOUT_MS = 300_000
 
 const noop = { check: () => ({ allowed: true } as const), record: () => {}, reset: () => {} }
 
+// Module-level map so state persists across calls within the same page session.
+// Each call to useRateLimit() returns closures over this shared map.
+const attempts = new Map<string, { count: number; resetAt: number }>()
+
 export function useRateLimit() {
   if (import.meta.server) return noop
-
-  const attempts = new Map<string, { count: number; resetAt: number }>()
 
   function check(action: string): { allowed: boolean; retryAfterMs?: number } {
     const now = Date.now()

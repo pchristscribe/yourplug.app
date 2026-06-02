@@ -50,17 +50,3 @@ export function isValidChallenge(admin) {
   return admin.challengeExpiresAt > now
 }
 
-/**
- * Fastify middleware to cleanup expired challenges on each request
- * Usage: fastify.addHook('onRequest', cleanupMiddleware)
- */
-export function cleanupMiddleware(request, reply, done) {
-  const { sql, log } = request.server
-
-  // Run cleanup asynchronously without blocking the request
-  cleanupExpiredChallenges(sql, log).catch(error => {
-    log.error({ error: error.message }, 'Background cleanup failed')
-  })
-
-  done()
-}

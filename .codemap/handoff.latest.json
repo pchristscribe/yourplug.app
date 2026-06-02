@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-05T18:11:06.862995-04:00",
+  "generated_at": "2026-05-10T18:54:49.495175-04:00",
   "root": "/Users/pscribbler/ProjectXY",
   "branch": "main",
   "base_ref": "origin/main",
   "prefix": {
-    "file_count": 179,
+    "file_count": 221,
     "hubs": [
       {
         "path": "backend/src/app.js",
@@ -17,6 +17,18 @@
       },
       {
         "path": "backend/src/lib/sentry.js",
+        "importers": 4
+      },
+      {
+        "path": "backend/src/utils/cleanupExpiredChallenges.js",
+        "importers": 4
+      },
+      {
+        "path": "backend/src/lib/prisma.js",
+        "importers": 3
+      },
+      {
+        "path": "backend/src/lib/redis.js",
         "importers": 3
       },
       {
@@ -24,7 +36,7 @@
         "importers": 3
       },
       {
-        "path": "backend/src/utils/cleanupExpiredChallenges.js",
+        "path": "frontend/app/components/ProductCard.vue",
         "importers": 3
       }
     ]
@@ -32,82 +44,52 @@
   "delta": {
     "changed": [
       {
-        "path": "admin-frontend/app/utils/security.ts",
-        "hash": "928f7559f3c2745f8bf5b6e3762c6f7497bfe68199b14bb14f03dbcc6c9c5c2a",
-        "size": 3917,
+        "path": ".gitignore",
+        "hash": "02c0fb540f92b5f2fdde192cbb2a35a9cc38023e5790e4c7fafe8ebaa0e7738f",
+        "size": 796,
         "status": "modified"
       },
       {
+        "path": "admin-frontend/.yarnclean",
+        "hash": "2f2821b16dfca1a944d4e9be0b1d05fb2e6a87310e2844cca04e9eefbfa2010e",
+        "size": 469,
+        "status": "untracked"
+      },
+      {
+        "path": "admin-frontend/package.json",
+        "hash": "96852905b90c1a3edd2a4d0c2103337e8abb5546d845fa6b79ee92db905be1f1",
+        "size": 1248,
+        "status": "modified"
+      },
+      {
+        "path": "admin-frontend/yarn.lock",
+        "hash": "81e32a6a78fe25712c27aea14035b84ee52301539d48ce3c570817bbb6ab0586",
+        "size": 408039,
+        "status": "untracked"
+      },
+      {
+        "path": "backend/.gone",
+        "hash": "3503e404a57a12f41ad1ed5c1dab8bbc0755d16f8b48824db22b125013b19b97",
+        "size": 230153,
+        "status": "untracked"
+      },
+      {
         "path": "backend/package-lock.json",
-        "hash": "4654517d947e7037e0fe5926db03a7047bf494aeee5f5bd66cb35b1b75fcb187",
-        "size": 260530,
+        "hash": "e02700f6b49da4a1e7884d0f998b7a57e1a323e3127d0d62e08653e4695d4d76",
+        "size": 240423,
         "status": "modified"
       },
       {
         "path": "backend/package.json",
-        "hash": "828c93445b516c70f5cc783e14285f32ef02a9b5ab32109f38989cee41d15111",
-        "size": 1480,
+        "hash": "fdaef93e87f9496f204342f078fbe29635afdb4d3a985ef5019d86126118f41f",
+        "size": 1580,
         "status": "modified"
       },
       {
-        "path": "backend/src/routes/admin/.prettierrc",
-        "hash": "b90a2d062e9a3cb7c7e9cca9b74684c4e906456954909e2fc15d0a616b964993",
-        "size": 40,
+        "path": "backend/yarn.lock",
+        "hash": "5a3cc4d2192009e8c6b3eb784cc92bef82036d5ca1e9dd5ce10502962e69e2f3",
+        "size": 134574,
         "status": "untracked"
-      },
-      {
-        "path": "frontend/app/components/ProductFilters.vue",
-        "hash": "e2d36802f6fc54a7aa6fd03bcf019f3f4e9800d2b217dff785c67d0daab483ee",
-        "size": 150,
-        "status": "untracked"
-      },
-      {
-        "path": "frontend/app/components/SortingControls.vue",
-        "hash": "70e6bf71c18ce0f768c2ba5f8e89d4badb50d06693531ff274128ecbe9c99a7e",
-        "size": 170,
-        "status": "untracked"
-      },
-      {
-        "path": "frontend/app/stores/cart.ts",
-        "hash": "92b8db5498914eaee7a93fb33b86c482b31a1ad0b9a31caad1c633e393a47432",
-        "size": 1355,
-        "status": "modified"
-      },
-      {
-        "path": "frontend/nuxt.config.ts",
-        "hash": "b4a47a0732eef7ec238e25cd20fb4c28171d69f2c2c3e12d93949b378e46e833",
-        "size": 1304,
-        "status": "modified"
-      },
-      {
-        "path": "frontend/package-lock.json",
-        "hash": "6c21d5d4a92fdb2a6b5012f20f3cbdec1a4c7cf72d0e7172fc94c31fb4d58375",
-        "size": 543784,
-        "status": "modified"
-      },
-      {
-        "path": "frontend/package.json",
-        "hash": "3d3fe7c3a6f353476796b8cedae8397c8df0002365fa854110e444510e2e3c08",
-        "size": 1085,
-        "status": "modified"
-      },
-      {
-        "path": "frontend/tests/cart.test.ts",
-        "hash": "a20479e470168d8fcb4981328c77376f7d31c234207434cca0baace15613a8f3",
-        "size": 12629,
-        "status": "modified"
-      },
-      {
-        "path": "package-lock.json",
-        "hash": "51313c06849a76a784e4296034b588e1e0da2dbf1c924ed33f71281a8cdf4dfd",
-        "size": 47763,
-        "status": "untracked"
-      },
-      {
-        "path": "package.json",
-        "hash": "c81bd2764028c6cee84f950757329c431e26d3cc4af54be11352c2c0c9f455f1",
-        "size": 109,
-        "status": "modified"
       }
     ],
     "risk_files": [],
@@ -119,85 +101,55 @@
       "No recent timeline events matched the lookback window."
     ]
   },
-  "prefix_hash": "481637b215d0d894b05ab2f5b9f6611d71685567dbc7daa239f5a5b47285d895",
-  "delta_hash": "48105008e7fc8d42aa4f3489956ff7c6e8795266be0cfa45e142abbdc0d5197d",
-  "combined_hash": "1cee361eff363bfb94c2ef7a252cb6bb99a2fbbcdfa0d16d80c23b4e1c2b057c",
+  "prefix_hash": "4196063afea838c0ade52664692c6367371466c62245dc802b704e15acc1a9c6",
+  "delta_hash": "bb8c96617414e24f109da565e5f2db9b01d991518e566125523620b312cc7d73",
+  "combined_hash": "db707d52c941272e0d3b4c1a9209e9b94e0779c8faa86f9e22a71d1020921165",
   "metrics": {
-    "prefix_bytes": 307,
-    "delta_bytes": 2084,
-    "total_bytes": 2391,
-    "unchanged_bytes": 0,
-    "reuse_ratio": 0,
-    "prefix_reused": false,
-    "delta_reused": false,
-    "previous_combined_hash": "d3ec5e9ec471ec0beb50c2a15c222a6020bee2017f54164a90d1b1de2ae69dcd"
+    "prefix_bytes": 473,
+    "delta_bytes": 1305,
+    "total_bytes": 1778,
+    "unchanged_bytes": 1778,
+    "reuse_ratio": 1,
+    "prefix_reused": true,
+    "delta_reused": true,
+    "previous_combined_hash": "db707d52c941272e0d3b4c1a9209e9b94e0779c8faa86f9e22a71d1020921165"
   },
   "agent_history": [
     {
       "agent_id": "claude-code",
-      "started_at": "2026-04-02T07:33:41.903665-04:00",
-      "ended_at": "2026-04-02T07:33:41.903665-04:00"
+      "started_at": "2026-05-07T14:29:38.246675-04:00",
+      "ended_at": "2026-05-07T14:29:38.246675-04:00"
     },
     {
       "agent_id": "claude-code",
-      "started_at": "2026-04-02T21:54:19.241086-04:00",
-      "ended_at": "2026-04-02T21:54:19.241086-04:00"
+      "started_at": "2026-05-07T16:04:50.160334-04:00",
+      "ended_at": "2026-05-07T16:04:50.160334-04:00"
     },
     {
       "agent_id": "claude-code",
-      "started_at": "2026-04-02T22:00:15.439074-04:00",
-      "ended_at": "2026-04-02T22:00:15.439074-04:00"
+      "started_at": "2026-05-07T18:34:23.78129-04:00",
+      "ended_at": "2026-05-07T18:34:23.78129-04:00"
     },
     {
       "agent_id": "claude-code",
-      "started_at": "2026-04-02T22:00:16.122833-04:00",
-      "ended_at": "2026-04-02T22:00:16.122833-04:00"
+      "started_at": "2026-05-10T18:54:49.495177-04:00",
+      "ended_at": "2026-05-10T18:54:49.495177-04:00"
     },
     {
       "agent_id": "claude-code",
-      "started_at": "2026-04-02T22:00:16.16675-04:00",
-      "ended_at": "2026-04-02T22:00:16.16675-04:00"
-    },
-    {
-      "agent_id": "claude-code",
-      "started_at": "2026-04-02T22:01:53.567115-04:00",
-      "ended_at": "2026-04-02T22:01:53.567115-04:00"
-    },
-    {
-      "agent_id": "claude-code",
-      "started_at": "2026-04-02T22:11:24.797706-04:00",
-      "ended_at": "2026-04-02T22:11:24.797706-04:00"
-    },
-    {
-      "agent_id": "claude-code",
-      "started_at": "2026-04-03T01:57:52.1086-04:00",
-      "ended_at": "2026-04-03T01:57:52.1086-04:00"
-    },
-    {
-      "agent_id": "claude-code",
-      "started_at": "2026-04-05T12:18:31.126758-04:00",
-      "ended_at": "2026-04-05T12:18:31.126758-04:00"
-    },
-    {
-      "agent_id": "claude-code",
-      "started_at": "2026-04-05T18:11:06.862996-04:00",
-      "ended_at": "2026-04-05T18:11:06.862996-04:00"
+      "started_at": "2026-05-10T18:57:45.824279-04:00",
+      "ended_at": "2026-05-10T18:57:45.824279-04:00"
     }
   ],
   "changed_files": [
-    "admin-frontend/app/utils/security.ts",
+    ".gitignore",
+    "admin-frontend/.yarnclean",
+    "admin-frontend/package.json",
+    "admin-frontend/yarn.lock",
+    "backend/.gone",
     "backend/package-lock.json",
     "backend/package.json",
-    "backend/src/routes/admin/.prettierrc",
-    "frontend/app/components/ProductFilters.vue",
-    "frontend/app/components/SortingControls.vue",
-    "frontend/app/stores/cart.ts",
-    "frontend/nuxt.config.ts",
-    "frontend/package-lock.json",
-    "frontend/package.json",
-    "frontend/tests/cart.test.ts",
-    "package-lock.json",
-    "package.json"
+    "backend/yarn.lock"
   ],
   "risk_files": [],
   "recent_events": [],
