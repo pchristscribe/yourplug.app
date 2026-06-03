@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --import ./src/instrument.js --watch src/index.js",
     "start": "node --import ./src/instrument.js src/index.js",
-    "worker": "node src/workers/index.js",
+    "worker": "node --import ./src/instrument.js src/workers/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -26,21 +26,21 @@
   "license": "ISC",
   "dependencies": {
     "@dotenvx/dotenvx": "^1.71.0",
-    "@dotenvx/dotenvx-ops": "^0.37.9",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
-    "@fastify/env": "^5.0.3",
+    "@fastify/env": "^6.0.0",
     "@fastify/session": "^11.1.1",
+    "@nuxt/kit": "^4.4.7",
     "@sentry/node": "^10.56.0",
     "@sentry/profiling-node": "^10.56.0",
     "@simplewebauthn/server": "^13.3.1",
     "bcryptjs": "^3.0.3",
-    "bull": "^4.16.5",
     "connect-redis": "^9.0.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "ioredis": "^5.11.0",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@vitest/ui": "^4.1.8",

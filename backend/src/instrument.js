@@ -1,16 +1,7 @@
 import * as Sentry from '@sentry/node'
 import { nodeProfilingIntegration } from '@sentry/profiling-node'
 import { sanitizeSensitiveData } from './lib/sentry.js'
-
-function validateSampleRate(envVar, defaultValue) {
-  if (!envVar) return defaultValue
-  const rate = parseFloat(envVar)
-  if (isNaN(rate) || rate < 0 || rate > 1) {
-    console.warn(`Invalid sample rate "${envVar}". Must be between 0 and 1. Using default: ${defaultValue}`)
-    return defaultValue
-  }
-  return rate
-}
+import { validateSampleRate } from './utils/validateSampleRate.js'
 
 if (process.env.SENTRY_DSN) {
   const isProd = process.env.NODE_ENV === 'production'
@@ -30,7 +21,7 @@ if (process.env.SENTRY_DSN) {
       'ENOTFOUND',
       'ECONNREFUSED',
     ],
-    beforeSend(event) {
+    beforeSend(event, hint) { // eslint-disable-line no-unused-vars
       if (event.request) {
         if (event.request.headers) event.request.headers = sanitizeSensitiveData(event.request.headers)
         if (event.request.cookies) event.request.cookies = sanitizeSensitiveData(event.request.cookies)
