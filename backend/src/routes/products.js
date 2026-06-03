@@ -150,13 +150,17 @@ export default async function productRoutes(fastify, options) {
     const { affiliateLinkId } = request.body
 
     // Rate limit: 10 clicks per (affiliate_link_id, IP) per minute via Redis.
+    // MULTI/EXEC makes the INCR+EXPIRE atomic — EXPIRE uses NX so it only sets
+    // the TTL on the first increment, preventing key leaks on process crash.
     const clientIp = request.headers['cf-connecting-ip']
       || request.headers['x-forwarded-for']?.split(',')[0].trim()
       || request.socket.remoteAddress
       || 'unknown'
     const rateLimitKey = `click:rl:${affiliateLinkId}:${clientIp}`
-    const count = await redis.incr(rateLimitKey)
-    if (count === 1) await redis.expire(rateLimitKey, 60)
+    const [[, count]] = await redis.multi()
+      .incr(rateLimitKey)
+      .expire(rateLimitKey, 60, 'NX')
+      .exec()
     if (count > 10) {
       reply.code(429)
       return { error: 'Too many requests' }
