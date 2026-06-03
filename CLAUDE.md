@@ -238,10 +238,10 @@ MCP server for scraping DHgate product data. Has its own `src/` with `index.ts`,
 
 ```bash
 # Admin Panel (http://localhost:3002)
-cd admin-frontend && npm install && npm run dev
+cd admin-frontend && pnpm install && pnpm dev
 
 # User Frontend (http://localhost:3000)
-cd frontend && npm install && npm run dev
+cd frontend && pnpm install && pnpm dev
 ```
 
 Both frontends can run concurrently — they use separate HMR ports (24678 and 24677).
@@ -250,8 +250,8 @@ Both frontends can run concurrently — they use separate HMR ports (24678 and 2
 
 ```bash
 cd backend
-npm install
-npm run dev                 # Start Fastify with --watch (default :3001)
+pnpm install
+pnpm dev                    # Start Fastify with --watch (default :3001)
 ```
 
 `DATABASE_URL` should point at Supabase Postgres (production: pooler URL with `?sslmode=require`; local dev: docker-compose Postgres). Schema migrations live in `supabase/migrations/` and are applied via `scripts/migrate.sh` — the backend has no migration runner of its own.
@@ -261,14 +261,14 @@ npm run dev                 # Start Fastify with --watch (default :3001)
 ```bash
 # Admin Frontend / User Frontend / Backend
 cd <workspace>
-npm test              # Run all unit tests (Vitest)
-npm run test:watch    # Watch mode
-npm run test:ui       # Vitest UI
-npm run test:coverage # Coverage report
+pnpm test              # Run all unit tests (Vitest)
+pnpm test:watch        # Watch mode
+pnpm test:ui           # Vitest UI
+pnpm test:coverage     # Coverage report
 
 # Frontends only — Playwright E2E
-npm run test:e2e
-npm run test:e2e:ui
+pnpm test:e2e
+pnpm test:e2e:ui
 ```
 
 ### Database Management

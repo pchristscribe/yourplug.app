@@ -29,7 +29,7 @@ Before running evaluations, you must:
 
 3. **Build the Server**
    ```bash
-   npm run build
+   pnpm build
    ```
 
 ## Running Evaluations

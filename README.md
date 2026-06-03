@@ -12,10 +12,10 @@ cp .env.example .env
 docker-compose up -d
 
 # 3. Start admin frontend (Port 3002)
-cd admin-frontend && npm install && npm run dev
+cd admin-frontend && pnpm install && pnpm dev
 
 # 4. Start user frontend (Port 3000)
-cd frontend && npm install && npm run dev
+cd frontend && pnpm install && pnpm dev
 ```
 
 ## Project Structure
@@ -95,17 +95,17 @@ Both frontends use identical Tailwind config:
 ```bash
 # Admin frontend
 cd admin-frontend
-npm test              # Run all tests
-npm run test:watch    # Watch mode
-npm run test:ui       # Vitest visual UI
-npm run test:coverage # Coverage report
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode
+pnpm test:ui           # Vitest visual UI
+pnpm test:coverage     # Coverage report
 
 # User frontend
 cd frontend
-npm test
-npm run test:watch
-npm run test:ui
-npm run test:coverage
+pnpm test
+pnpm test:watch
+pnpm test:ui
+pnpm test:coverage
 ```
 
 **Test suite stats**: 13 test files, ~66 tests across auth, security, components, stores, and composables.

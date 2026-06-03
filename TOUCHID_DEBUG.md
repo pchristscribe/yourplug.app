@@ -49,7 +49,7 @@ open http://localhost:3002/login
 ```bash
 # If running backend directly:
 cd backend
-npm run dev
+pnpm dev
 
 # Watch for errors when you attempt registration
 ```

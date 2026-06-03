@@ -15,8 +15,8 @@ A Model Context Protocol (MCP) server that enables LLMs to search DHgate product
 
 ```bash
 cd mcp-dhgate
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 ## Configuration
@@ -176,13 +176,13 @@ The `generate_affiliate_link` tool automatically includes FTC compliance reminde
 
 ```bash
 # Build
-npm run build
+pnpm build
 
 # Watch mode
-npm run dev
+pnpm dev
 
 # Type checking
-npm run typecheck
+pnpm typecheck
 ```
 
 ## License

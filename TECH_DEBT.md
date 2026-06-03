@@ -96,13 +96,13 @@ backend-test:
     - uses: actions/setup-node@v4
       with:
         node-version: '24'
-    - run: npm ci
+    - run: pnpm install --frozen-lockfile
       working-directory: backend
-    - run: npm run prisma:migrate
+    - run: pnpm prisma:migrate
       working-directory: backend
       env:
         DATABASE_URL: postgresql://postgres:test@localhost/swordfighters_test
-    - run: npm test
+    - run: pnpm test
       working-directory: backend
 ```
 
@@ -122,7 +122,7 @@ All three `package.json` files declare `"engines": { "node": ">=24" }`, but `ci.
 **Category:** Dependencies
 **Impact:** 4 | **Risk:** 3 | **Effort:** 1 | **Priority score:** 21
 
-`backend/package.json` has `"node": "^25.8.2"` in `dependencies`. Node.js is the runtime — it is not an npm package you install. This does nothing at best (the npm registry has a stub `node` package that warns exactly about this), wastes an install step, and can cause confusion if anyone reads the lockfile or a tool tries to resolve it as a peer dep.
+`backend/package.json` has `"node": "^25.8.2"` in `dependencies`. Node.js is the runtime — it is not a package you install. This does nothing at best (the registry has a stub `node` package that warns exactly about this), wastes an install step, and can cause confusion if anyone reads the lockfile or a tool tries to resolve it as a peer dep.
 
 **Fix:** Remove it from `dependencies`.
 
@@ -132,7 +132,7 @@ All three `package.json` files declare `"engines": { "node": ">=24" }`, but `ci.
 **Category:** Dependencies
 **Impact:** 3 | **Risk:** 4 | **Effort:** 1 | **Priority score:** 21
 
-`"@prisma/studio-core": "github:prisma/studio"` is a production dependency pinned to a GitHub repo with no tag or commit hash. It will resolve to whatever is on that repo's default branch at install time — meaning two installs a week apart can pull different code. It also doesn't go through npm's integrity checking.
+`"@prisma/studio-core": "github:prisma/studio"` is a production dependency pinned to a GitHub repo with no tag or commit hash. It will resolve to whatever is on that repo's default branch at install time — meaning two installs a week apart can pull different code. It also doesn't go through pnpm's integrity checking.
 
 This is almost certainly a development convenience (Prisma Studio is a dev tool) that leaked into production dependencies.
 
@@ -146,7 +146,7 @@ This is almost certainly a development convenience (Prisma Studio is a dev tool)
 
 A formatter plugin belongs in `devDependencies`. Currently it inflates the production install.
 
-**Fix:** `npm install --save-dev prettier-plugin-prisma` and remove from `dependencies`.
+**Fix:** `pnpm add -D prettier-plugin-prisma` and remove from `dependencies`.
 
 ---
 
@@ -216,9 +216,9 @@ In `products.ts`, the `filteredProducts` getter applies a `minRating` filter in 
 **Category:** Dependencies
 **Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
 
-There is no Dependabot or Renovate configuration. Security patches to `fastify`, `@simplewebauthn/*`, `@sentry/*`, and Supabase client won't surface automatically. The `npm audit` step in CI is a safety net, but it won't propose upgrades — only flag known CVEs.
+There is no Dependabot or Renovate configuration. Security patches to `fastify`, `@simplewebauthn/*`, `@sentry/*`, and Supabase client won't surface automatically. The `pnpm audit` step in CI is a safety net, but it won't propose upgrades — only flag known CVEs.
 
-**Fix:** Add `.github/dependabot.yml` with weekly npm updates across all three workspaces. Configure automerge for patch-level bumps.
+**Fix:** Add `.github/dependabot.yml` with weekly pnpm updates across all three workspaces. Configure automerge for patch-level bumps.
 
 ---
 
@@ -236,7 +236,7 @@ These are internal Prisma packages meant to be managed by the Prisma CLI, not li
 **Category:** Test coverage
 **Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
 
-The `test:coverage` script exists in all workspaces but CI runs `npm test` (not `npm run test:coverage`), so no thresholds are enforced. Coverage can drop to 0% without a CI failure. CLAUDE.md claims ">80% coverage required" for new features, but nothing enforces this.
+The `test:coverage` script exists in all workspaces but CI runs `pnpm test` (not `pnpm test:coverage`), so no thresholds are enforced. Coverage can drop to 0% without a CI failure. CLAUDE.md claims ">80% coverage required" for new features, but nothing enforces this.
 
 **Fix:** Add a coverage step to the CI test jobs, and set thresholds in `vitest.config.ts`:
 
@@ -286,7 +286,7 @@ Do alongside normal feature work. Each item is ≤1 hour and unblocks better con
 | 11 | Strip production `console.log` from `auth.ts` | 30 min |
 | 4 | Add backend to CI test matrix with service containers | 2 hours |
 | 17 | Fix the E2E CI condition so it actually runs | 30 min |
-| 14 | Add `.github/dependabot.yml` for weekly npm updates | 20 min |
+| 14 | Add `.github/dependabot.yml` for weekly pnpm updates | 20 min |
 
 ---
 
@@ -313,7 +313,7 @@ These improve robustness but require more careful thought.
 | 4 | Backend excluded from CI test matrix | Tests | **32** |
 | 9 | Search filter interpolation → PostgREST injection | Code/Security | **28** |
 | 5 | CI uses Node 22, engines requires 24 | Deps | **21** |
-| 6 | `node` as npm production dependency | Deps | **21** |
+| 6 | `node` as production dependency | Deps | **21** |
 | 7 | Prisma Studio pinned to unpinned GitHub source | Deps | **21** |
 | 10 | Cleanup middleware fires on every request | Code | **24** |
 | 14 | No Dependabot/Renovate | Deps | **24** |

@@ -1,0 +1,5 @@
+allowBuilds:
+  '@parcel/watcher': false
+  '@sentry-internal/node-cpu-profiler': false
+  esbuild: false
+  msgpackr-extract: false
