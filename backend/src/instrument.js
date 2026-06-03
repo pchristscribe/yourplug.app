@@ -7,7 +7,7 @@ if (process.env.SENTRY_DSN) {
   const profilesSampleRate = parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE)
 
   Sentry.init({
-    dsn: "://f52httpsc3d792d745d0cb475daf85b6c73ff@o4510507802558464.ingest.us.sentry.io/4510876505669632",
+    dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     release: process.env.SENTRY_RELEASE || undefined,
     integrations: [nodeProfilingIntegration()],
@@ -17,7 +17,6 @@ if (process.env.SENTRY_DSN) {
     profilesSampleRate: isNaN(profilesSampleRate)
       ? process.env.NODE_ENV === 'production' ? 0.1 : 1.0
       : profilesSampleRate,
-    sendDefaultPii: true,
     ignoreErrors: [
       'Non-Error promise rejection captured',
       'ECONNRESET',

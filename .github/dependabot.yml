@@ -1,6 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
@@ -14,7 +14,7 @@ updates:
       testing:
         patterns: ["vitest", "@vitest/*", "@vue/test-utils", "happy-dom", "@playwright/*"]
 
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /admin-frontend
     schedule:
       interval: weekly
@@ -30,7 +30,7 @@ updates:
       testing:
         patterns: ["vitest", "@vitest/*", "@vue/test-utils", "happy-dom", "@playwright/*"]
 
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /backend
     schedule:
       interval: weekly

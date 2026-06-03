@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { attachRelations } from '../utils/relations.js'
 import { UUID_RE, SORTABLE, VALID_PLATFORMS, VALID_STATUSES } from '../utils/constants.js'
 
@@ -124,7 +125,27 @@ export default async function productRoutes(fastify, options) {
 
   // Track an affiliate link click
   // POST /products/:id/click  body: { affiliateLinkId }
-  fastify.post('/:id/click', async (request, reply) => {
+  fastify.post('/:id/click', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        additionalProperties: false,
+      },
+      body: {
+        type: 'object',
+        required: ['affiliateLinkId'],
+        properties: {
+          affiliateLinkId: { type: 'string', format: 'uuid' },
+          referrer: { type: 'string', maxLength: 2048 },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
     const { id } = request.params
     const { affiliateLinkId } = request.body || {}
 
@@ -156,9 +177,8 @@ export default async function productRoutes(fastify, options) {
     const ipCountry = request.headers['cf-ipcountry'] || request.headers['x-country'] || null
 
     // Hash the UA for rough unique-visitor metrics without storing raw strings.
-    const crypto = await import('node:crypto')
     const userAgentHash = userAgent
-      ? crypto.createHash('sha256').update(userAgent).digest('hex')
+      ? createHash('sha256').update(userAgent).digest('hex')
       : null
 
     await sql`

@@ -3,7 +3,6 @@ import { buildApp } from './app.js'
 import sql from './lib/sql.js'
 import redis from './lib/redis.js'
 import { flushSentry } from './lib/sentry.js'
-import * as Sentry from "@sentry/node"  
 const fastify = await buildApp()
 
 // Graceful shutdown
