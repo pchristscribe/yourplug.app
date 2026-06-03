@@ -149,6 +149,19 @@ export default async function productRoutes(fastify, options) {
     const { id } = request.params
     const { affiliateLinkId } = request.body
 
+    // Rate limit: 10 clicks per (affiliate_link_id, IP) per minute via Redis.
+    const clientIp = request.headers['cf-connecting-ip']
+      || request.headers['x-forwarded-for']?.split(',')[0].trim()
+      || request.socket.remoteAddress
+      || 'unknown'
+    const rateLimitKey = `click:rl:${affiliateLinkId}:${clientIp}`
+    const count = await redis.incr(rateLimitKey)
+    if (count === 1) await redis.expire(rateLimitKey, 60)
+    if (count > 10) {
+      reply.code(429)
+      return { error: 'Too many requests' }
+    }
+
     // Verify the affiliate link belongs to this product so callers can't log
     // clicks against arbitrary link/product combinations.
     const [link] = await sql`
@@ -163,7 +176,12 @@ export default async function productRoutes(fastify, options) {
 
     // Collect lightweight attribution metadata — no PII stored.
     const userAgent = request.headers['user-agent'] || ''
-    const referrer = request.headers['referer'] || request.headers['referrer'] || null
+    // Body referrer takes precedence (useful for SPAs where Referer header is stripped);
+    // fall back to the browser-supplied Referer header.
+    const referrer = request.body.referrer
+      ?? request.headers['referer']
+      ?? request.headers['referrer']
+      ?? null
     const ipCountry = request.headers['cf-ipcountry'] || request.headers['x-country'] || null
 
     // Hash the UA for rough unique-visitor metrics without storing raw strings.

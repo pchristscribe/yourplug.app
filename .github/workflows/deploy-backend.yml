@@ -22,10 +22,10 @@ jobs:
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli up --service swordfighters-api --detach
+        run: pnpm dlx @railway/cli@4.66.1 up --service swordfighters-api --detach
 
       - name: Deploy worker service
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli up --service swordfighters-worker --detach
+        run: pnpm dlx @railway/cli@4.66.1 up --service swordfighters-worker --detach

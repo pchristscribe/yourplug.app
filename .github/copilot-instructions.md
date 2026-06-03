@@ -119,8 +119,6 @@ docker-compose up -d
 # Backend
 cd backend
 pnpm install
-pnpm prisma:generate     # Generate Prisma client
-pnpm prisma:seed         # Seed test data (optional)
 pnpm dev                 # Starts on http://localhost:3001
 
 # Frontend
@@ -151,14 +149,11 @@ pnpm test:coverage       # With coverage report
 
 ### Database
 ```bash
-# View schema UI
-pnpm prisma:studio       # Interactive schema viewer
+# Apply Supabase migrations to the hosted project
+SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh
 
-# Create migration after schema changes
-pnpm prisma:migrate
-
-# Seed database
-pnpm prisma:seed         # Runs prisma/seed.js
+# Open a local Postgres shell (Docker)
+docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
 ```
 
 ## Conventions
