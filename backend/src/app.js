@@ -76,7 +76,7 @@ export async function buildApp(opts = {}) {
     }
   });
 
-  // Schedule periodic WebAuthn challenge cleanup. The Bull worker (npm run worker)
+  // Schedule periodic WebAuthn challenge cleanup. The Bull worker (pnpm worker)
   // handles this when deployed as a separate process; this interval is the fallback
   // for environments (e.g. Railway single-service) where the worker isn't running.
   fastify.addHook('onReady', async () => {

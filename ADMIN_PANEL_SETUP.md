@@ -51,16 +51,16 @@ cp .env.example .env
 
 ```bash
 cd backend
-npm install
-npm run dev   # runs on http://localhost:3001
+pnpm install
+pnpm dev      # runs on http://localhost:3001
 ```
 
 ### 4. Start Admin Frontend
 
 ```bash
 cd admin-frontend
-npm install
-npm run dev   # runs on http://localhost:3002
+pnpm install
+pnpm dev      # runs on http://localhost:3002
 ```
 
 ### 5. Bootstrap the First Admin Account
@@ -265,14 +265,14 @@ model WebAuthnCredential {
 ```bash
 cd admin-frontend
 
-npm test              # All tests
-npm run test:watch    # Watch mode
-npm run test:ui       # Visual Vitest UI
-npm run test:coverage # Coverage report (v8 provider)
+pnpm test              # All tests
+pnpm test:watch        # Watch mode
+pnpm test:ui           # Visual Vitest UI
+pnpm test:coverage     # Coverage report (v8 provider)
 
 # Run specific file
-npx vitest tests/security.test.ts
-npx vitest tests/auth.test.ts
+pnpm vitest tests/security.test.ts
+pnpm vitest tests/auth.test.ts
 ```
 
 **Test counts**:

@@ -118,47 +118,42 @@ docker-compose up -d
 
 # Backend
 cd backend
-npm install
-npm run prisma:generate  # Generate Prisma client
-npm run prisma:seed      # Seed test data (optional)
-npm run dev              # Starts on http://localhost:3001
+pnpm install
+pnpm dev                 # Starts on http://localhost:3001
 
 # Frontend
 cd frontend
-npm install
-npm run dev              # Starts on http://localhost:3000
+pnpm install
+pnpm dev                 # Starts on http://localhost:3000
 
 # Admin Frontend
 cd admin-frontend
-npm install
-npm run dev              # Starts on http://localhost:3002
+pnpm install
+pnpm dev                 # Starts on http://localhost:3002
 ```
 
 ### Testing
 ```bash
 # Backend unit tests
 cd backend
-npm run test             # Single run with Vitest
-npm run test:watch      # Watch mode
-npm run test:ui         # UI dashboard
+pnpm test                # Single run with Vitest
+pnpm test:watch          # Watch mode
+pnpm test:ui             # UI dashboard
 
 # Frontend tests
 cd frontend
-npm run test
-npm run test:watch
-npm run test:coverage   # With coverage report
+pnpm test
+pnpm test:watch
+pnpm test:coverage       # With coverage report
 ```
 
 ### Database
 ```bash
-# View schema UI
-npm run prisma:studio   # Interactive schema viewer
+# Apply Supabase migrations to the hosted project
+SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh
 
-# Create migration after schema changes
-npm run prisma:migrate
-
-# Seed database
-npm run prisma:seed     # Runs prisma/seed.js
+# Open a local Postgres shell (Docker)
+docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
 ```
 
 ## Conventions

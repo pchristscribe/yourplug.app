@@ -7,7 +7,6 @@ pnpm-debug.log*
 .npm
 .yarn
 .pnp.*
-.codemap/
 
 # Nuxt
 .nuxt

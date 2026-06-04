@@ -13,7 +13,7 @@ Comprehensive validation testing across both frontends and the backend service, 
 | [happy-dom](https://github.com/capricorn86/happy-dom) | Lightweight DOM environment |
 | v8 | Coverage provider |
 
-**Coverage reports**: `text` (terminal) + `json` + `html` — run `npm run test:coverage` in any frontend directory.
+**Coverage reports**: `text` (terminal) + `json` + `html` — run `pnpm test:coverage` in any frontend directory.
 
 ---
 
@@ -174,15 +174,15 @@ The backend is an external service. Its test suite (in `backend/tests/`) covers 
 ```bash
 cd admin-frontend
 
-npm test                         # Run all tests
-npm run test:watch               # Watch mode (re-runs on file change)
-npm run test:ui                  # Visual Vitest UI (browser)
-npm run test:coverage            # Full coverage report
+pnpm test                        # Run all tests
+pnpm test:watch                  # Watch mode (re-runs on file change)
+pnpm test:ui                     # Visual Vitest UI (browser)
+pnpm test:coverage               # Full coverage report
 
 # Run a specific file
-npx vitest tests/auth.test.ts
-npx vitest tests/security.test.ts
-npx vitest tests/darkMode.test.ts
+pnpm vitest tests/auth.test.ts
+pnpm vitest tests/security.test.ts
+pnpm vitest tests/darkMode.test.ts
 ```
 
 ### User Frontend
@@ -190,17 +190,17 @@ npx vitest tests/darkMode.test.ts
 ```bash
 cd frontend
 
-npm test                         # Run all tests
-npm run test:watch               # Watch mode
-npm run test:ui                  # Visual Vitest UI
-npm run test:coverage            # Coverage report
+pnpm test                        # Run all tests
+pnpm test:watch                  # Watch mode
+pnpm test:ui                     # Visual Vitest UI
+pnpm test:coverage               # Coverage report
 
 # Run specific files
-npx vitest tests/filters.test.ts
-npx vitest tests/cart.test.ts
-npx vitest tests/SearchBar.test.ts
-npx vitest tests/ProductCard.test.ts
-npx vitest tests/useToast.test.ts
+pnpm vitest tests/filters.test.ts
+pnpm vitest tests/cart.test.ts
+pnpm vitest tests/SearchBar.test.ts
+pnpm vitest tests/ProductCard.test.ts
+pnpm vitest tests/useToast.test.ts
 ```
 
 ### Backend
@@ -208,10 +208,10 @@ npx vitest tests/useToast.test.ts
 ```bash
 cd backend
 
-npm test                         # All backend tests
-npm test -- webauthn.test.js     # WebAuthn tests only
-npm test -- auth.test.js         # Auth tests only
-npm run test:coverage            # Coverage report
+pnpm test                        # All backend tests
+pnpm test -- webauthn.test.js    # WebAuthn tests only
+pnpm test -- auth.test.js        # Auth tests only
+pnpm test:coverage               # Coverage report
 ```
 
 ---

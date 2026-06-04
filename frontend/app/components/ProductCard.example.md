@@ -127,5 +127,5 @@ The component includes comprehensive tests covering:
 
 Run tests with:
 ```bash
-npm test -- tests/components/ProductCard.test.ts
+pnpm test -- tests/components/ProductCard.test.ts
 ```

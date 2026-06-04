@@ -31,7 +31,7 @@ cp .env.example .env
 ls dist/index.js
 
 # If you need to rebuild:
-npm run build
+pnpm build
 ```
 
 ## Step 4: Configure Claude Desktop

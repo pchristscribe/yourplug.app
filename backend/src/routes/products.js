@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { attachRelations } from '../utils/relations.js'
 import { UUID_RE, SORTABLE, VALID_PLATFORMS, VALID_STATUSES } from '../utils/constants.js'
 
@@ -120,6 +121,86 @@ export default async function productRoutes(fastify, options) {
     await redis.setex(`product:${id}`, 3600, JSON.stringify(result))
 
     return result
+  })
+
+  // Track an affiliate link click
+  // POST /products/:id/click  body: { affiliateLinkId }
+  fastify.post('/:id/click', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+        },
+        additionalProperties: false,
+      },
+      body: {
+        type: 'object',
+        required: ['affiliateLinkId'],
+        properties: {
+          affiliateLinkId: { type: 'string', format: 'uuid' },
+          referrer: { type: 'string', maxLength: 2048 },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const { id } = request.params
+    const { affiliateLinkId } = request.body
+
+    // Rate limit: 10 clicks per (affiliate_link_id, IP) per minute via Redis.
+    // MULTI/EXEC makes the INCR+EXPIRE atomic — EXPIRE uses NX so it only sets
+    // the TTL on the first increment, preventing key leaks on process crash.
+    const clientIp = request.headers['cf-connecting-ip']
+      || request.headers['x-forwarded-for']?.split(',')[0].trim()
+      || request.socket.remoteAddress
+      || 'unknown'
+    // Hash the IP so IPv6 colons don't collide with the key delimiter.
+    const ipKey = createHash('sha256').update(clientIp).digest('hex').slice(0, 16)
+    const rateLimitKey = `click:rl:${affiliateLinkId}:${ipKey}`
+    const [[, count]] = await redis.multi()
+      .incr(rateLimitKey)
+      .expire(rateLimitKey, 60, 'NX')
+      .exec()
+    if (count > 10) {
+      reply.code(429)
+      return { error: 'Too many requests' }
+    }
+
+    // Verify the affiliate link belongs to this product so callers can't log
+    // clicks against arbitrary link/product combinations.
+    const [link] = await sql`
+      select id from affiliate_links
+      where id = ${affiliateLinkId} and product_id = ${id}
+    `
+
+    if (!link) {
+      reply.code(404)
+      return { error: 'Affiliate link not found for this product' }
+    }
+
+    // Collect lightweight attribution metadata — no PII stored.
+    const userAgent = request.headers['user-agent'] || ''
+    // Body referrer takes precedence (useful for SPAs where Referer header is stripped);
+    // fall back to the browser-supplied Referer header.
+    const referrer = request.body.referrer
+      ?? request.headers['referer']
+      ?? request.headers['referrer']
+      ?? null
+    const ipCountry = request.headers['cf-ipcountry'] || request.headers['x-country'] || null
+
+    // Hash the UA for rough unique-visitor metrics without storing raw strings.
+    const userAgentHash = userAgent
+      ? createHash('sha256').update(userAgent).digest('hex')
+      : null
+
+    await sql`
+      insert into clicks (affiliate_link_id, product_id, user_agent_hash, referrer, ip_country)
+      values (${affiliateLinkId}, ${id}, ${userAgentHash}, ${referrer}, ${ipCountry})
+    `
+
+    reply.code(204)
   })
 
   // Write operations live in backend/src/routes/admin/products.js

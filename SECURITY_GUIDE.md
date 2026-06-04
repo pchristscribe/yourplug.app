@@ -785,10 +785,10 @@ app.delete('/api/admin/products/:id', requireAdmin, async (req, res) => {
 ```bash
 # Run security tests
 cd admin-frontend
-npm test tests/security.test.ts
+pnpm vitest tests/security.test.ts
 
 # Test coverage
-npm run test:coverage
+pnpm test:coverage
 ```
 
 **Test Categories:**

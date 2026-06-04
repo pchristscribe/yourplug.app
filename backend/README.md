@@ -5,23 +5,23 @@ Fastify API for the Swordfighters affiliate marketing platform. Requires Node.js
 ## Install
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Run
 
 ```bash
 # Development (auto-restart on file changes)
-npm run dev
+pnpm dev
 
 # Production
-npm start
+pnpm start
 ```
 
 ## Test
 
 ```bash
-npm test
+pnpm test
 ```
 
 See the root `CLAUDE.md` and `RAILWAY.md` for full environment variable documentation and deployment instructions.

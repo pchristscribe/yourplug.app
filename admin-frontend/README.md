@@ -24,8 +24,8 @@ WebAuthn-secured admin panel for managing the Swordfighters affiliate marketing 
 ### Development
 
 ```bash
-npm install
-npm run dev   # http://localhost:3002
+pnpm install
+pnpm dev      # http://localhost:3002
 ```
 
 ### First-Time Setup
@@ -89,15 +89,15 @@ admin-frontend/
 ## Testing
 
 ```bash
-npm test              # all tests
-npm run test:watch    # watch mode
-npm run test:ui       # Vitest visual UI
-npm run test:coverage # coverage report
+pnpm test              # all tests
+pnpm test:watch        # watch mode
+pnpm test:ui           # Vitest visual UI
+pnpm test:coverage     # coverage report
 
 # specific files
-npx vitest tests/auth.test.ts
-npx vitest tests/security.test.ts
-npx vitest tests/darkMode.test.ts
+pnpm vitest tests/auth.test.ts
+pnpm vitest tests/security.test.ts
+pnpm vitest tests/darkMode.test.ts
 ```
 
 **Test counts**:
@@ -162,7 +162,7 @@ Login flow mirrors registration but uses `/authenticate/options` and `/authentic
 ## Production Deployment
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Deploy via Railway (see `RAILWAY.md` in the repo root).

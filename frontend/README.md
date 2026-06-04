@@ -17,24 +17,24 @@ User-facing product catalog for the Swordfighters affiliate marketing platform.
 ## Setup
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Development
 
 ```bash
-npm run dev       # http://localhost:3000
-npm run build     # production build
-npm run preview   # preview production build locally
+pnpm dev         # http://localhost:3000
+pnpm build       # production build
+pnpm preview     # preview production build locally
 ```
 
 ## Testing
 
 ```bash
-npm test              # run all tests
-npm run test:watch    # watch mode
-npm run test:ui       # Vitest visual UI
-npm run test:coverage # coverage report (v8)
+pnpm test              # run all tests
+pnpm test:watch        # watch mode
+pnpm test:ui           # Vitest visual UI
+pnpm test:coverage     # coverage report (v8)
 ```
 
 ## Project Structure

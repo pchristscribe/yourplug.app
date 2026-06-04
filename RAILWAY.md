@@ -64,8 +64,8 @@ Nuxt's Nitro server binds to `0.0.0.0:$PORT` automatically on Railway.
 
 Each `railway.json` sets:
 
-- **Backend** — build: `npm ci`, start: `node src/index.js`
-- **Frontend / Admin Frontend** — build: `npm ci && npm run build`, start: `node .output/server/index.mjs`
+- **Backend** — build: `pnpm install --frozen-lockfile`, start: `node src/index.js`
+- **Frontend / Admin Frontend** — build: `pnpm install --frozen-lockfile && pnpm build`, start: `node .output/server/index.mjs`
 
 ## Database migrations
 

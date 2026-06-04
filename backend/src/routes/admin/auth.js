@@ -1,17 +1,33 @@
 import bcrypt from 'bcryptjs'
 
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+
+const loginSchema = {
+  body: {
+    type: 'object',
+    required: ['email', 'password'],
+    properties: {
+      email: { type: 'string', minLength: 1, maxLength: 254 },
+      password: { type: 'string', minLength: 1, maxLength: 1024 }
+    },
+    additionalProperties: false
+  }
+}
+
 export default async function adminAuthRoutes(fastify, options) {
   const { sql } = fastify
 
   // Login route
-  fastify.post('/login', async (request, reply) => {
-    const { email, password } = request.body
+  fastify.post('/login', { schema: loginSchema }, async (request, reply) => {
+    const { email: rawEmail, password } = request.body
 
-    if (!email || !password) {
+    // Trim and validate email format
+    const email = rawEmail.trim()
+    if (!email || !EMAIL_REGEX.test(email)) {
       reply.code(400)
       return {
         error: 'Validation Error',
-        message: 'Email and password are required'
+        message: 'Invalid email format'
       }
     }
 
@@ -19,7 +35,7 @@ export default async function adminAuthRoutes(fastify, options) {
     const [admin] = await sql`
       select id, email, password_hash, name, role, is_active
       from admins
-      where email = ${String(email).toLowerCase()}
+      where email = ${email.toLowerCase()}
     `
 
     if (!admin) {

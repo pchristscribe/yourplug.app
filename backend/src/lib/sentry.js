@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node'
-import { nodeProfilingIntegration } from '@sentry/profiling-node'
 
 // Sensitive field patterns to redact
 const SENSITIVE_KEYS = [
@@ -75,116 +74,16 @@ export function sanitizeSensitiveData(data, depth = 0) {
 }
 
 /**
- * Validate sample rate is between 0 and 1
- * @param {string} envVar - Environment variable value
- * @param {number} defaultValue - Default value if invalid
- * @returns {number} - Validated sample rate
- */
-function validateSampleRate(envVar, defaultValue) {
-  if (!envVar) return defaultValue
-
-  const rate = parseFloat(envVar)
-
-  if (isNaN(rate) || rate < 0 || rate > 1) {
-    console.warn(`Invalid sample rate "${envVar}". Must be between 0 and 1. Using default: ${defaultValue}`)
-    return defaultValue
-  }
-
-  return rate
-}
-
-/**
- * Initialize Sentry for error tracking and performance monitoring
+ * Register Sentry context hooks on the Fastify instance.
+ * Sentry.init() is called earlier via --import ./src/instrument.js.
  * @param {Object} fastify - Fastify instance
  */
 export function initSentry(fastify) {
-  // Only initialize if DSN is provided
   if (!process.env.SENTRY_DSN) {
     fastify.log.warn('SENTRY_DSN not configured - Sentry monitoring disabled')
     return
   }
-
-  // Validate sample rates
-  const tracesSampleRate = validateSampleRate(
-    process.env.SENTRY_TRACES_SAMPLE_RATE,
-    process.env.NODE_ENV === 'production' ? 0.1 : 1.0
-  )
-
-  const profilesSampleRate = validateSampleRate(
-    process.env.SENTRY_PROFILES_SAMPLE_RATE,
-    process.env.NODE_ENV === 'production' ? 0.1 : 1.0
-  )
-
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV || 'development',
-
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring
-    // In production, you may want to lower this to reduce quota usage
-    tracesSampleRate,
-
-    // Set profilesSampleRate to control profiling
-    profilesSampleRate,
-
-    // Integrations
-    integrations: [
-      // Add Node profiling integration
-      nodeProfilingIntegration(),
-    ],
-
-    // Additional context
-    release: process.env.SENTRY_RELEASE || undefined,
-
-    // Configure which errors to ignore
-    ignoreErrors: [
-      // Browser/client errors that may leak through
-      'Non-Error promise rejection captured',
-      // Network errors
-      'ECONNRESET',
-      'ENOTFOUND',
-      'ECONNREFUSED',
-    ],
-
-    // Before send hook to sanitize sensitive data
-    beforeSend(event, hint) {
-      // Sanitize request data if present
-      if (event.request) {
-        // Sanitize headers
-        if (event.request.headers) {
-          event.request.headers = sanitizeSensitiveData(event.request.headers)
-        }
-
-        // Sanitize cookies
-        if (event.request.cookies) {
-          event.request.cookies = sanitizeSensitiveData(event.request.cookies)
-        }
-
-        // Sanitize query string
-        if (event.request.query_string) {
-          event.request.query_string = sanitizeSensitiveData(event.request.query_string)
-        }
-
-        // Sanitize POST data
-        if (event.request.data) {
-          event.request.data = sanitizeSensitiveData(event.request.data)
-        }
-      }
-
-      // Sanitize extra context
-      if (event.extra) {
-        event.extra = sanitizeSensitiveData(event.extra)
-      }
-
-      // Sanitize contexts
-      if (event.contexts) {
-        event.contexts = sanitizeSensitiveData(event.contexts)
-      }
-
-      return event
-    },
-  })
-
-  fastify.log.info(`Sentry initialized for ${process.env.NODE_ENV} environment (traces: ${tracesSampleRate}, profiles: ${profilesSampleRate})`)
+  fastify.log.info(`Sentry active (env: ${process.env.NODE_ENV || 'development'})`)
 }
 
 /**
