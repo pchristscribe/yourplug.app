@@ -83,3 +83,6 @@ bun.lock
 
 # AI developer scratchpad notes
 .specs/
+
+# Claude Code local settings (contains secrets)
+.claude/settings.local.json
