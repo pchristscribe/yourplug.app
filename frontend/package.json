@@ -39,6 +39,7 @@
     "@playwright/test": "^1.52.0",
     "@types/domexception": "^4.0.3",
     "@vitejs/plugin-vue": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.8",
     "@vitest/ui": "^4.0.14",
     "@vue/test-utils": "^2.4.6",
     "baseline-browser-mapping": "^2.10.13",
@@ -47,7 +48,9 @@
     "globals": "^17.0.0",
     "happy-dom": "^20.8.9",
     "jiti": "^2.7.0",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.52.0",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.14",
+    "vue-tsc": "^3.3.3"
   }
 }

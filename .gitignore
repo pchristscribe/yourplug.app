@@ -37,6 +37,7 @@ Thumbs.db
 .idea/
 .claude/
 .cursor/
+.codex/
 *.swp
 *.swo
 *~

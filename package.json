@@ -1,15 +1,13 @@
 {
+  "name": "swordfighters-fullstack",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@headlessui/vue": "^1.7.23"
   },
-  "name": "swordfighters-fullstack",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
   "devDependencies": {
-    "supabase": "^2.103.0"
-  },
-  "peerDependencies": {
+    "supabase": "^2.103.0",
     "typescript": "^5"
   }
 }

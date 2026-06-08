@@ -1,0 +1,17 @@
+packages:
+  - 'frontend'
+  - 'admin-frontend'
+  - 'backend'
+  - 'mcp-dhgate'
+
+# allowBuilds controls which packages may run postinstall/install scripts.
+# Per-workspace overrides below reflect each package's actual native-build needs.
+# Frontend workspaces need esbuild + @parcel/watcher for Nuxt/Vite.
+# Backend does not need esbuild or @parcel/watcher; profiler native build is enabled.
+allowBuilds:
+  '@parcel/watcher': true
+  '@sentry/cli': true
+  '@sentry-internal/node-cpu-profiler': true
+  esbuild: true
+  msgpackr-extract: false
+  unrs-resolver: false

@@ -75,6 +75,28 @@ describe('Product API', () => {
     })
   })
 
+  describe('GET /api/products validation errors', () => {
+    it('returns 400 for invalid categoryId format', async () => {
+      const response = await app.inject({ method: 'GET', url: '/api/products?categoryId=not-a-uuid' })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 400 for invalid status value', async () => {
+      const response = await app.inject({ method: 'GET', url: '/api/products?status=UNKNOWN' })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 400 for invalid platform value', async () => {
+      const response = await app.inject({ method: 'GET', url: '/api/products?platform=INVALID' })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns products sorted ascending by price', async () => {
+      const response = await app.inject({ method: 'GET', url: '/api/products?sortBy=price&order=asc' })
+      expect(response.statusCode).toBe(200)
+    })
+  })
+
   describe('GET /api/products/:id', () => {
     it('should return a single product by id', async () => {
       // First get a product to test with
