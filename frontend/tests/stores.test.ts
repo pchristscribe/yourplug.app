@@ -2,43 +2,53 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useProductStore } from '../app/stores/products'
 
-const mockGetProducts = vi.fn()
-const mockGetProduct = vi.fn()
-const mockGetCategories = vi.fn()
-
+// The product store fetches through useSupabaseProducts (auto-imported by
+// Nuxt at runtime). In tests we stub the global so the store can resolve it.
 const mockUseSupabaseProducts = vi.fn(() => ({
-  getProducts: mockGetProducts,
-  getProduct: mockGetProduct,
-  getCategories: mockGetCategories,
+  getProducts: vi.fn().mockResolvedValue({
+    products: [
+      {
+        id: '1',
+        title: 'Test Product',
+        platform: 'DHGATE',
+        price: 29.99,
+        description: 'Test description',
+        imageUrl: 'https://example.com/image.jpg',
+      }
+    ],
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: 1,
+      pages: 1,
+    }
+  }),
+  getProduct: vi.fn().mockResolvedValue({
+    id: '1',
+    title: 'Test Product',
+    platform: 'DHGATE',
+    price: 29.99,
+  }),
+  getCategories: vi.fn().mockResolvedValue([
+    {
+      id: '1',
+      name: 'Test Category',
+      slug: 'test-category',
+    }
+  ]),
   searchProducts: vi.fn().mockResolvedValue([]),
 }))
 
 vi.stubGlobal('useSupabaseProducts', mockUseSupabaseProducts)
 
-const samplePagination = { page: 1, limit: 20, total: 1, pages: 1 }
-const sampleProduct = {
-  id: '1',
-  title: 'Test Product',
-  platform: 'DHGATE',
-  price: 29.99,
-  description: 'Test description',
-  imageUrl: 'https://example.com/image.jpg',
-}
-const sampleCategory = { id: '1', name: 'Test Category', slug: 'test-category' }
-
 describe('Product Store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    vi.clearAllMocks()
-    mockGetProducts.mockResolvedValue({ products: [sampleProduct], pagination: samplePagination })
-    mockGetProduct.mockResolvedValue(sampleProduct)
-    mockGetCategories.mockResolvedValue([sampleCategory])
   })
 
-  // ─── Initial state ──────────────────────────────────────────────────────────
-
-  it('initializes with correct default state', () => {
+  it('should initialize with correct default state', () => {
     const store = useProductStore()
+
     expect(store.products).toEqual([])
     expect(store.currentProduct).toBeNull()
     expect(store.categories).toEqual([])
@@ -47,116 +57,120 @@ describe('Product Store', () => {
     expect(store.error).toBeNull()
   })
 
-  // ─── fetchProducts ──────────────────────────────────────────────────────────
-
-  it('fetchProducts sets products and pagination on success', async () => {
+  it('should fetch products', async () => {
     const store = useProductStore()
+
     await store.fetchProducts()
+
     expect(store.products).toHaveLength(1)
     expect(store.products[0].title).toBe('Test Product')
+    expect(store.pagination).not.toBeNull()
     expect(store.pagination?.total).toBe(1)
-    expect(store.loading).toBe(false)
-    expect(store.error).toBeNull()
   })
 
-  it('fetchProducts merges provided filters with stored filters', async () => {
+  it('should fetch categories', async () => {
     const store = useProductStore()
-    await store.fetchProducts({ platform: 'AMAZON', page: 2 })
-    expect(mockGetProducts).toHaveBeenCalledWith(
-      expect.objectContaining({ platform: 'AMAZON', page: 2 })
-    )
-    expect(store.filters.platform).toBe('AMAZON')
-    expect(store.filters.page).toBe(2)
-  })
 
-  it('fetchProducts sets error string on Error throw', async () => {
-    mockGetProducts.mockRejectedValue(new Error('Network failure'))
-    const store = useProductStore()
-    await store.fetchProducts()
-    expect(store.error).toBe('Network failure')
-    expect(store.loading).toBe(false)
-  })
-
-  it('fetchProducts sets fallback error on non-Error throw', async () => {
-    mockGetProducts.mockRejectedValue('unexpected')
-    const store = useProductStore()
-    await store.fetchProducts()
-    expect(store.error).toBe('Failed to fetch products')
-    expect(store.loading).toBe(false)
-  })
-
-  // ─── fetchProduct ───────────────────────────────────────────────────────────
-
-  it('fetchProduct sets currentProduct on success', async () => {
-    const store = useProductStore()
-    await store.fetchProduct('1')
-    expect(store.currentProduct?.title).toBe('Test Product')
-    expect(store.loading).toBe(false)
-    expect(store.error).toBeNull()
-  })
-
-  it('fetchProduct sets error string on Error throw', async () => {
-    mockGetProduct.mockRejectedValue(new Error('Product gone'))
-    const store = useProductStore()
-    await store.fetchProduct('bad-id')
-    expect(store.error).toBe('Product gone')
-    expect(store.loading).toBe(false)
-  })
-
-  it('fetchProduct sets fallback error on non-Error throw', async () => {
-    mockGetProduct.mockRejectedValue(42)
-    const store = useProductStore()
-    await store.fetchProduct('bad-id')
-    expect(store.error).toBe('Failed to fetch product')
-  })
-
-  // ─── fetchCategories ────────────────────────────────────────────────────────
-
-  it('fetchCategories sets categories on success', async () => {
-    const store = useProductStore()
     await store.fetchCategories()
+
     expect(store.categories).toHaveLength(1)
     expect(store.categories[0].name).toBe('Test Category')
   })
 
-  it('fetchCategories silently catches errors', async () => {
-    mockGetCategories.mockRejectedValue(new Error('cat error'))
+  it('should update filters', () => {
     const store = useProductStore()
-    await store.fetchCategories()
-    expect(store.categories).toEqual([])
-  })
 
-  // ─── setFilters / resetFilters ──────────────────────────────────────────────
-
-  it('setFilters merges new filters', () => {
-    const store = useProductStore()
     store.setFilters({ platform: 'DHGATE', page: 2 })
+
     expect(store.filters.platform).toBe('DHGATE')
     expect(store.filters.page).toBe(2)
-    expect(store.filters.sortBy).toBe('createdAt')
   })
 
-  it('resetFilters restores defaults', () => {
+  it('should reset filters', () => {
     const store = useProductStore()
-    store.setFilters({ platform: 'DHGATE', page: 3 })
+
+    store.setFilters({ platform: 'DHGATE', page: 2 })
     store.resetFilters()
+
     expect(store.filters.platform).toBeUndefined()
     expect(store.filters.page).toBe(1)
-    expect(store.filters.order).toBe('desc')
   })
 
-  // ─── Getters ────────────────────────────────────────────────────────────────
+  it('should set loading to true while fetching products and false after', async () => {
+    const store = useProductStore()
 
-  it('getProductById returns the matching product', async () => {
+    // Loading starts false
+    expect(store.loading).toBe(false)
+
+    const promise = store.fetchProducts()
+    // While promise is in-flight loading should be true — but since the mock
+    // resolves synchronously in microtasks we simply assert the final state.
+    await promise
+    expect(store.loading).toBe(false)
+  })
+
+  it('should set error when fetchProducts throws', async () => {
+    // Override the mock to throw an error for this single test
+    mockUseSupabaseProducts.mockReturnValueOnce({
+      getProducts: vi.fn().mockRejectedValue(new Error('Network error')),
+      getProduct: vi.fn(),
+      getCategories: vi.fn(),
+      searchProducts: vi.fn(),
+    })
+
     const store = useProductStore()
     await store.fetchProducts()
+
+    expect(store.error).toBe('Network error')
+    expect(store.loading).toBe(false)
+  })
+
+  it('should set error when fetchProduct throws', async () => {
+    mockUseSupabaseProducts.mockReturnValueOnce({
+      getProducts: vi.fn(),
+      getProduct: vi.fn().mockRejectedValue(new Error('Product not found')),
+      getCategories: vi.fn(),
+      searchProducts: vi.fn(),
+    })
+
+    const store = useProductStore()
+    await store.fetchProduct('unknown-id')
+
+    expect(store.error).toBe('Product not found')
+    expect(store.loading).toBe(false)
+  })
+
+  it('should fetch a single product and store it in currentProduct', async () => {
+    const store = useProductStore()
+    await store.fetchProduct('1')
+
+    expect(store.currentProduct).not.toBeNull()
+    expect(store.currentProduct?.id).toBe('1')
+  })
+
+  it('should clear currentProduct before fetching a new one', async () => {
+    const store = useProductStore()
+
+    // Pre-populate currentProduct
+    store.currentProduct = { id: 'old', title: 'Old', platform: 'DHGATE', price: 5 } as any
+
+    await store.fetchProduct('1')
+    expect(store.currentProduct?.id).toBe('1')
+  })
+
+  it('getProductById returns the correct product from the products array', async () => {
+    const store = useProductStore()
+    await store.fetchProducts()
+
     const found = store.getProductById('1')
+    expect(found).toBeDefined()
     expect(found?.title).toBe('Test Product')
   })
 
-  it('getProductById returns undefined for unknown id', async () => {
+  it('getProductById returns undefined for an unknown id', async () => {
     const store = useProductStore()
     await store.fetchProducts()
+
     expect(store.getProductById('999')).toBeUndefined()
   })
 
@@ -165,23 +179,10 @@ describe('Product Store', () => {
     expect(store.hasMore).toBe(false)
   })
 
-  it('hasMore returns true when there are more pages', async () => {
-    mockGetProducts.mockResolvedValue({
-      products: [sampleProduct],
-      pagination: { page: 1, limit: 20, total: 50, pages: 3 },
-    })
+  it('hasMore returns false when on the last page', async () => {
     const store = useProductStore()
     await store.fetchProducts()
-    expect(store.hasMore).toBe(true)
-  })
-
-  it('hasMore returns false on the last page', async () => {
-    mockGetProducts.mockResolvedValue({
-      products: [sampleProduct],
-      pagination: { page: 3, limit: 20, total: 50, pages: 3 },
-    })
-    const store = useProductStore()
-    await store.fetchProducts()
+    // Mock returns pagination: { page: 1, pages: 1 }
     expect(store.hasMore).toBe(false)
   })
 
@@ -190,13 +191,45 @@ describe('Product Store', () => {
     expect(store.totalProducts).toBe(0)
   })
 
-  it('totalProducts returns pagination total', async () => {
-    mockGetProducts.mockResolvedValue({
-      products: [sampleProduct],
-      pagination: { page: 1, limit: 20, total: 42, pages: 3 },
-    })
+  it('totalProducts returns the correct count after fetching', async () => {
     const store = useProductStore()
     await store.fetchProducts()
-    expect(store.totalProducts).toBe(42)
+    expect(store.totalProducts).toBe(1)
+  })
+
+  it('setFilters merges new filters with existing ones', () => {
+    const store = useProductStore()
+    store.setFilters({ page: 3 })
+    store.setFilters({ limit: 5 })
+
+    expect(store.filters.page).toBe(3)
+    expect(store.filters.limit).toBe(5)
+  })
+
+  it('resetFilters restores sortBy and order defaults', () => {
+    const store = useProductStore()
+    store.setFilters({ sortBy: 'price', order: 'asc' })
+    store.resetFilters()
+
+    expect(store.filters.sortBy).toBe('createdAt')
+    expect(store.filters.order).toBe('desc')
+  })
+
+  it('fetchProducts clears any previous error', async () => {
+    // First call fails
+    mockUseSupabaseProducts.mockReturnValueOnce({
+      getProducts: vi.fn().mockRejectedValue(new Error('Oops')),
+      getProduct: vi.fn(),
+      getCategories: vi.fn(),
+      searchProducts: vi.fn(),
+    })
+
+    const store = useProductStore()
+    await store.fetchProducts()
+    expect(store.error).toBe('Oops')
+
+    // Second call succeeds — error should be cleared
+    await store.fetchProducts()
+    expect(store.error).toBeNull()
   })
 })

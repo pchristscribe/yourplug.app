@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RedisSessionStore } from '../src/lib/sessionStore.js'
 
-function makeClient() {
+/**
+ * Unit tests for RedisSessionStore.
+ * All Redis operations are mocked; no real Redis connection is used.
+ */
+
+function makeRedisClient() {
   return {
     get: vi.fn(),
     setex: vi.fn(),
@@ -14,95 +19,203 @@ describe('RedisSessionStore', () => {
   let store
 
   beforeEach(() => {
-    client = makeClient()
+    client = makeRedisClient()
     store = new RedisSessionStore(client)
   })
 
-  // ─── get ──────────────────────────────────────────────────────────────────
+  // ── Constructor ───────────────────────────────────────────────────────────
 
-  it('get calls callback with parsed session when key exists', async () => {
-    const sessionData = { adminId: 'abc', foo: 'bar' }
-    client.get.mockResolvedValue(JSON.stringify(sessionData))
-    const cb = vi.fn()
+  describe('constructor', () => {
+    it('sets the key prefix to "sess:"', () => {
+      expect(store.prefix).toBe('sess:')
+    })
 
-    await store.get('sess-123', cb)
+    it('sets TTL to 7 days in seconds', () => {
+      expect(store.ttl).toBe(60 * 60 * 24 * 7)
+    })
 
-    expect(client.get).toHaveBeenCalledWith('sess:sess-123')
-    expect(cb).toHaveBeenCalledWith(null, sessionData)
+    it('stores the provided Redis client', () => {
+      expect(store.client).toBe(client)
+    })
   })
 
-  it('get calls callback with null when key does not exist', async () => {
-    client.get.mockResolvedValue(null)
-    const cb = vi.fn()
+  // ── get() ─────────────────────────────────────────────────────────────────
 
-    await store.get('missing', cb)
+  describe('get()', () => {
+    it('returns parsed session data when the key exists', async () => {
+      const sessionData = { adminId: 'uuid-1', createdAt: '2025-01-01' }
+      client.get.mockResolvedValue(JSON.stringify(sessionData))
 
-    expect(cb).toHaveBeenCalledWith(null, null)
+      const result = await new Promise((resolve, reject) => {
+        store.get('session-id', (err, data) => {
+          if (err) reject(err)
+          else resolve(data)
+        })
+      })
+
+      expect(result).toEqual(sessionData)
+      expect(client.get).toHaveBeenCalledWith('sess:session-id')
+    })
+
+    it('returns null when the key does not exist', async () => {
+      client.get.mockResolvedValue(null)
+
+      const result = await new Promise((resolve, reject) => {
+        store.get('missing-id', (err, data) => {
+          if (err) reject(err)
+          else resolve(data)
+        })
+      })
+
+      expect(result).toBeNull()
+    })
+
+    it('calls the callback with an error when Redis fails', async () => {
+      const redisErr = new Error('Redis unavailable')
+      client.get.mockRejectedValue(redisErr)
+
+      const error = await new Promise((resolve) => {
+        store.get('any-id', (err) => resolve(err))
+      })
+
+      expect(error).toBe(redisErr)
+    })
+
+    it('prepends the prefix when calling Redis get', async () => {
+      client.get.mockResolvedValue(null)
+      await new Promise((resolve) => store.get('abc', resolve))
+      expect(client.get).toHaveBeenCalledWith('sess:abc')
+    })
   })
 
-  it('get calls callback with error on redis failure', async () => {
-    const err = new Error('Redis down')
-    client.get.mockRejectedValue(err)
-    const cb = vi.fn()
+  // ── set() ─────────────────────────────────────────────────────────────────
 
-    await store.get('sess-err', cb)
+  describe('set()', () => {
+    it('serializes and stores session data with the correct TTL', async () => {
+      client.setex.mockResolvedValue('OK')
+      const session = { adminId: 'u1', role: 'admin' }
 
-    expect(cb).toHaveBeenCalledWith(err)
+      await new Promise((resolve, reject) => {
+        store.set('session-id', session, (err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
+
+      expect(client.setex).toHaveBeenCalledWith(
+        'sess:session-id',
+        store.ttl,
+        JSON.stringify(session)
+      )
+    })
+
+    it('calls the callback with no error on success', async () => {
+      client.setex.mockResolvedValue('OK')
+
+      const error = await new Promise((resolve) => {
+        store.set('sid', { foo: 'bar' }, (err) => resolve(err))
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    it('calls the callback with an error when Redis fails', async () => {
+      const redisErr = new Error('Write failed')
+      client.setex.mockRejectedValue(redisErr)
+
+      const error = await new Promise((resolve) => {
+        store.set('sid', { foo: 'bar' }, (err) => resolve(err))
+      })
+
+      expect(error).toBe(redisErr)
+    })
+
+    it('stores nested session objects correctly', async () => {
+      client.setex.mockResolvedValue('OK')
+      const session = { user: { id: 1, name: 'Admin' }, meta: { ip: '127.0.0.1' } }
+
+      await new Promise((resolve, reject) => {
+        store.set('nested-sid', session, (err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
+
+      expect(client.setex).toHaveBeenCalledWith(
+        'sess:nested-sid',
+        store.ttl,
+        JSON.stringify(session)
+      )
+    })
   })
 
-  // ─── set ──────────────────────────────────────────────────────────────────
+  // ── destroy() ─────────────────────────────────────────────────────────────
 
-  it('set stores serialized session with TTL via setex', async () => {
-    client.setex.mockResolvedValue('OK')
-    const session = { adminId: 'xyz', iat: Date.now() }
-    const cb = vi.fn()
+  describe('destroy()', () => {
+    it('deletes the session key from Redis', async () => {
+      client.del.mockResolvedValue(1)
 
-    await store.set('sess-456', session, cb)
+      await new Promise((resolve, reject) => {
+        store.destroy('session-id', (err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
 
-    expect(client.setex).toHaveBeenCalledWith(
-      'sess:sess-456',
-      store.ttl,
-      JSON.stringify(session)
-    )
-    expect(cb).toHaveBeenCalledWith(null)
+      expect(client.del).toHaveBeenCalledWith('sess:session-id')
+    })
+
+    it('calls the callback with no error on success', async () => {
+      client.del.mockResolvedValue(1)
+
+      const error = await new Promise((resolve) => {
+        store.destroy('sid', (err) => resolve(err))
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    it('calls the callback with an error when Redis fails', async () => {
+      const redisErr = new Error('Delete failed')
+      client.del.mockRejectedValue(redisErr)
+
+      const error = await new Promise((resolve) => {
+        store.destroy('sid', (err) => resolve(err))
+      })
+
+      expect(error).toBe(redisErr)
+    })
+
+    it('deletes a key that does not exist without error', async () => {
+      client.del.mockResolvedValue(0) // 0 = key was not found, but no error
+
+      const error = await new Promise((resolve) => {
+        store.destroy('non-existent-id', (err) => resolve(err))
+      })
+
+      expect(error).toBeUndefined()
+      expect(client.del).toHaveBeenCalledWith('sess:non-existent-id')
+    })
   })
 
-  it('set calls callback with error on redis failure', async () => {
-    const err = new Error('Write failed')
-    client.setex.mockRejectedValue(err)
-    const cb = vi.fn()
+  // ── Key prefix consistency ────────────────────────────────────────────────
 
-    await store.set('sess-err', {}, cb)
+  describe('key prefix consistency', () => {
+    it('all operations use the same prefix', async () => {
+      const sessionId = 'my-session-id'
+      const expected = `${store.prefix}${sessionId}`
 
-    expect(cb).toHaveBeenCalledWith(err)
-  })
+      client.get.mockResolvedValue(null)
+      client.setex.mockResolvedValue('OK')
+      client.del.mockResolvedValue(1)
 
-  // ─── destroy ──────────────────────────────────────────────────────────────
+      await new Promise((r) => store.get(sessionId, r))
+      await new Promise((r) => store.set(sessionId, {}, r))
+      await new Promise((r) => store.destroy(sessionId, r))
 
-  it('destroy deletes the prefixed session key', async () => {
-    client.del.mockResolvedValue(1)
-    const cb = vi.fn()
-
-    await store.destroy('sess-789', cb)
-
-    expect(client.del).toHaveBeenCalledWith('sess:sess-789')
-    expect(cb).toHaveBeenCalledWith(null)
-  })
-
-  it('destroy calls callback with error on redis failure', async () => {
-    const err = new Error('Delete failed')
-    client.del.mockRejectedValue(err)
-    const cb = vi.fn()
-
-    await store.destroy('sess-err', cb)
-
-    expect(cb).toHaveBeenCalledWith(err)
-  })
-
-  // ─── constructor defaults ─────────────────────────────────────────────────
-
-  it('uses "sess:" prefix and 7-day TTL by default', () => {
-    expect(store.prefix).toBe('sess:')
-    expect(store.ttl).toBe(60 * 60 * 24 * 7)
+      expect(client.get).toHaveBeenCalledWith(expected)
+      expect(client.setex.mock.calls[0][0]).toBe(expected)
+      expect(client.del).toHaveBeenCalledWith(expected)
+    })
   })
 })

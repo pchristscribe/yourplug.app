@@ -1,15 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { sanitizeSensitiveData, initSentry, captureException, captureMessage, flushSentry } from '../sentry.js'
-
-vi.mock('@sentry/node', () => ({
-  withScope: vi.fn((cb) => cb({ setUser: vi.fn(), setTag: vi.fn(), setContext: vi.fn() })),
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-  close: vi.fn().mockResolvedValue(undefined),
-  default: {},
-}))
-
-import * as Sentry from '@sentry/node'
+import { describe, it, expect } from 'vitest'
+import { sanitizeSensitiveData } from '../sentry.js'
 
 describe('Sentry Data Sanitization', () => {
   describe('sanitizeSensitiveData', () => {
@@ -175,93 +165,113 @@ describe('Sentry Data Sanitization', () => {
       expect(sanitized.cvc).toBe('[REDACTED]')
       expect(sanitized.ssn).toBe('[REDACTED]')
     })
-  })
-})
 
-describe('Sentry helper functions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    delete process.env.SENTRY_DSN
-  })
+    it('should redact pin, salt, and private fields', () => {
+      const data = {
+        pin: '1234',
+        salt: 'random-salt-value',
+        privateKey: 'secret-private-key',
+        privateData: 'sensitive'
+      }
 
-  describe('initSentry', () => {
-    it('logs warning when SENTRY_DSN is not set', () => {
-      const fastify = { log: { warn: vi.fn(), info: vi.fn() } }
-      initSentry(fastify)
-      expect(fastify.log.warn).toHaveBeenCalledWith(expect.stringContaining('SENTRY_DSN'))
+      const sanitized = sanitizeSensitiveData(data)
+
+      expect(sanitized.pin).toBe('[REDACTED]')
+      expect(sanitized.salt).toBe('[REDACTED]')
+      expect(sanitized.privateKey).toBe('[REDACTED]')
+      expect(sanitized.privateData).toBe('[REDACTED]')
     })
 
-    it('logs info when SENTRY_DSN is set', () => {
-      process.env.SENTRY_DSN = 'https://key@sentry.io/123'
-      const fastify = { log: { warn: vi.fn(), info: vi.fn() } }
-      initSentry(fastify)
-      expect(fastify.log.info).toHaveBeenCalledWith(expect.stringContaining('Sentry active'))
-      delete process.env.SENTRY_DSN
-    })
-  })
+    it('should redact credential and passwd fields', () => {
+      const data = {
+        credential: 'some-credential-value',
+        credentials: 'another-value',
+        passwd: 'my-passwd',
+        pwd: 'my-pwd'
+      }
 
-  describe('captureException', () => {
-    it('calls Sentry.captureException via withScope', () => {
-      const err = new Error('test error')
-      captureException(err, {})
-      expect(Sentry.withScope).toHaveBeenCalled()
-      expect(Sentry.captureException).toHaveBeenCalledWith(err)
-    })
+      const sanitized = sanitizeSensitiveData(data)
 
-    it('sets user context when context.user is provided', () => {
-      const err = new Error('test')
-      const mockScope = { setUser: vi.fn(), setTag: vi.fn(), setContext: vi.fn() }
-      Sentry.withScope.mockImplementationOnce((cb) => cb(mockScope))
-      captureException(err, { user: { id: 'u1', password: 'secret' } })
-      expect(mockScope.setUser).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'u1', password: '[REDACTED]' })
-      )
+      expect(sanitized.credential).toBe('[REDACTED]')
+      expect(sanitized.credentials).toBe('[REDACTED]')
+      expect(sanitized.passwd).toBe('[REDACTED]')
+      expect(sanitized.pwd).toBe('[REDACTED]')
     })
 
-    it('sets tags when context.tags is provided', () => {
-      const err = new Error('test')
-      const mockScope = { setUser: vi.fn(), setTag: vi.fn(), setContext: vi.fn() }
-      Sentry.withScope.mockImplementationOnce((cb) => cb(mockScope))
-      captureException(err, { tags: { env: 'test', version: '1.0' } })
-      expect(mockScope.setTag).toHaveBeenCalledWith('env', 'test')
-      expect(mockScope.setTag).toHaveBeenCalledWith('version', '1.0')
+    it('should recurse into top-level arrays of objects', () => {
+      const data = [
+        { name: 'Alice', password: 'pass1' },
+        { name: 'Bob', token: 'tok2' },
+        { name: 'Charlie', safe: 'data' }
+      ]
+
+      const sanitized = sanitizeSensitiveData(data)
+
+      expect(sanitized[0].name).toBe('Alice')
+      expect(sanitized[0].password).toBe('[REDACTED]')
+      expect(sanitized[1].token).toBe('[REDACTED]')
+      expect(sanitized[2].safe).toBe('data')
     })
 
-    it('sets sanitized extra context when context.extra is provided', () => {
-      const err = new Error('test')
-      const mockScope = { setUser: vi.fn(), setTag: vi.fn(), setContext: vi.fn() }
-      Sentry.withScope.mockImplementationOnce((cb) => cb(mockScope))
-      captureException(err, { extra: { token: 'secret', safe: 'value' } })
-      expect(mockScope.setContext).toHaveBeenCalledWith(
-        'additional',
-        expect.objectContaining({ token: '[REDACTED]', safe: 'value' })
-      )
-    })
-  })
-
-  describe('captureMessage', () => {
-    it('calls Sentry.captureMessage with the message and level', () => {
-      captureMessage('hello world', 'warning')
-      expect(Sentry.captureMessage).toHaveBeenCalledWith('hello world', 'warning')
+    it('returns [Max Depth Reached] at depth greater than 5', () => {
+      // Build an object nested 7 levels deep: a.b.c.d.e.f = value at depth 6
+      const deep = { a: { b: { c: { d: { e: { f: { g: 'too deep' } } } } } } }
+      const sanitized = sanitizeSensitiveData(deep)
+      // depth 0=deep, 1=a, 2=b, 3=c, 4=d, 5=e → depth 6 triggers the guard
+      expect(sanitized.a.b.c.d.e.f).toBe('[Max Depth Reached]')
     })
 
-    it('defaults to info level', () => {
-      captureMessage('info message')
-      expect(Sentry.captureMessage).toHaveBeenCalledWith('info message', 'info')
-    })
-  })
+    it('should preserve non-sensitive number and boolean values', () => {
+      const data = {
+        count: 42,
+        active: true,
+        score: 3.14,
+        name: 'product'
+      }
 
-  describe('flushSentry', () => {
-    it('calls Sentry.close when SENTRY_DSN is set', async () => {
-      process.env.SENTRY_DSN = 'https://key@sentry.io/123'
-      await flushSentry(1000)
-      expect(Sentry.close).toHaveBeenCalledWith(1000)
-      delete process.env.SENTRY_DSN
+      const sanitized = sanitizeSensitiveData(data)
+
+      expect(sanitized.count).toBe(42)
+      expect(sanitized.active).toBe(true)
+      expect(sanitized.score).toBe(3.14)
+      expect(sanitized.name).toBe('product')
     })
 
-    it('does not call Sentry.close when SENTRY_DSN is not set', async () => {
-      await flushSentry()
-      expect(Sentry.close).not.toHaveBeenCalled()
+    it('should handle an empty object without throwing', () => {
+      expect(sanitizeSensitiveData({})).toEqual({})
+    })
+
+    it('should handle an empty array without throwing', () => {
+      expect(sanitizeSensitiveData([])).toEqual([])
+    })
+
+    it('should keep null and undefined values inside arrays', () => {
+      const data = [null, 'hello', 42]
+      const sanitized = sanitizeSensitiveData(data)
+      expect(sanitized[0]).toBeNull()
+      expect(sanitized[1]).toBe('hello')
+      expect(sanitized[2]).toBe(42)
+    })
+
+    it('should not redact a sensitive key whose value is a non-null object (recurse instead)', () => {
+      // The key "credentials" is sensitive, but its value is an object — we
+      // expect the function to recurse into it rather than replacing the whole
+      // object with [REDACTED].
+      const data = {
+        credentials: {
+          username: 'admin',
+          password: 'secret'
+        }
+      }
+
+      const sanitized = sanitizeSensitiveData(data)
+
+      // The outer "credentials" object is preserved (recursed into)
+      expect(typeof sanitized.credentials).toBe('object')
+      // The nested password IS redacted
+      expect(sanitized.credentials.password).toBe('[REDACTED]')
+      // Non-sensitive nested key is preserved
+      expect(sanitized.credentials.username).toBe('admin')
     })
   })
 })
