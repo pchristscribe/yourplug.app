@@ -1,6 +1,6 @@
 # Backend Security Reference Implementation
 
-**Production-ready security implementations for the Yourplug backend API.**
+**Production-ready security implementations for the yourplug backend API.**
 
 This directory contains complete, tested security utilities, validation schemas, middleware, and example routes that can be directly integrated into your backend service.
 

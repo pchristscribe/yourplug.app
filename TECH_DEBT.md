@@ -1,4 +1,4 @@
-# Tech Debt Audit — Yourplug App
+# Tech Debt Audit — yourplug App
 
 **Audit date:** 2026-05-10
 **Scope:** Full codebase (admin-frontend, frontend, backend, infra)

@@ -1,4 +1,4 @@
-# Copilot Instructions for Yourplug
+# Copilot Instructions for yourplug
 
 **Project**: Affiliate marketing platform curating products from DHgate, AliExpress, Amazon, and Wish for gay men.
 

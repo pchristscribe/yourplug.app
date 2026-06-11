@@ -1,4 +1,4 @@
--- Yourplug App — Performance & RLS Improvements
+-- yourplug App — Performance & RLS Improvements
 -- Fixes: RLS per-row function evaluation, missing composite/partial indexes.
 
 -- ── RLS Policy Performance Fix ────────────────────────────────────────────

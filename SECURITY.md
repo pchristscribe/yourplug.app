@@ -12,7 +12,7 @@ This project is in active development. Security fixes are applied to the current
 
 ## Security Architecture
 
-The Yourplug App implements a **defense-in-depth** security model:
+The yourplug App implements a **defense-in-depth** security model:
 
 1. **WebAuthn Authentication** — passwordless, phishing-resistant, hardware-bound credentials
 2. **CSRF Protection** — `X-CSRF-Token` header via `useCsrf` composable on all mutations

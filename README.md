@@ -1,4 +1,4 @@
-# Yourplug App
+# yourplug App
 
 An affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features product reviews, seasonal recommendations, and FTC-compliant affiliate disclosures.
 

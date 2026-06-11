@@ -8,7 +8,7 @@ import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { isValidChallenge } from '../../utils/cleanupExpiredChallenges.js'
 import { UUID_RE } from '../../utils/constants.js'
 
-const RP_NAME = 'Yourplug Admin'
+const RP_NAME = 'yourplug Admin'
 const RP_ID = process.env.NODE_ENV === 'production'
   ? process.env.RP_ID || 'yourplug.app'
   : 'localhost'

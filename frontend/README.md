@@ -1,6 +1,6 @@
-# Yourplug User Frontend
+# yourplug User Frontend
 
-User-facing product catalog for the Yourplug affiliate marketing platform.
+User-facing product catalog for the yourplug affiliate marketing platform.
 
 ## Tech Stack
 

@@ -1,6 +1,6 @@
-# Yourplug Admin Panel
+# yourplug Admin Panel
 
-WebAuthn-secured admin panel for managing the Yourplug affiliate marketing platform.
+WebAuthn-secured admin panel for managing the yourplug affiliate marketing platform.
 
 ## Tech Stack
 

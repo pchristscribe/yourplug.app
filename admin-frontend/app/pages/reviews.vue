@@ -334,7 +334,7 @@
                 type="text"
                 maxlength="100"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                placeholder="Yourplug Team"
+                placeholder="yourplug Team"
               />
             </div>
 
@@ -426,7 +426,7 @@ const formData = ref({
   content: '',
   pros: [] as string[],
   cons: [] as string[],
-  authorName: 'Yourplug Team',
+  authorName: 'yourplug Team',
   isFeatured: false
 })
 
@@ -502,7 +502,7 @@ const openCreateModal = () => {
     content: '',
     pros: [],
     cons: [],
-    authorName: 'Yourplug Team',
+    authorName: 'yourplug Team',
     isFeatured: false
   }
   showModal.value = true
@@ -517,7 +517,7 @@ const editReview = (review: any) => {
     content: review.content,
     pros: review.pros || [],
     cons: review.cons || [],
-    authorName: review.authorName || 'Yourplug Team',
+    authorName: review.authorName || 'yourplug Team',
     isFeatured: review.isFeatured || false
   }
   showModal.value = true

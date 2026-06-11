@@ -4,7 +4,7 @@
       <div class="sm:flex-auto">
         <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
         <p class="mt-2 text-sm text-gray-700">
-          Overview of your Yourplug affiliate platform
+          Overview of your yourplug affiliate platform
         </p>
       </div>
     </div>

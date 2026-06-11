@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-Yourplug App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
+yourplug App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
 - Product reviews and seasonal recommendations
 - Targeted drop shipping on DHgate for group orders
 - FTC-compliant disclosure of affiliate relationships and monetary considerations

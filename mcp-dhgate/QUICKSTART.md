@@ -141,7 +141,7 @@ To generate working affiliate links:
 2. Sign up and get your affiliate ID
 3. Add to .env: `DHGATE_AFFILIATE_ID=your_id_here`
 
-### 2. Test with Your Yourplug Use Case
+### 2. Test with Your yourplug Use Case
 
 Try realistic queries:
 - "Find trending men's fashion accessories under $30"
@@ -221,4 +221,4 @@ If you encounter issues:
 - [ ] DHgate affiliate program joined (optional)
 - [ ] Affiliate ID configured (optional)
 
-Once all checks pass, you're ready to use the DHgate MCP server for your Yourplug affiliate marketing platform! 🚀
+Once all checks pass, you're ready to use the DHgate MCP server for your yourplug affiliate marketing platform! 🚀

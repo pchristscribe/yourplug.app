@@ -1,4 +1,4 @@
-# Yourplug Admin Panel — Setup Guide
+# yourplug Admin Panel — Setup Guide
 
 ## Overview
 

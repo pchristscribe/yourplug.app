@@ -1,6 +1,6 @@
-# Security Guide - Yourplug App
+# Security Guide - yourplug App
 
-This document provides comprehensive security guidelines, best practices, and architecture documentation for the Yourplug affiliate marketing platform.
+This document provides comprehensive security guidelines, best practices, and architecture documentation for the yourplug affiliate marketing platform.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This document provides comprehensive security guidelines, best practices, and ar
 
 **Security Posture:** Production Ready ✅
 
-The Yourplug App implements a **defense-in-depth** security strategy with multiple layers of protection against common web vulnerabilities including XSS, CSRF, SQL injection, and more.
+The yourplug App implements a **defense-in-depth** security strategy with multiple layers of protection against common web vulnerabilities including XSS, CSRF, SQL injection, and more.
 
 ### Current Security Implementations
 

@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between gap-4">
           <NuxtLink to="/" class="text-2xl font-bold text-brand dark:text-brand-hover whitespace-nowrap">
-            Yourplug
+            yourplug
           </NuxtLink>
           <div class="hidden sm:block flex-1 max-w-md mx-4">
             <SearchBar
@@ -64,12 +64,12 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="text-sm text-ink-muted dark:text-ink-subtle text-center">
           <p class="mb-2">
-            <strong class="text-ink dark:text-ink-inverse">FTC Disclosure:</strong> Yourplug participates in affiliate marketing programs.
+            <strong class="text-ink dark:text-ink-inverse">FTC Disclosure:</strong> yourplug participates in affiliate marketing programs.
             When you click on links and make purchases through our site, we may receive monetary compensation.
             This helps support our work in curating quality products for our community.
           </p>
           <p class="text-ink-subtle">
-            © {{ new Date().getFullYear() }} Yourplug. All rights reserved.
+            © {{ new Date().getFullYear() }} yourplug. All rights reserved.
           </p>
         </div>
       </div>

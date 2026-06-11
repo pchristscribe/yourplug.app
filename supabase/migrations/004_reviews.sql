@@ -1,5 +1,5 @@
--- Yourplug App — Editorial Reviews
--- Curated product reviews authored by the Yourplug team (not user-
+-- yourplug App — Editorial Reviews
+-- Curated product reviews authored by the yourplug team (not user-
 -- submitted). The admin panel manages CRUD via the backend API; the public
 -- frontend reads them on product detail pages via the anon key.
 --
@@ -17,7 +17,7 @@ create table reviews (
   content      text not null check (char_length(content) between 10 and 5000),
   pros         text[] not null default '{}',
   cons         text[] not null default '{}',
-  author_name  text not null default 'Yourplug Team',
+  author_name  text not null default 'yourplug Team',
   is_featured  boolean not null default false,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-A complete, production-ready filtering system has been implemented for the Yourplug App product catalog with the following features:
+A complete, production-ready filtering system has been implemented for the yourplug App product catalog with the following features:
 
 - **Filter by Category** (dropdown)
 - **Filter by Price Range** (dual-range slider with presets)

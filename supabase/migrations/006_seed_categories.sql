@@ -1,5 +1,5 @@
 -- Migration 004: Seed initial product categories
--- Categories curated for the Yourplug affiliate platform
+-- Categories curated for the yourplug affiliate platform
 
 insert into categories (name, slug, description) values
   ('Apparel & Clothing',   'apparel-clothing',   'Fashion, streetwear, and everyday clothing'),
