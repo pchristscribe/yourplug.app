@@ -26,7 +26,7 @@ swordfighters-fullstack/
 ├── keys/                      # Key storage (see README inside)
 ├── .github/workflows/         # CI/CD: ci.yml, claude.yml, claude-code-review.yml, eslint.yml
 ├── docker-compose.yml         # PostgreSQL 16 + Redis 7 infrastructure
-├── package.json               # Root meta-package (Bun + Supabase CLI tooling glue)
+├── package.json               # Root meta-package (pnpm + Supabase CLI tooling glue)
 ├── .env.example               # Environment variable template
 └── .mcp.json                  # MCP server config (DeepGraph Vue MCP)
 ```
@@ -57,7 +57,6 @@ swordfighters-fullstack/
 - Runtime: Node.js 24+, Framework: Fastify 5
 - Database: PostgreSQL via [`postgres-js`](https://github.com/porsager/postgres) — direct queries against Supabase Postgres. Schema source of truth lives in `supabase/migrations/`. The Fastify instance is decorated with a `sql` client (`fastify.sql`) configured with `transform: postgres.camel` so DB columns are returned as camelCase
 - Sessions: `@fastify/session` + `connect-redis` (Redis-backed)
-- Task Queue: Bull (Redis-backed)
 - WebAuthn: `@simplewebauthn/server` (admin auth)
 - Monitoring: Sentry (`@sentry/node`, `@sentry/profiling-node`)
 - Routes: `src/routes/products.js`, `src/routes/categories.js`, and five admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`
@@ -66,7 +65,7 @@ swordfighters-fullstack/
 ### Infrastructure
 - Docker Compose: PostgreSQL 16 (`swordfighters-postgres`) + Redis 7 (`swordfighters-redis`)
 - Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
-- CI/CD: GitHub Actions (`ci.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
+- CI/CD: GitHub Actions (`ci.yml`, `test.yml`, `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
 
 ## Directory Deep-Dive
 
