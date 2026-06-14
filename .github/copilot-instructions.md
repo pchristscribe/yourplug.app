@@ -1,4 +1,4 @@
-# Copilot Instructions for Swordfighters
+# Copilot Instructions for yourplug
 
 **Project**: Affiliate marketing platform curating products from DHgate, AliExpress, Amazon, and Wish for gay men.
 
@@ -153,7 +153,7 @@ pnpm test:coverage       # With coverage report
 SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh
 
 # Open a local Postgres shell (Docker)
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 ```
 
 ## Conventions
@@ -199,12 +199,12 @@ curl "http://localhost:3001/api/products?platform=DHGATE&page=1&limit=20"
 curl http://localhost:3001/api/products/{id}
 
 # View Redis keys
-docker exec -it swordfighters-redis redis-cli -a dev_redis_password
+docker exec -it yourplug-redis redis-cli -a dev_redis_password
 > KEYS *
 > GET products:list:...
 
 # View database
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 ```
 
 ## Production Notes

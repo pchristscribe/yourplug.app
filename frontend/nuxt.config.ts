@@ -37,22 +37,22 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'en' },
       titleTemplate: (chunk?: string) =>
-        chunk && chunk !== 'Swordfighters'
-          ? `${chunk} · Swordfighters`
-          : 'Swordfighters — Curated Products for Gay Men',
+        chunk && chunk !== 'yourplug'
+          ? `${chunk} · yourplug`
+          : 'yourplug — Curated Products for Gay Men',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish — reviewed and hand-picked for our community.' },
         { name: 'theme-color', content: '#8B1E2D' },
         // Open Graph defaults (pages override per-route via useSeoMeta)
-        { property: 'og:site_name', content: 'Swordfighters' },
+        { property: 'og:site_name', content: 'yourplug' },
         { property: 'og:type', content: 'website' },
-        { property: 'og:title', content: 'Swordfighters — Curated Products for Gay Men' },
+        { property: 'og:title', content: 'yourplug — Curated Products for Gay Men' },
         { property: 'og:description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish.' },
         // Twitter defaults
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'Swordfighters — Curated Products for Gay Men' },
+        { name: 'twitter:title', content: 'yourplug — Curated Products for Gay Men' },
         { name: 'twitter:description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish.' },
         {
           'http-equiv': 'Content-Security-Policy',

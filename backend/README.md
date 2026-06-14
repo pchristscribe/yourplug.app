@@ -1,6 +1,6 @@
-# swordfighters-backend
+# yourplug-backend
 
-Fastify API for the Swordfighters affiliate marketing platform. Requires Node.js ≥ 24 and a running PostgreSQL + Redis instance (see `docker-compose.yml` in the repo root).
+Fastify API for the yourplug affiliate marketing platform. Requires Node.js ≥ 24 and a running PostgreSQL + Redis instance (see `docker-compose.yml` in the repo root).
 
 ## Install
 

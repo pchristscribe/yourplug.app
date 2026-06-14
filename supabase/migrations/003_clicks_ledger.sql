@@ -1,4 +1,4 @@
--- Swordfighters App — Clicks Ledger
+-- yourplug App — Clicks Ledger
 -- Per-click detail records for affiliate tracking.
 -- The aggregate `clicks` counter on `affiliate_links` is kept in sync by a
 -- trigger on this table so the existing admin dashboards keep working.

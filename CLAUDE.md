@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Swordfighters App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
+yourplug App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
 - Product reviews and seasonal recommendations
 - Targeted drop shipping on DHgate for group orders
 - FTC-compliant disclosure of affiliate relationships and monetary considerations
@@ -12,7 +12,7 @@ Swordfighters App is an affiliate marketing platform targeting gay men, curating
 ## Repository Structure
 
 ```
-swordfighters-fullstack/
+yourplug-fullstack/
 ├── admin-frontend/            # Admin panel with WebAuthn authentication (Port 3002)
 ├── frontend/                  # User-facing product catalog (Port 3000)
 ├── backend/                   # Fastify API (postgres-js → Supabase + Redis + WebAuthn) — deployable via Railway
@@ -63,7 +63,7 @@ swordfighters-fullstack/
 - Health check: `GET /health` (verifies Postgres + Redis)
 
 ### Infrastructure
-- Docker Compose: PostgreSQL 16 (`swordfighters-postgres`) + Redis 7 (`swordfighters-redis`)
+- Docker Compose: PostgreSQL 16 (`yourplug-postgres`) + Redis 7 (`yourplug-redis`)
 - Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
 - CI/CD: GitHub Actions (`ci.yml`, `test.yml`, `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
 
@@ -273,10 +273,10 @@ pnpm test:e2e:ui
 ### Database Management
 ```bash
 # PostgreSQL (local Docker)
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 
 # Redis CLI
-docker exec -it swordfighters-redis redis-cli -a dev_redis_password
+docker exec -it yourplug-redis redis-cli -a dev_redis_password
 
 # Apply Supabase migrations to the hosted project
 SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh

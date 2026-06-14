@@ -1,6 +1,6 @@
 # Backend Security Reference Implementation
 
-**Production-ready security implementations for the Swordfighters backend API.**
+**Production-ready security implementations for the yourplug backend API.**
 
 This directory contains complete, tested security utilities, validation schemas, middleware, and example routes that can be directly integrated into your backend service.
 
@@ -47,7 +47,7 @@ cp backend-security-reference/middleware/security.js /path/to/your/backend/middl
 cat > .env << EOF
 NODE_ENV=production
 SESSION_SECRET=your-secret-key-here-change-this
-ALLOWED_ORIGINS=https://admin.swordfighters.com,https://swordfighters.com
+ALLOWED_ORIGINS=https://admin.yourplug.app,https://yourplug.app
 ALLOWED_IMAGE_DOMAINS=cdn.example.com,images.example.com
 VERIFY_IMAGE_URLS=true
 EOF
@@ -430,7 +430,7 @@ GET /api/admin/products (with expired session)
 **Example:**
 ```javascript
 // Cross-site request blocked
-POST https://swordfighters.com/api/admin/products
+POST https://yourplug.app/api/admin/products
 Origin: https://evil.com
 // Returns: Blocked by CORS (no Access-Control-Allow-Origin)
 ```

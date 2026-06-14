@@ -7,7 +7,7 @@ export default defineConfig({
     // Point tests at local Docker stack (same defaults as docker-compose.yml).
     // CI overrides these via actual process env vars, which take precedence.
     env: {
-      TEST_DATABASE_URL: process.env.TEST_DATABASE_URL || 'postgresql://swordfighters:dev_password_change_in_production@localhost:5432/swordfighters_test',
+      TEST_DATABASE_URL: process.env.TEST_DATABASE_URL || 'postgresql://yourplug:dev_password_change_in_production@localhost:5432/yourplug_test',
       TEST_REDIS_URL: process.env.TEST_REDIS_URL || 'redis://:dev_redis_password@localhost:6379',
       SESSION_SECRET: process.env.SESSION_SECRET || 'test-session-secret-for-vitest-32chars!!',
     },

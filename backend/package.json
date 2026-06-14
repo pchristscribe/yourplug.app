@@ -1,7 +1,7 @@
 {
-  "name": "swordfighters-backend",
+  "name": "yourplug-backend",
   "version": "1.0.0",
-  "description": "Backend API for Swordfighters affiliate marketing platform",
+  "description": "Backend API for yourplug affiliate marketing platform",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

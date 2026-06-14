@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete filtering system implementation for the Swordfighters App product catalog.
+This document describes the complete filtering system implementation for the yourplug App product catalog.
 
 ## Architecture Summary
 

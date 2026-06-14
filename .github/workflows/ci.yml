@@ -62,9 +62,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: swordfighters
+          POSTGRES_USER: yourplug
           POSTGRES_PASSWORD: test
-          POSTGRES_DB: swordfighters_test
+          POSTGRES_DB: yourplug_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -94,19 +94,19 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Apply Supabase migrations
         run: |
-          psql postgresql://swordfighters:test@localhost:5432/swordfighters_test \
+          psql postgresql://yourplug:test@localhost:5432/yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
           find supabase/migrations -name '*.sql' | sort | \
             xargs cat | \
-            psql postgresql://swordfighters:test@localhost:5432/swordfighters_test -1
+            psql postgresql://yourplug:test@localhost:5432/yourplug_test -1
         env:
           PGPASSWORD: test
       - name: Run tests
         working-directory: backend
         run: pnpm test -- --coverage
         env:
-          TEST_DATABASE_URL: postgresql://swordfighters:test@localhost:5432/swordfighters_test
+          TEST_DATABASE_URL: postgresql://yourplug:test@localhost:5432/yourplug_test
           TEST_REDIS_URL: redis://localhost:6379
           SESSION_SECRET: ${{ secrets.TEST_SESSION_SECRET || 'test-session-secret-at-least-32-chars-long' }}
           NODE_ENV: test

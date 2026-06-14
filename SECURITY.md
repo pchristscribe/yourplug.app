@@ -12,7 +12,7 @@ This project is in active development. Security fixes are applied to the current
 
 ## Security Architecture
 
-The Swordfighters App implements a **defense-in-depth** security model:
+The yourplug App implements a **defense-in-depth** security model:
 
 1. **WebAuthn Authentication** — passwordless, phishing-resistant, hardware-bound credentials
 2. **CSRF Protection** — `X-CSRF-Token` header via `useCsrf` composable on all mutations
@@ -35,7 +35,7 @@ Frontend security (both admin and user frontends) is production-ready with all i
 
 ## Reporting a Vulnerability
 
-**Contact**: [security@swordfighters.com](mailto:security@swordfighters.com)
+**Contact**: [security@yourplug.app](mailto:security@yourplug.app)
 
 **Include in your report**:
 - Description of the vulnerability and affected component

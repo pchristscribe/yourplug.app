@@ -1,4 +1,4 @@
-# Swordfighters App
+# yourplug App
 
 An affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features product reviews, seasonal recommendations, and FTC-compliant affiliate disclosures.
 
@@ -21,7 +21,7 @@ cd frontend && pnpm install && pnpm dev
 ## Project Structure
 
 ```
-swordfighters-fullstack/
+yourplug-fullstack/
 ├── admin-frontend/            # Admin panel — WebAuthn authentication (Port 3002)
 │   ├── app/
 │   │   ├── components/        # DarkModeToggle
@@ -126,10 +126,10 @@ docker-compose down -v   # Stop and delete volumes (⚠️ data loss)
 
 ```bash
 # PostgreSQL shell
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 
 # Redis CLI
-docker exec -it swordfighters-redis redis-cli -a dev_redis_password
+docker exec -it yourplug-redis redis-cli -a dev_redis_password
 ```
 
 ### 3. Environment Variables

@@ -1,6 +1,6 @@
-# Security Guide - Swordfighters App
+# Security Guide - yourplug App
 
-This document provides comprehensive security guidelines, best practices, and architecture documentation for the Swordfighters affiliate marketing platform.
+This document provides comprehensive security guidelines, best practices, and architecture documentation for the yourplug affiliate marketing platform.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This document provides comprehensive security guidelines, best practices, and ar
 
 **Security Posture:** Production Ready ✅
 
-The Swordfighters App implements a **defense-in-depth** security strategy with multiple layers of protection against common web vulnerabilities including XSS, CSRF, SQL injection, and more.
+The yourplug App implements a **defense-in-depth** security strategy with multiple layers of protection against common web vulnerabilities including XSS, CSRF, SQL injection, and more.
 
 ### Current Security Implementations
 
@@ -278,7 +278,7 @@ app.use(csrfProtection({
   secure: true,             // HTTPS only (production)
   sameSite: 'strict',       // CSRF protection
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  domain: '.swordfighters.com', // Subdomain access
+  domain: '.yourplug.app', // Subdomain access
   path: '/'
 }
 ```
@@ -713,7 +713,7 @@ const product = await prisma.product.findUnique({
 **Example Attack:**
 ```html
 <!-- Evil website tricks user into making request -->
-<img src="https://swordfighters.com/api/admin/products/123/delete" />
+<img src="https://yourplug.app/api/admin/products/123/delete" />
 ```
 
 **Defense:**
@@ -876,7 +876,7 @@ const xssPayloads = [
 **CSRF Testing:**
 ```html
 <!-- Create malicious page and verify requests are blocked -->
-<form action="https://swordfighters.com/api/admin/products" method="POST">
+<form action="https://yourplug.app/api/admin/products" method="POST">
   <input name="title" value="Malicious Product" />
 </form>
 <script>document.forms[0].submit()</script>
@@ -926,7 +926,7 @@ const sqlPayloads = [
 
 ### Reporting Security Issues
 
-**Contact:** [security@swordfighters.com](mailto:security@swordfighters.com)
+**Contact:** [security@yourplug.app](mailto:security@yourplug.app)
 
 **Please include:**
 - Description of the vulnerability

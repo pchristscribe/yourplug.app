@@ -6,7 +6,7 @@
         <div class="flex justify-between h-16">
           <div class="flex">
             <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-bold text-gray-900 dark:text-white">Swordfighters Admin</h1>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white">yourplug Admin</h1>
             </div>
             <!-- Desktop Navigation -->
             <div class="hidden sm:ml-6 sm:flex sm:space-x-8">

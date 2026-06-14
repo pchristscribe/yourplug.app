@@ -1,4 +1,4 @@
-# Tech Debt Audit — Swordfighters App
+# Tech Debt Audit — yourplug App
 
 **Audit date:** 2026-05-10
 **Scope:** Full codebase (admin-frontend, frontend, backend, infra)
@@ -88,7 +88,7 @@ backend-test:
       image: postgres:16
       env:
         POSTGRES_PASSWORD: test
-        POSTGRES_DB: swordfighters_test
+        POSTGRES_DB: yourplug_test
     redis:
       image: redis:7
   steps:
@@ -101,7 +101,7 @@ backend-test:
     - run: SUPABASE_ACCESS_TOKEN=${{ secrets.SUPABASE_ACCESS_TOKEN }} SUPABASE_PROJECT_REF=${{ secrets.SUPABASE_PROJECT_REF }} ./scripts/migrate.sh
       working-directory: backend
       env:
-        DATABASE_URL: postgresql://postgres:test@localhost/swordfighters_test
+        DATABASE_URL: postgresql://postgres:test@localhost/yourplug_test
     - run: pnpm test
       working-directory: backend
 ```

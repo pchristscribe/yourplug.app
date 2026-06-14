@@ -56,7 +56,7 @@ export const createReviewSchema = {
         type: 'string',
         minLength: 1,
         maxLength: 100,
-        description: 'Author name (defaults to "Swordfighters Team" if not provided)'
+        description: 'Author name (defaults to "yourplug Team" if not provided)'
       },
       isFeatured: {
         type: 'boolean',

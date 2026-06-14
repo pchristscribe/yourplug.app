@@ -6,9 +6,9 @@ const route = useRoute()
 const { public: { siteUrl } } = useRuntimeConfig()
 
 useSeoMeta({
-  title: 'Swordfighters',
+  title: 'yourplug',
   description: 'Curated products for gay men — reviewed and hand-picked from DHgate, AliExpress, Amazon, and Wish.',
-  ogTitle: 'Swordfighters — Curated Products for Gay Men',
+  ogTitle: 'yourplug — Curated Products for Gay Men',
   ogDescription: 'Curated products for gay men — reviewed and hand-picked from DHgate, AliExpress, Amazon, and Wish.',
   ogUrl: siteUrl,
   ogType: 'website',
