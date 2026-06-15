@@ -25,7 +25,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.71.0",
+    "@dotenvx/dotenvx": "^1.71.3",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
     "@fastify/env": "^6.0.0",
