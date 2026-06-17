@@ -8,7 +8,7 @@
           </svg>
         </div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Swordfighters Admin
+          yourplug.app Admin
         </h2>
         <p class="mt-2 text-center text-sm text-gray-600">
           Secure login with hardware security key, biometrics, or password
@@ -45,7 +45,7 @@
                   autocomplete="email"
                   required
                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="admin@swordfighters.com"
+                  placeholder="admin@yourplug.app"
                 />
               </div>
             </div>

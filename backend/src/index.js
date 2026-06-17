@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { buildApp } from './app.js'
 import sql from './lib/sql.js'
 import redis from './lib/redis.js'

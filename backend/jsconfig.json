@@ -6,7 +6,6 @@
     "module": "NodeNext",
     "moduleDetection": "force",
     "allowJs": true,
-    "types": ["node"],
 
     // Node.js ESM module resolution — matches how Node resolves imports at runtime
     "moduleResolution": "nodenext",
