@@ -107,7 +107,7 @@ export default defineNuxtConfig({
 
   sentry: {
     org: 'yourplug',
-    project: 'nuxt-frontend'
+    project: 'frontend-nuxt'
   },
 
   sourcemap: {

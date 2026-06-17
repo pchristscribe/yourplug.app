@@ -4,7 +4,7 @@
       <!-- Logo / brand -->
       <div class="text-center mb-8">
         <NuxtLink to="/" class="inline-block text-3xl font-bold text-brand dark:text-brand-hover">
-          Swordfighters
+          yourplug.app
         </NuxtLink>
         <p class="mt-2 text-sm text-ink-muted dark:text-ink-subtle">
           Sign in to your account

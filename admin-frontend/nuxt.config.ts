@@ -88,5 +88,14 @@ export default defineNuxtConfig({
         clientPort: 24678
       }
     }
+  },
+
+  sentry: {
+    org: 'yourplug',
+    project: 'admin-frontend-nuxt'
+  },
+
+  sourcemap: {
+    client: 'hidden'
   }
 })

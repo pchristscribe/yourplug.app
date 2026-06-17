@@ -2,7 +2,7 @@
 buildCommand = "npm ci"
 
 [deploy]
-startCommand = "node src/index.js"
+startCommand = "node --import ./src/instrument.js src/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
