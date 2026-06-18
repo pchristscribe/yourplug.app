@@ -192,7 +192,11 @@ backend/
 │   │   ├── __tests__/         # Unit tests for lib modules (e.g. sentry.test.js)
 │   │   ├── sql.js             # postgres-js client singleton (camel transform)
 │   │   ├── redis.js           # ioredis client
-│   │   ├── sessionStore.js    # connect-redis store
+│   │   ├── sessionStore.js    
+
+
+
+# connect-redis store
 │   │   └── sentry.js
 │   ├── middleware/adminAuth.js
 │   ├── routes/
