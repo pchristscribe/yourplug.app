@@ -28,7 +28,7 @@
     "@dotenvx/dotenvx": "^1.71.3",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
-    "@fastify/env": "^6.0.0",
+    "@fastify/env": "^7.0.0",
     "@fastify/session": "^11.1.1",
     "@sentry/node": "^10.57.0",
     "@sentry/profiling-node": "^10.57.0",
