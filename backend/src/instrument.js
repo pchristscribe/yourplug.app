@@ -13,7 +13,11 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     release: process.env.SENTRY_RELEASE || undefined,
-    integrations: [nodeProfilingIntegration()],
+    enableLogs: true,
+    integrations: [
+      nodeProfilingIntegration(),
+      Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+    ],
     tracesSampleRate,
     profilesSampleRate,
     ignoreErrors: [
