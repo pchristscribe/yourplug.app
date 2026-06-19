@@ -136,8 +136,8 @@ export default async function adminBlogPostRoutes(fastify, _options) {
           seo_description: { type: 'string', maxLength: 160 },
           author_name:     { type: 'string', maxLength: 100 },
           status:          { type: 'string', enum: VALID_STATUSES },
-          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' } },
-          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' } }
+          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' }, uniqueItems: true },
+          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' }, uniqueItems: true }
         },
         additionalProperties: false
       }
@@ -179,6 +179,10 @@ export default async function adminBlogPostRoutes(fastify, _options) {
         reply.code(409)
         return { error: 'Slug already exists' }
       }
+      if (err.code === '23503') {
+        reply.code(400)
+        return { error: 'One or more product or category IDs are invalid' }
+      }
       throw err
     }
   })
@@ -204,8 +208,8 @@ export default async function adminBlogPostRoutes(fastify, _options) {
           author_name:     { type: 'string', maxLength: 100 },
           authorName:      { type: 'string', maxLength: 100 },
           status:          { type: 'string', enum: VALID_STATUSES },
-          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' } },
-          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' } }
+          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' }, uniqueItems: true },
+          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' }, uniqueItems: true }
         },
         additionalProperties: false
       }
@@ -272,6 +276,14 @@ export default async function adminBlogPostRoutes(fastify, _options) {
       if (err.isNotFound) {
         reply.code(404)
         return { error: 'Post not found' }
+      }
+      if (err.code === '23505') {
+        reply.code(409)
+        return { error: 'Slug already exists' }
+      }
+      if (err.code === '23503') {
+        reply.code(400)
+        return { error: 'One or more product or category IDs are invalid' }
       }
       throw err
     }

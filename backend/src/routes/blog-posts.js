@@ -94,7 +94,7 @@ export default async function blogPostRoutes(fastify, _options) {
         select p.id, p.title, p.image_url, p.price, p.rating,
                bpp.display_order
         from blog_post_products bpp
-        join products p on p.id = bpp.product_id
+        join products p on p.id = bpp.product_id and p.status = 'ACTIVE'
         where bpp.blog_post_id = ${post.id}
         order by bpp.display_order
       `,

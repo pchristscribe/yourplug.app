@@ -158,6 +158,14 @@ export default async function adminProductVariantRoutes(fastify, _options) {
         reply.code(404)
         return { error: 'Product not found' }
       }
+      if (err.code === '23503') {
+        reply.code(404)
+        return { error: 'Product not found' }
+      }
+      if (err.code === '23505') {
+        reply.code(409)
+        return { error: 'Duplicate variant type/value combination' }
+      }
       throw err
     }
 
@@ -191,13 +199,14 @@ export default async function adminProductVariantRoutes(fastify, _options) {
     let variant, oldProductId
     try {
       const result = await sql.begin(async sql => {
-        const [existing] = await sql`select product_id, variant_type from product_variants where id = ${id}`
+        const [existing] = await sql`select product_id, variant_type, is_default from product_variants where id = ${id}`
         if (!existing) throw Object.assign(new Error('Variant not found'), { isNotFound: true })
 
-        if (data.isDefault) {
-          // Use the post-patch values (what the row will look like after update)
-          const effectivePid  = updateObj.product_id   ?? existing.productId
-          const effectiveType = updateObj.variant_type ?? existing.variantType
+        const effectivePid  = updateObj.product_id   ?? existing.productId
+        const effectiveType = updateObj.variant_type ?? existing.variantType
+        const willBeDefault = updateObj.is_default   ?? existing.isDefault
+
+        if (willBeDefault) {
           await sql`
             update product_variants set is_default = false
             where product_id = ${effectivePid}
@@ -218,6 +227,14 @@ export default async function adminProductVariantRoutes(fastify, _options) {
       if (err.isNotFound) {
         reply.code(404)
         return { error: 'Variant not found' }
+      }
+      if (err.code === '23503') {
+        reply.code(404)
+        return { error: 'Product not found' }
+      }
+      if (err.code === '23505') {
+        reply.code(409)
+        return { error: 'Duplicate variant type/value combination' }
       }
       throw err
     }
