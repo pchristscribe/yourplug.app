@@ -1,13 +1,19 @@
 import { adminAuth } from '../../middleware/adminAuth.js'
 import { UUID_RE } from '../../utils/constants.js'
 
-const SLUG_RE     = /^[a-z0-9-]+$/
+const SLUG_RE        = /^[a-z0-9-]+$/
 const VALID_STATUSES = ['draft', 'published', 'archived']
-const SORTABLE    = { createdAt: 'created_at', updatedAt: 'updated_at', publishedAt: 'published_at', title: 'title' }
+const SORTABLE       = { createdAt: 'created_at', updatedAt: 'updated_at', publishedAt: 'published_at', title: 'title' }
 
+// Accept both snake_case (write path) and camelCase (round-trip from GET responses)
 const WRITABLE_FIELDS = [
-  'slug', 'title', 'excerpt', 'content', 'featured_image',
-  'seo_title', 'seo_description', 'author_name', 'status'
+  'slug', 'title', 'excerpt', 'content',
+  'featured_image', 'featuredImage',
+  'seo_title', 'seoTitle',
+  'seo_description', 'seoDescription',
+  'author_name', 'authorName',
+  'published_at', 'publishedAt',
+  'status'
 ]
 
 const TO_COLUMN = {
@@ -28,14 +34,16 @@ export default async function adminBlogPostRoutes(fastify, _options) {
 
   fastify.addHook('onRequest', adminAuth)
 
-  const bustCache = async (slug) => {
-    await Promise.all([
-      redis.del(`blog:slug:${slug}`),
-      // Pattern-delete list cache keys — scan so we don't block
-      redis.scan(0, 'MATCH', 'blog:list:*', 'COUNT', 100).then(([, keys]) =>
-        keys.length ? redis.del(keys) : null
-      )
-    ])
+  // Delete slug-specific and all list cache entries; accepts multiple slugs.
+  const bustCache = async (...slugs) => {
+    await Promise.all(slugs.map(s => redis.del(`blog:slug:${s}`)))
+    // Drain SCAN cursor — a single call may not return all matching keys
+    let cursor = '0'
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', 'blog:list:*', 'COUNT', 100)
+      cursor = nextCursor
+      if (keys.length) await redis.del(keys)
+    } while (cursor !== '0')
   }
 
   // ── List (all statuses, admin view) ──────────────────────────────────────
@@ -44,10 +52,11 @@ export default async function adminBlogPostRoutes(fastify, _options) {
     const { status, search, page = 1, limit = 20, sortBy = 'createdAt', order = 'desc' } = request.query
 
     if (status && !VALID_STATUSES.includes(status)) {
-      reply.code(400); return { error: 'Invalid status' }
+      reply.code(400)
+      return { error: 'Invalid status' }
     }
 
-    const safeLimit  = Math.min(parseInt(limit, 10) || 20, 100)
+    const safeLimit  = Math.min(Math.max(1, parseInt(limit, 10) || 20), 100)
     const safePage   = Math.max(1, parseInt(page, 10) || 1)
     const skip       = (safePage - 1) * safeLimit
     const sortColumn = SORTABLE[sortBy] || 'created_at'
@@ -73,17 +82,23 @@ export default async function adminBlogPostRoutes(fastify, _options) {
       sql`select count(*)::int as count from blog_posts where ${where}`
     ])
 
-    return { posts, pagination: { page: safePage, limit: safeLimit, total, pages: Math.ceil(total / safeLimit) } }
+    return { data: posts, pagination: { page: safePage, limit: safeLimit, total, pages: Math.ceil(total / safeLimit) } }
   })
 
   // ── Get single (by id) ───────────────────────────────────────────────────
 
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) { reply.code(404); return { error: 'Post not found' } }
+    if (!UUID_RE.test(id)) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const [post] = await sql`select * from blog_posts where id = ${id}`
-    if (!post) { reply.code(404); return { error: 'Post not found' } }
+    if (!post) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const [linkedProducts, linkedCategories] = await Promise.all([
       sql`
@@ -112,17 +127,17 @@ export default async function adminBlogPostRoutes(fastify, _options) {
         type: 'object',
         required: ['slug', 'title', 'content'],
         properties: {
-          slug:           { type: 'string', minLength: 1, maxLength: 200 },
-          title:          { type: 'string', minLength: 1, maxLength: 300 },
-          excerpt:        { type: 'string', maxLength: 500 },
-          content:        { type: 'string', minLength: 1 },
-          featured_image: { type: 'string', maxLength: 2048 },
-          seo_title:      { type: 'string', maxLength: 60 },
-          seo_description:{ type: 'string', maxLength: 160 },
-          author_name:    { type: 'string', maxLength: 100 },
-          status:         { type: 'string', enum: VALID_STATUSES },
-          productIds:     { type: 'array', items: { type: 'string', format: 'uuid' } },
-          categoryIds:    { type: 'array', items: { type: 'string', format: 'uuid' } }
+          slug:            { type: 'string', minLength: 1, maxLength: 200 },
+          title:           { type: 'string', minLength: 1, maxLength: 300 },
+          excerpt:         { type: 'string', maxLength: 500 },
+          content:         { type: 'string', minLength: 1 },
+          featured_image:  { type: 'string', maxLength: 2048 },
+          seo_title:       { type: 'string', maxLength: 60 },
+          seo_description: { type: 'string', maxLength: 160 },
+          author_name:     { type: 'string', maxLength: 100 },
+          status:          { type: 'string', enum: VALID_STATUSES },
+          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' } },
+          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' } }
         },
         additionalProperties: false
       }
@@ -131,7 +146,8 @@ export default async function adminBlogPostRoutes(fastify, _options) {
     const { productIds = [], categoryIds = [], ...data } = request.body
 
     if (invalidSlug(data.slug)) {
-      reply.code(400); return { error: 'Slug must be lowercase alphanumeric with hyphens' }
+      reply.code(400)
+      return { error: 'Slug must be lowercase alphanumeric with hyphens' }
     }
 
     const insertObj = Object.fromEntries(
@@ -139,26 +155,30 @@ export default async function adminBlogPostRoutes(fastify, _options) {
     )
 
     try {
-      const [post] = await sql`insert into blog_posts ${sql(insertObj)} returning *`
-
-      if (productIds.length) {
-        await sql`
-          insert into blog_post_products (blog_post_id, product_id, display_order)
-          values ${sql(productIds.map((pid, i) => [post.id, pid, i]))}
-        `
-      }
-      if (categoryIds.length) {
-        await sql`
-          insert into blog_post_categories (blog_post_id, category_id)
-          values ${sql(categoryIds.map(cid => [post.id, cid]))}
-        `
-      }
-
+      const post = await sql.begin(async sql => {
+        const [p] = await sql`insert into blog_posts ${sql(insertObj)} returning *`
+        if (productIds.length) {
+          await sql`
+            insert into blog_post_products (blog_post_id, product_id, display_order)
+            values ${sql(productIds.map((pid, i) => [p.id, pid, i]))}
+          `
+        }
+        if (categoryIds.length) {
+          await sql`
+            insert into blog_post_categories (blog_post_id, category_id)
+            values ${sql(categoryIds.map(cid => [p.id, cid]))}
+          `
+        }
+        return p
+      })
       await bustCache(post.slug)
       reply.code(201)
       return post
     } catch (err) {
-      if (err.code === '23505') { reply.code(409); return { error: 'Slug already exists' } }
+      if (err.code === '23505') {
+        reply.code(409)
+        return { error: 'Slug already exists' }
+      }
       throw err
     }
   })
@@ -170,67 +190,94 @@ export default async function adminBlogPostRoutes(fastify, _options) {
       body: {
         type: 'object',
         properties: {
-          slug:           { type: 'string', minLength: 1, maxLength: 200 },
-          title:          { type: 'string', minLength: 1, maxLength: 300 },
-          excerpt:        { type: 'string', maxLength: 500 },
-          content:        { type: 'string', minLength: 1 },
-          featured_image: { type: 'string', maxLength: 2048 },
-          seo_title:      { type: 'string', maxLength: 60 },
-          seo_description:{ type: 'string', maxLength: 160 },
-          author_name:    { type: 'string', maxLength: 100 },
-          status:         { type: 'string', enum: VALID_STATUSES },
-          productIds:     { type: 'array', items: { type: 'string', format: 'uuid' } },
-          categoryIds:    { type: 'array', items: { type: 'string', format: 'uuid' } }
+          slug:            { type: 'string', minLength: 1, maxLength: 200 },
+          title:           { type: 'string', minLength: 1, maxLength: 300 },
+          excerpt:         { type: 'string', maxLength: 500 },
+          content:         { type: 'string', minLength: 1 },
+          // Accept both snake_case and camelCase for round-trip compatibility
+          featured_image:  { type: 'string', maxLength: 2048 },
+          featuredImage:   { type: 'string', maxLength: 2048 },
+          seo_title:       { type: 'string', maxLength: 60 },
+          seoTitle:        { type: 'string', maxLength: 60 },
+          seo_description: { type: 'string', maxLength: 160 },
+          seoDescription:  { type: 'string', maxLength: 160 },
+          author_name:     { type: 'string', maxLength: 100 },
+          authorName:      { type: 'string', maxLength: 100 },
+          status:          { type: 'string', enum: VALID_STATUSES },
+          productIds:      { type: 'array', items: { type: 'string', format: 'uuid' } },
+          categoryIds:     { type: 'array', items: { type: 'string', format: 'uuid' } }
         },
         additionalProperties: false
       }
     }
   }, async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) { reply.code(404); return { error: 'Post not found' } }
+    if (!UUID_RE.test(id)) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const { productIds, categoryIds, ...data } = request.body
 
     if (data.slug && invalidSlug(data.slug)) {
-      reply.code(400); return { error: 'Slug must be lowercase alphanumeric with hyphens' }
+      reply.code(400)
+      return { error: 'Slug must be lowercase alphanumeric with hyphens' }
     }
 
     const updateObj = Object.fromEntries(
       WRITABLE_FIELDS.filter(k => data[k] !== undefined).map(k => [toColumn(k), data[k]])
     )
 
-    let post
-    if (Object.keys(updateObj).length) {
-      ;[post] = await sql`update blog_posts set ${sql(updateObj)} where id = ${id} returning *`
-      if (!post) { reply.code(404); return { error: 'Post not found' } }
-    } else {
-      ;[post] = await sql`select * from blog_posts where id = ${id}`
-      if (!post) { reply.code(404); return { error: 'Post not found' } }
-    }
+    let post, prevSlug
+    try {
+      const result = await sql.begin(async sql => {
+        const [existing] = await sql`select * from blog_posts where id = ${id}`
+        if (!existing) throw Object.assign(new Error('Post not found'), { isNotFound: true })
 
-    // Replace product associations if provided
-    if (Array.isArray(productIds)) {
-      await sql`delete from blog_post_products where blog_post_id = ${id}`
-      if (productIds.length) {
-        await sql`
-          insert into blog_post_products (blog_post_id, product_id, display_order)
-          values ${sql(productIds.map((pid, i) => [id, pid, i]))}
-        `
+        const currentSlug = existing.slug
+        let updated
+
+        if (Object.keys(updateObj).length) {
+          ;[updated] = await sql`update blog_posts set ${sql(updateObj)} where id = ${id} returning *`
+          if (!updated) throw Object.assign(new Error('Post not found'), { isNotFound: true })
+        } else {
+          updated = existing
+        }
+
+        if (Array.isArray(productIds)) {
+          await sql`delete from blog_post_products where blog_post_id = ${id}`
+          if (productIds.length) {
+            await sql`
+              insert into blog_post_products (blog_post_id, product_id, display_order)
+              values ${sql(productIds.map((pid, i) => [id, pid, i]))}
+            `
+          }
+        }
+
+        if (Array.isArray(categoryIds)) {
+          await sql`delete from blog_post_categories where blog_post_id = ${id}`
+          if (categoryIds.length) {
+            await sql`
+              insert into blog_post_categories (blog_post_id, category_id)
+              values ${sql(categoryIds.map(cid => [id, cid]))}
+            `
+          }
+        }
+
+        return { post: updated, prevSlug: currentSlug }
+      })
+      post = result.post
+      prevSlug = result.prevSlug
+    } catch (err) {
+      if (err.isNotFound) {
+        reply.code(404)
+        return { error: 'Post not found' }
       }
+      throw err
     }
 
-    // Replace category associations if provided
-    if (Array.isArray(categoryIds)) {
-      await sql`delete from blog_post_categories where blog_post_id = ${id}`
-      if (categoryIds.length) {
-        await sql`
-          insert into blog_post_categories (blog_post_id, category_id)
-          values ${sql(categoryIds.map(cid => [id, cid]))}
-        `
-      }
-    }
-
-    await bustCache(post.slug)
+    // Evict both old slug (if renamed) and new slug
+    await bustCache(prevSlug, post.slug)
     return post
   })
 
@@ -238,10 +285,16 @@ export default async function adminBlogPostRoutes(fastify, _options) {
 
   fastify.delete('/:id', async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) { reply.code(404); return { error: 'Post not found' } }
+    if (!UUID_RE.test(id)) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const [post] = await sql`select slug from blog_posts where id = ${id}`
-    if (!post) { reply.code(404); return { error: 'Post not found' } }
+    if (!post) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     await sql`delete from blog_posts where id = ${id}`
     await bustCache(post.slug)
@@ -252,7 +305,10 @@ export default async function adminBlogPostRoutes(fastify, _options) {
 
   fastify.post('/:id/publish', async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) { reply.code(404); return { error: 'Post not found' } }
+    if (!UUID_RE.test(id)) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const [post] = await sql`
       update blog_posts
@@ -260,21 +316,30 @@ export default async function adminBlogPostRoutes(fastify, _options) {
       where id = ${id}
       returning *
     `
-    if (!post) { reply.code(404); return { error: 'Post not found' } }
+    if (!post) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
     await bustCache(post.slug)
     return post
   })
 
   fastify.post('/:id/unpublish', async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) { reply.code(404); return { error: 'Post not found' } }
+    if (!UUID_RE.test(id)) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
 
     const [post] = await sql`
       update blog_posts set status = 'draft'
       where id = ${id}
       returning *
     `
-    if (!post) { reply.code(404); return { error: 'Post not found' } }
+    if (!post) {
+      reply.code(404)
+      return { error: 'Post not found' }
+    }
     await bustCache(post.slug)
     return post
   })

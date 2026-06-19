@@ -10,7 +10,7 @@ export default async function blogPostRoutes(fastify, _options) {
   fastify.get('/', async (request, reply) => {
     const { page = 1, limit = 10, categoryId } = request.query
 
-    const safeLimit = Math.min(parseInt(limit, 10) || 10, 50)
+    const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 10), 50)
     const safePage  = Math.max(1, parseInt(page, 10) || 1)
     const skip      = (safePage - 1) * safeLimit
 
@@ -51,7 +51,7 @@ export default async function blogPostRoutes(fastify, _options) {
     ])
 
     const result = {
-      posts,
+      data: posts,
       pagination: {
         page: safePage,
         limit: safeLimit,

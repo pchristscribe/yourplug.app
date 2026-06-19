@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-Swordfighters App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
+yourplug.app is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
 - Product reviews and seasonal recommendations
 - Targeted drop shipping on DHgate for group orders
 - FTC-compliant disclosure of affiliate relationships and monetary considerations
@@ -19,7 +19,7 @@ swordfighters-fullstack/
 ├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
 ├── mcp-dhgate/                # DHgate MCP server for product scraping
 ├── supabase/
-│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn)
+│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn, 008 user profiles, 009 product variants, 010 blog posts, 011 security fixes)
 │   ├── functions/             # Edge functions (e.g. track-click)
 │   └── config.toml
 ├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
@@ -60,7 +60,7 @@ swordfighters-fullstack/
 - Task Queue: Bull (Redis-backed)
 - WebAuthn: `@simplewebauthn/server` (admin auth)
 - Monitoring: Sentry (`@sentry/node`, `@sentry/profiling-node`)
-- Routes: `src/routes/products.js`, `src/routes/categories.js`, and five admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`
+- Routes: `src/routes/products.js`, `src/routes/categories.js`, `src/routes/blog-posts.js`, and seven admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`, `blog-posts.js`, `product-variants.js`
 - Health check: `GET /health` (verifies Postgres + Redis)
 
 ### Infrastructure
@@ -192,11 +192,7 @@ backend/
 │   │   ├── __tests__/         # Unit tests for lib modules (e.g. sentry.test.js)
 │   │   ├── sql.js             # postgres-js client singleton (camel transform)
 │   │   ├── redis.js           # ioredis client
-│   │   ├── sessionStore.js    
-
-
-
-# connect-redis store
+│   │   ├── sessionStore.js    # connect-redis store
 │   │   └── sentry.js
 │   ├── middleware/adminAuth.js
 │   ├── routes/
@@ -207,7 +203,9 @@ backend/
 │   │       ├── categories.js
 │   │       ├── products.js
 │   │       ├── reviews.js
-│   │       └── webauthn.js
+│   │       ├── webauthn.js
+│   │       ├── blog-posts.js
+│   │       └── product-variants.js
 │   ├── schemas/
 │   │   ├── review.js          # Fastify JSON schema
 │   │   └── category.js        # Fastify JSON schema
@@ -225,7 +223,7 @@ MCP server for scraping DHgate product data. Has its own `src/` with `index.ts`,
 ### Supabase (`supabase/`)
 
 - `config.toml` — local Supabase CLI config
-- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`)
+- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`, `008_user_profiles.sql`, `009_product_variants.sql`, `010_blog_posts.sql`, `011_security_fixes.sql`)
 - `functions/track-click/` — Edge Function that records affiliate-link clicks into the clicks ledger
 
 ## Development Setup
@@ -314,6 +312,7 @@ docker-compose down -v        # Remove volumes (⚠️ deletes all data)
 - **95% Critical Path Coverage**: All major authentication flows
 
 ### Key Test Files
+
 | File | Description |
 |------|-------------|
 | `admin-frontend/tests/auth.test.ts` | WebAuthn + password auth validation (174+ tests) |
@@ -357,11 +356,13 @@ Both frontends share an identical Tailwind config with:
 ## State Management (Pinia)
 
 ### Admin Frontend Stores
+
 | Store | File | Purpose |
 |-------|------|---------|
 | `auth` | `stores/auth.ts` | WebAuthn session, user state |
 
 ### User Frontend Stores
+
 | Store | File | Purpose |
 |-------|------|---------|
 | `filters` | `stores/filters.ts` | Category, platform, price range, rating, sort |
@@ -461,4 +462,3 @@ Key variables (see `.env.example` for full list):
 ## Legal Compliance
 
 All affiliate links and sponsored content must include FTC-compliant disclosures stating that the site receives monetary compensation from affiliate programs.
-

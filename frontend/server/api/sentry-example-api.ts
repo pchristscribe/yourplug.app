@@ -1,7 +1,9 @@
-// This is just a very simple API route that throws an example error.
-// Feel free to delete this file.
-import { defineEventHandler } from '#imports';
+// Sentry onboarding helper — development only; never runs in production.
+import { defineEventHandler, createError } from '#imports'
 
 export default defineEventHandler(() => {
-  throw new Error("Sentry Example API Route Error");
-});
+  if (process.env.NODE_ENV === 'production') {
+    throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+  }
+  throw new Error('Sentry Example API Route Error')
+})
