@@ -3,9 +3,9 @@ set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-CONTAINER="${POSTGRES_CONTAINER:-swordfighters-postgres}"
-DB_USER="${POSTGRES_USER:-swordfighters}"
-DB_NAME="${POSTGRES_DB:-swordfighters_db}"
+CONTAINER="${POSTGRES_CONTAINER:-yourplug-postgres}"
+DB_USER="${POSTGRES_USER:-yourplug}"
+DB_NAME="${POSTGRES_DB:-yourplug_db}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 
 mkdir -p "$BACKUP_DIR"

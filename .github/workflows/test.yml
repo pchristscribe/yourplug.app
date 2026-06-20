@@ -71,9 +71,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: swordfighters
+          POSTGRES_USER: yourplug
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: swordfighters_test
+          POSTGRES_DB: yourplug_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -93,8 +93,8 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgresql://swordfighters:test_password@localhost:5432/swordfighters_test
-      TEST_DATABASE_URL: postgresql://swordfighters:test_password@localhost:5432/swordfighters_test
+      DATABASE_URL: postgresql://yourplug:test_password@localhost:5432/yourplug_test
+      TEST_DATABASE_URL: postgresql://yourplug:test_password@localhost:5432/yourplug_test
       REDIS_URL: redis://localhost:6379
       TEST_REDIS_URL: redis://localhost:6379
       SESSION_SECRET: test-session-secret-at-least-32-characters-long
@@ -123,12 +123,12 @@ jobs:
           # Stub out Supabase-specific auth schema so migrations that reference
           # auth.role() (e.g. RLS policies in 005_perf_improvements.sql) succeed
           # against plain Postgres in CI.
-          psql -h localhost -U swordfighters -d swordfighters_test \
+          psql -h localhost -U yourplug -d yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
           find ../supabase/migrations -name '*.sql' | sort | \
             xargs cat | \
-            psql -h localhost -U swordfighters -d swordfighters_test -1
+            psql -h localhost -U yourplug -d yourplug_test -1
 
       - name: Run tests
         run: pnpm test

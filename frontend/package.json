@@ -22,13 +22,18 @@
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.4",
     "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "^10.47.0",
+    "@sentry/nuxt": "^10.58.0",
     "import-in-the-middle": "^3.0.2",
-    "nuxt": "^4.4.6",
+    "nuxt": "^4.4.7",
     "nuxt-headlessui": "^1.2.2",
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "shell-quote": ">=1.8.4"
+    }
   },
   "devDependencies": {
     "@eslint/css": "^0.14.1",
@@ -37,26 +42,21 @@
     "@eslint/markdown": "^8.0.2",
     "@microsoft/eslint-formatter-sarif": "3.1.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.61.0",
     "@types/domexception": "^4.0.3",
     "@vitejs/plugin-vue": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.8",
-    "@vitest/ui": "^4.0.14",
-    "@vue/test-utils": "^2.4.6",
-    "baseline-browser-mapping": "^2.10.13",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
+    "@vue/test-utils": "^2.4.11",
+    "baseline-browser-mapping": "^2.10.38",
     "eslint": "^9.39.2",
     "eslint-plugin-vue": "^10.6.2",
     "globals": "^17.0.0",
-    "happy-dom": "^20.8.9",
+    "happy-dom": "^20.10.6",
     "jiti": "^2.7.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.52.0",
-    "vitest": "^4.0.14",
+    "typescript-eslint": "^8.61.1",
+    "vitest": "^4.1.9",
     "vue-tsc": "^3.3.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "@vercel/nft": "^0.27.4"
-    }
   }
 }

@@ -2,6 +2,7 @@ export const useDarkMode = () => {
   const isDark = useState<boolean>('darkMode', () => false)
 
   const applyDarkMode = (dark: boolean) => {
+    if (typeof window === 'undefined') return
     if (dark) {
       document.documentElement.classList.add('dark')
     } else {
@@ -16,6 +17,7 @@ export const useDarkMode = () => {
   }
 
   const init = () => {
+    if (typeof window === 'undefined') return
     const stored = localStorage.getItem('darkMode')
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     const shouldBeDark = stored === 'dark' || (!stored && prefersDark)

@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-yourplug.app is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
+yourplug App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
 - Product reviews and seasonal recommendations
 - Targeted drop shipping on DHgate for group orders
 - FTC-compliant disclosure of affiliate relationships and monetary considerations
@@ -12,14 +12,14 @@ yourplug.app is an affiliate marketing platform targeting gay men, curating prod
 ## Repository Structure
 
 ```
-swordfighters-fullstack/
+yourplug-fullstack/
 ├── admin-frontend/            # Admin panel with WebAuthn authentication (Port 3002)
 ├── frontend/                  # User-facing product catalog (Port 3000)
 ├── backend/                   # Fastify API (postgres-js → Supabase + Redis + WebAuthn) — deployable via Railway
 ├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
 ├── mcp-dhgate/                # DHgate MCP server for product scraping
 ├── supabase/
-│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn, 008 user profiles, 009 product variants, 010 blog posts, 011 security fixes)
+│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn)
 │   ├── functions/             # Edge functions (e.g. track-click)
 │   └── config.toml
 ├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
@@ -60,11 +60,11 @@ swordfighters-fullstack/
 - Task Queue: Bull (Redis-backed)
 - WebAuthn: `@simplewebauthn/server` (admin auth)
 - Monitoring: Sentry (`@sentry/node`, `@sentry/profiling-node`)
-- Routes: `src/routes/products.js`, `src/routes/categories.js`, `src/routes/blog-posts.js`, and seven admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`, `blog-posts.js`, `product-variants.js`
+- Routes: `src/routes/products.js`, `src/routes/categories.js`, and five admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`
 - Health check: `GET /health` (verifies Postgres + Redis)
 
 ### Infrastructure
-- Docker Compose: PostgreSQL 16 (`swordfighters-postgres`) + Redis 7 (`swordfighters-redis`)
+- Docker Compose: PostgreSQL 16 (`yourplug-postgres`) + Redis 7 (`yourplug-redis`)
 - Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
 - CI/CD: GitHub Actions (`ci.yml`, `Codex.yml`, `Codex-review.yml`, `eslint.yml`)
 
@@ -203,9 +203,7 @@ backend/
 │   │       ├── categories.js
 │   │       ├── products.js
 │   │       ├── reviews.js
-│   │       ├── webauthn.js
-│   │       ├── blog-posts.js
-│   │       └── product-variants.js
+│   │       └── webauthn.js
 │   ├── schemas/
 │   │   ├── review.js          # Fastify JSON schema
 │   │   └── category.js        # Fastify JSON schema
@@ -223,7 +221,7 @@ MCP server for scraping DHgate product data. Has its own `src/` with `index.ts`,
 ### Supabase (`supabase/`)
 
 - `config.toml` — local Supabase CLI config
-- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`, `008_user_profiles.sql`, `009_product_variants.sql`, `010_blog_posts.sql`, `011_security_fixes.sql`)
+- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`)
 - `functions/track-click/` — Edge Function that records affiliate-link clicks into the clicks ledger
 
 ## Development Setup
@@ -276,10 +274,10 @@ pnpm test:e2e:ui
 ### Database Management
 ```bash
 # PostgreSQL (local Docker)
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 
 # Redis CLI
-docker exec -it swordfighters-redis redis-cli -a dev_redis_password
+docker exec -it yourplug-redis redis-cli -a dev_redis_password
 
 # Apply Supabase migrations to the hosted project
 SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh
@@ -312,7 +310,6 @@ docker-compose down -v        # Remove volumes (⚠️ deletes all data)
 - **95% Critical Path Coverage**: All major authentication flows
 
 ### Key Test Files
-
 | File | Description |
 |------|-------------|
 | `admin-frontend/tests/auth.test.ts` | WebAuthn + password auth validation (174+ tests) |
@@ -356,13 +353,11 @@ Both frontends share an identical Tailwind config with:
 ## State Management (Pinia)
 
 ### Admin Frontend Stores
-
 | Store | File | Purpose |
 |-------|------|---------|
 | `auth` | `stores/auth.ts` | WebAuthn session, user state |
 
 ### User Frontend Stores
-
 | Store | File | Purpose |
 |-------|------|---------|
 | `filters` | `stores/filters.ts` | Category, platform, price range, rating, sort |

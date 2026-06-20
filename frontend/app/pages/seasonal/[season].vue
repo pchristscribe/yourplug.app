@@ -28,8 +28,8 @@ const pagination = computed(() => data.value?.pagination ?? null)
 
 useHead(() => ({
   title: season.value
-    ? `${season.value.label} Picks · Swordfighters`
-    : 'Seasonal · Swordfighters',
+    ? `${season.value.label} Picks · yourplug`
+    : 'Seasonal · yourplug',
   meta: [
     {
       name: 'description',

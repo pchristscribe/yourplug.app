@@ -119,4 +119,87 @@ describe('useDarkMode', () => {
       expect(localStorage.getItem('darkMode')).toBe('light')
     })
   })
+
+  describe('SSR guards (window is undefined)', () => {
+    // Capture real window so we can restore it after each test
+    const realWindow = global.window
+
+    beforeEach(() => {
+      localStorage.clear()
+      document.documentElement.classList.remove('dark')
+      vi.stubGlobal('window', undefined)
+    })
+
+    afterEach(() => {
+      vi.stubGlobal('window', realWindow)
+    })
+
+    it('init() returns early and does not update isDark when window is undefined', () => {
+      // Put a 'dark' value in storage – init() would normally pick this up
+      localStorage.setItem('darkMode', 'dark')
+      const { isDark, init } = useDarkMode()
+
+      init()
+
+      // Guard fired: isDark must stay at its initial false value
+      expect(isDark.value).toBe(false)
+    })
+
+    it('init() does not apply dark class to document when window is undefined', () => {
+      localStorage.setItem('darkMode', 'dark')
+      const { init } = useDarkMode()
+
+      init()
+
+      expect(document.documentElement.classList.contains('dark')).toBe(false)
+    })
+
+    it('init() does not read localStorage when window is undefined', () => {
+      const getItemSpy = vi.spyOn(localStorage, 'getItem')
+      const { init } = useDarkMode()
+
+      init()
+
+      expect(getItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('applyDarkMode() does not add dark class to document when window is undefined', () => {
+      const { toggle } = useDarkMode()
+
+      // toggle() flips isDark then calls applyDarkMode(true); guard should prevent DOM change
+      toggle()
+
+      expect(document.documentElement.classList.contains('dark')).toBe(false)
+    })
+
+    it('applyDarkMode() does not write to localStorage when window is undefined', () => {
+      const setItemSpy = vi.spyOn(localStorage, 'setItem')
+      const { toggle } = useDarkMode()
+
+      toggle()
+
+      expect(setItemSpy).not.toHaveBeenCalled()
+    })
+
+    it('applyDarkMode() does not remove dark class from document when window is undefined', () => {
+      // Simulate a pre-existing dark class (e.g. set server-side)
+      document.documentElement.classList.add('dark')
+      const { isDark, toggle } = useDarkMode()
+
+      // Manually seed isDark as true so toggle goes dark→light
+      isDark.value = true
+      toggle()
+
+      // Guard fired: existing 'dark' class must remain untouched
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+
+    it('toggle() still mutates isDark state even when window is undefined', () => {
+      const { isDark, toggle } = useDarkMode()
+
+      expect(isDark.value).toBe(false)
+      toggle()
+      expect(isDark.value).toBe(true)
+    })
+  })
 })

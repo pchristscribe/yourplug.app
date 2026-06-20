@@ -41,7 +41,7 @@ For now, here's the original product URL: ${product_url}`
 
   if (campaign_name) {
     url.searchParams.set('utm_campaign', campaign_name)
-    url.searchParams.set('utm_source', 'swordfighters')
+    url.searchParams.set('utm_source', 'yourplug')
     url.searchParams.set('utm_medium', 'affiliate')
   }
 

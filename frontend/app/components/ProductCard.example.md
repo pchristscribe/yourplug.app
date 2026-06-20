@@ -1,6 +1,6 @@
 # ProductCard Component
 
-A reusable product card component for displaying product information in the Swordfighters App.
+A reusable product card component for displaying product information in the yourplug App.
 
 ## Features
 

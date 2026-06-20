@@ -1,4 +1,4 @@
-// Swordfighters — Affiliate Click Tracker
+// yourplug — Affiliate Click Tracker
 //
 // Public endpoint the frontend links to instead of the raw affiliate URL.
 // Flow:

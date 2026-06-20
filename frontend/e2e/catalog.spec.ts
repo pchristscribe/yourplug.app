@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Product Catalog', () => {
   test('homepage loads and shows title', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/Swordfighters/)
+    await expect(page).toHaveTitle(/yourplug/)
   })
 
   test('search bar is visible on homepage', async ({ page }) => {

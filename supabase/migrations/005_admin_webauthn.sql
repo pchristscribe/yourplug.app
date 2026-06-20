@@ -1,4 +1,4 @@
--- Swordfighters App — Admin WebAuthn
+-- yourplug App — Admin WebAuthn
 -- Reconciles the Supabase schema with what the Fastify backend needs for
 -- passwordless admin auth. This migration is purely additive and is the
 -- prerequisite for replacing Prisma with postgres-js against Supabase

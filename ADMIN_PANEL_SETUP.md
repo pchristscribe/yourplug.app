@@ -1,4 +1,4 @@
-# Swordfighters Admin Panel — Setup Guide
+# yourplug Admin Panel — Setup Guide
 
 ## Overview
 
@@ -91,7 +91,7 @@ After inserting the row, proceed to register your security key (step 6 below). T
 
 1. Open **http://localhost:3002**
 2. Click **"Register Security Key"**
-3. Enter your email (e.g., `admin@swordfighters.com`)
+3. Enter your email (e.g., `admin@yourplug.app`)
 4. Enter a device name (e.g., `MacBook Touch ID` or `YubiKey 5`)
 5. Authenticate with your device:
    - **YubiKey**: Insert and tap the button
@@ -291,11 +291,11 @@ NUXT_PUBLIC_SUPABASE_KEY=your-anon-key
 SUPABASE_SECRET_KEY=your-service-role-key
 
 # Backend API
-API_BASE_URL=https://api.swordfighters.com
+API_BASE_URL=https://api.yourplug.app
 
 # WebAuthn (backend)
-RP_ID=swordfighters.com
-ADMIN_URL=https://admin.swordfighters.com
+RP_ID=yourplug.app
+ADMIN_URL=https://admin.yourplug.app
 
 # Session
 SESSION_SECRET=<generate-64-character-secret>

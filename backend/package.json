@@ -1,7 +1,7 @@
 {
-  "name": "swordfighters-backend",
+  "name": "yourplug-backend",
   "version": "1.0.0",
-  "description": "Backend API for Swordfighters affiliate marketing platform",
+  "description": "Backend API for yourplug affiliate marketing platform",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -25,19 +25,18 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dotenvx/dotenvx": "^1.71.0",
+    "@dotenvx/dotenvx": "^1.71.3",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
-    "@fastify/env": "^6.0.0",
+    "@fastify/env": "^7.0.0",
     "@fastify/session": "^11.1.1",
-    "@sentry/node": "^10.56.0",
-    "@sentry/profiling-node": "^10.56.0",
+    "@sentry/node": "^10.57.0",
+    "@sentry/profiling-node": "^10.57.0",
     "@simplewebauthn/server": "^13.3.1",
     "bcryptjs": "^3.0.3",
     "connect-redis": "^9.0.0",
-    "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
-    "ioredis": "^5.11.0",
+    "ioredis": "^5.11.1",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

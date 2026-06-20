@@ -1,4 +1,4 @@
-# Swordfighters App
+# yourplug App
 
 An affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features product reviews, seasonal recommendations, and FTC-compliant affiliate disclosures.
 
@@ -21,7 +21,7 @@ cd frontend && pnpm install && pnpm dev
 ## Project Structure
 
 ```
-swordfighters-fullstack/
+yourplug-fullstack/
 ├── admin-frontend/            # Admin panel — WebAuthn authentication (Port 3002)
 │   ├── app/
 │   │   ├── components/        # DarkModeToggle
@@ -37,14 +37,14 @@ swordfighters-fullstack/
 ├── frontend/                  # User-facing product catalog (Port 3000)
 │   ├── app/
 │   │   ├── components/        # ProductCard, SearchBar, filters/, feedback/
-│   │   ├── composables/       # useDarkMode, useApi, useToast, useSupabaseProducts
+│   │   ├── composables/       # useDarkMode, useAuth, useToast, useSupabaseProducts
 │   │   ├── layouts/           # default.vue
 │   │   ├── pages/             # index, products/[id], search-demo
-│   │   ├── stores/            # filters.ts, cart.ts, products.ts (Pinia)
+│   │   ├── stores/            # filters.ts, products.ts (Pinia)
 │   │   └── types/             # index.ts, filters.ts, database.types.ts, supabase.ts
 │   └── tests/                 # 10 test files covering components, stores, composables
 │
-├── backend/                   # Backend API (external service — not actively developed here)
+├── backend/                   # Fastify API — deployable via Railway (Port 3001)
 ├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
 ├── mcp-dhgate/                # DHgate MCP server for product scraping
 ├── supabase/migrations/       # Database migration files
@@ -65,7 +65,7 @@ swordfighters-fullstack/
 | Monitoring | Sentry (`@sentry/nuxt`) in both frontends |
 | Testing | Vitest + Vue Test Utils + happy-dom |
 | Infrastructure | Docker Compose (PostgreSQL 16 + Redis 7) |
-| Backend API | Fastify + Prisma (external service) |
+| Backend API | Fastify 5 + postgres-js (Node.js 24+, Port 3001) |
 
 ### Admin Panel (`admin-frontend/`)
 
@@ -126,10 +126,10 @@ docker-compose down -v   # Stop and delete volumes (⚠️ data loss)
 
 ```bash
 # PostgreSQL shell
-docker exec -it swordfighters-postgres psql -U swordfighters -d swordfighters_db
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 
 # Redis CLI
-docker exec -it swordfighters-redis redis-cli -a dev_redis_password
+docker exec -it yourplug-redis redis-cli -a dev_redis_password
 ```
 
 ### 3. Environment Variables
@@ -147,7 +147,9 @@ Key variables (full list in `.env.example`):
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
-- `main.yml` — main pipeline
+- `ci.yml` — main CI pipeline
+- `test.yml` — test runner
+- `deploy-backend.yml` — backend deployment
 - `claude.yml` — Claude Code integration
 - `claude-code-review.yml` — automated PR review
 - `eslint.yml` — linting checks
@@ -161,7 +163,7 @@ GitHub Actions workflows in `.github/workflows/`:
 | Backend API | Railway |
 | Database | Supabase |
 | Monitoring | Sentry |
-| Scraping Jobs | GitHub Actions + Bull queue |
+| Scraping Jobs | GitHub Actions + DHgate MCP server |
 
 See [ADMIN_PANEL_SETUP.md](./ADMIN_PANEL_SETUP.md) for production environment variables and deployment checklist.
 

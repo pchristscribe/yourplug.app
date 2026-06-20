@@ -9,23 +9,18 @@ jobs:
     name: Deploy backend to Railway
     runs-on: ubuntu-latest
     environment: production
-
     steps:
       - uses: actions/checkout@v6
-
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Deploy API service
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli@4.66.1 up --service swordfighters-api --detach
+        run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-api --detach
 
       - name: Deploy worker service
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli@4.66.1 up --service swordfighters-worker --detach
+        run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-worker --detach

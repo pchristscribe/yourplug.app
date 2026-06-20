@@ -1,5 +1,5 @@
 
-> swordfighters-backend@1.0.0 test
+> yourplug-backend@1.0.0 test
 > vitest run
 
 
