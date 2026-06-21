@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    clearMocks: true,
     // Point tests at local Docker stack (same defaults as docker-compose.yml).
     // CI overrides these via actual process env vars, which take precedence.
     env: {
