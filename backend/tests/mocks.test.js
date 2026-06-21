@@ -1,11 +1,3 @@
-/**
- * Tests for the shared mock modules introduced in this PR:
- * - backend/src/lib/__mocks__/redis.js
- * - backend/src/lib/__mocks__/sql.js
- *
- * These mocks are imported directly (not via vi.mock) so we test their
- * exported API and default return values in isolation.
- */
 import { describe, it, expect, vi } from 'vitest'
 import redisMock from '../src/lib/__mocks__/redis.js'
 import sqlMock from '../src/lib/__mocks__/sql.js'
