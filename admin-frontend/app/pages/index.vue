@@ -4,7 +4,7 @@
       <div class="sm:flex-auto">
         <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
         <p class="mt-2 text-sm text-gray-700">
-          Overview of your yourplug affiliate platform
+          Overview of yourplug.app affiliate platform
         </p>
       </div>
     </div>
@@ -100,7 +100,7 @@
                     {{ product.title }}
                   </p>
                   <p class="text-sm text-gray-500">
-                    {{ product.category.name }} • {{ product.platform }}
+                    {{ product.category.name }} &bull; {{ product.platform }}
                   </p>
                 </div>
                 <div class="ml-4 flex-shrink-0">

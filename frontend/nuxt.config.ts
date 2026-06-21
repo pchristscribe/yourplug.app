@@ -3,6 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  future: {
+    compatibilityVersion: 4,
+  },
+
   devServer: {
     port: 3000,
   },
@@ -37,22 +41,22 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'en' },
       titleTemplate: (chunk?: string) =>
-        chunk && chunk !== 'yourplug'
-          ? `${chunk} · yourplug`
-          : 'yourplug — Curated Products for Gay Men',
+        chunk && chunk !== 'yourplug.app'
+          ? `${chunk} · yourplug.app`
+          : 'yourplug.app — Curated Products for Gay Men',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish — reviewed and hand-picked for our community.' },
         { name: 'theme-color', content: '#8B1E2D' },
         // Open Graph defaults (pages override per-route via useSeoMeta)
-        { property: 'og:site_name', content: 'yourplug' },
+        { property: 'og:site_name', content: 'yourplug.app' },
         { property: 'og:type', content: 'website' },
-        { property: 'og:title', content: 'yourplug — Curated Products for Gay Men' },
+        { property: 'og:title', content: 'yourplug.app — Curated Products for Gay Men' },
         { property: 'og:description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish.' },
         // Twitter defaults
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'yourplug — Curated Products for Gay Men' },
+        { name: 'twitter:title', content: 'yourplug.app — Curated Products for Gay Men' },
         { name: 'twitter:description', content: 'Discover curated products from DHgate, AliExpress, Amazon, and Wish.' },
         {
           'http-equiv': 'Content-Security-Policy',
@@ -99,5 +103,14 @@ export default defineNuxtConfig({
         port: 24677 // Changed to avoid conflict with admin-frontend
       }
     }
+  },
+
+  sentry: {
+    org: 'yourplug',
+    project: 'frontend-nuxt'
+  },
+
+  sourcemap: {
+    client: 'hidden'
   }
 })
