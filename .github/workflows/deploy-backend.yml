@@ -63,8 +63,8 @@ jobs:
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
             -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;"
-          find supabase/migrations -name '*.sql' | sort -V | \
-            xargs cat | \
+          find supabase/migrations -name '*.sql' -print0 | sort -zV | \
+            xargs -0 cat | \
             psql -h localhost -U yourplug -d yourplug_test -1
 
       - name: Run tests
