@@ -1,6 +1,12 @@
 <script setup lang="ts">
 const visible = ref(false)
 
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    decline()
+  }
+}
+
 onMounted(() => {
   try {
     const consent = localStorage.getItem('cookieConsent')
@@ -10,6 +16,11 @@ onMounted(() => {
   } catch {
     visible.value = true
   }
+  window.addEventListener('keydown', onKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
 })
 
 function saveConsent(value: 'accepted' | 'declined') {
@@ -30,12 +41,6 @@ function decline() {
   document.cookie = 'analytics_consent=; path=/; max-age=0; SameSite=Lax; Secure'
   saveConsent('declined')
 }
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    decline()
-  }
-}
 </script>
 
 <template>
@@ -53,7 +58,6 @@ function onKeydown(e: KeyboardEvent) {
       aria-label="Cookie consent"
       aria-describedby="cookie-consent-desc"
       class="fixed bottom-0 inset-x-0 z-50 bg-surface dark:bg-surface-raised border-t border-gray-100 dark:border-gray-700 shadow-raised outline-none"
-      @keydown="onKeydown"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p id="cookie-consent-desc" class="flex-1 text-sm text-ink dark:text-ink-muted leading-relaxed">
