@@ -242,12 +242,13 @@ describe('AJV removeAdditional: false', () => {
 describe('buildApp SESSION_SECRET requirement', () => {
   it('throws when SESSION_SECRET is not set', async () => {
     const original = process.env.SESSION_SECRET
-    delete process.env.SESSION_SECRET
-
-    await expect(buildApp({ logger: false })).rejects.toThrow(
-      'SESSION_SECRET environment variable is required'
-    )
-
-    process.env.SESSION_SECRET = original
+    try {
+      delete process.env.SESSION_SECRET
+      await expect(buildApp({ logger: false })).rejects.toThrow(
+        'SESSION_SECRET environment variable is required'
+      )
+    } finally {
+      process.env.SESSION_SECRET = original
+    }
   })
 })

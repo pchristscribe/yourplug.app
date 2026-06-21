@@ -36,8 +36,7 @@ export async function buildApp(opts = {}) {
     },
     ajv: {
       customOptions: {
-        // Reject requests with unknown properties instead of silently removing them.
-        // This makes additionalProperties: false schemas actually enforce the constraint.
+        // Without this, additionalProperties: false silently strips fields instead of returning 400.
         removeAdditional: false,
       },
     },
