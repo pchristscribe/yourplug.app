@@ -20,12 +20,7 @@ export default defineNuxtConfig({
   supabase: {
     url: process.env.NUXT_PUBLIC_SUPABASE_URL,
     key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-    // SECURITY: Do NOT set serviceKey here with process.env — that bakes the value
-    // into the Nitro server bundle at build time. Instead, the @nuxtjs/supabase module
-    // reads NUXT_SUPABASE_SERVICE_KEY (or SUPABASE_SERVICE_KEY) at *runtime* via its
-    // own env-var lookup, so no secret is ever embedded in the build artifact.
-    // serverSupabaseServiceRole() is not used by this app (all admin CRUD goes through
-    // the Fastify backend), so leaving serviceKey unset is intentional.
+    // @nuxtjs/supabase reads NUXT_SUPABASE_SERVICE_KEY at runtime; unused in this app
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
@@ -34,13 +29,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // SECURITY: Server-only runtime config — never serialized into the client bundle.
-    // Do NOT move anything here into runtimeConfig.public.
-    // Also do NOT assign process.env.SUPABASE_SECRET_KEY here: Nuxt bakes
-    // runtimeConfig default values into the server bundle at build time.
-    // If a Nitro server route ever needs the service key, use the env-var name
-    // NUXT_SUPABASE_SERVICE_KEY (read at runtime by the @nuxtjs/supabase module)
-    // or NUXT_SUPABASE_SECRET_KEY (read at runtime by Nuxt for runtimeConfig.supabase.secretKey).
+    // Use NUXT_SUPABASE_SERVICE_KEY env var — not set here to avoid baking secret into bundle
     public: {
       apiBase: process.env.API_BASE_URL || 'http://localhost:3001',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
