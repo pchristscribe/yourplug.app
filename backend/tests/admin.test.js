@@ -35,11 +35,11 @@ beforeAll(async () => {
   const rawCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie
   cookie = rawCookie.split(';')[0].trim()
 
-  // Fetch a server-issued CSRF token for the session
+  // Fetch a server-issued CSRF token for the session (no token needed on the fetch itself)
   const csrfRes = await app.inject({
     method: 'GET',
     url: '/api/admin/auth/csrf-token',
-    headers: { cookie, 'x-csrf-token': csrfToken },
+    headers: { cookie },
   })
   expect(csrfRes.statusCode).toBe(200)
   csrfToken = JSON.parse(csrfRes.body).csrfToken

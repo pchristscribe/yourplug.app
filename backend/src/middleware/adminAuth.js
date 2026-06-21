@@ -33,15 +33,16 @@ export async function adminAuth(request, reply) {
  * Safe methods (GET, HEAD, OPTIONS) are exempt.
  * The token must match the value stored in request.session.csrfToken.
  */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
 export async function csrfProtection(request, reply) {
-  const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
   if (SAFE_METHODS.has(request.method)) return
 
   const sessionToken = request.session && request.session.csrfToken
   const headerToken = request.headers['x-csrf-token']
 
   if (!sessionToken || !headerToken || sessionToken !== headerToken) {
-    reply.code(403).send({ error: 'Forbidden', message: 'Invalid or missing CSRF token' })
+    return reply.code(403).send({ error: 'Forbidden', message: 'Invalid or missing CSRF token' })
   }
 }
 
