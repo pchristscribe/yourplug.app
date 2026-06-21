@@ -113,7 +113,7 @@ jobs:
             echo "ERROR: BACKEND_HEALTH_URL is not set. Configure it as a repo secret or variable (Settings → Secrets and variables → Actions)."
             exit 1
           fi
-          HEALTH_URL="${BACKEND_HEALTH_URL}/health"
+          HEALTH_URL="${BACKEND_HEALTH_URL%/}/health"
           echo "Waiting for backend to become healthy at ${HEALTH_URL} ..."
           # Allow 120s: Railway --detach returns before the container boots, and
           # cold starts (image pull + app startup) routinely take 60-90 seconds.
