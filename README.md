@@ -140,7 +140,7 @@ Key variables (full list in `.env.example`):
 |----------|-------------|
 | `NUXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NUXT_PUBLIC_SUPABASE_KEY` | Supabase anon key |
-| `SUPABASE_SECRET_KEY` | Service role key (admin only) |
+| `NUXT_SUPABASE_SERVICE_KEY` | Service role key (admin only) |
 | `API_BASE_URL` | Backend API base URL |
 | `DATABASE_URL` | PostgreSQL connection string |
 
