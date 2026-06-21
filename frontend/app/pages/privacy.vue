@@ -2,7 +2,6 @@
 useSeoMeta({
   title: 'Privacy Policy — yourplug',
   description: 'Learn how yourplug collects, uses, and protects your personal information.',
-  robots: 'index, follow',
 })
 </script>
 
@@ -11,6 +10,7 @@ useSeoMeta({
     <!-- Back link -->
     <NuxtLink
       to="/"
+      aria-label="Back to Products"
       class="inline-flex items-center text-brand dark:text-brand-hover hover:text-brand-active dark:hover:text-accent transition-colors duration-base mb-8"
     >
       ← Back to Products
@@ -62,7 +62,7 @@ useSeoMeta({
             </h3>
             <ul class="list-disc list-inside text-ink-muted dark:text-ink-subtle space-y-1">
               <li><span class="font-medium text-ink dark:text-ink-inverse">Session cookies</span> — required for authentication; set on sign-in, cleared on sign-out.</li>
-              <li><span class="font-medium text-ink dark:text-ink-inverse">Analytics cookies</span> — optional; used to understand how visitors use the site. A consent banner lets you opt out before any analytics cookie is set.</li>
+              <li><span class="font-medium text-ink dark:text-ink-inverse">Analytics cookies</span> — optional; used to understand how visitors use the site. You can opt out at any time by clearing your browser cookies.</li>
             </ul>
           </div>
         </div>
@@ -133,7 +133,7 @@ useSeoMeta({
           p.christopherschreiber@gmail.com
         </a>
         <p class="text-ink-muted dark:text-ink-subtle mt-3 leading-relaxed">
-          We will respond within 30 days. To opt out of analytics cookies, use the consent banner shown on your first visit or clear your browser cookies.
+          We will respond within 30 days. To opt out of analytics cookies, clear your browser cookies or contact us using the email above.
         </p>
       </section>
 
@@ -184,14 +184,9 @@ useSeoMeta({
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
               <tr>
-                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-access-token</td>
+                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-[project]-auth-token</td>
                 <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle">Required</td>
-                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase OAuth access token — authenticates your session</td>
-              </tr>
-              <tr>
-                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-refresh-token</td>
-                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle">Required</td>
-                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase OAuth refresh token — renews your session without re-login</td>
+                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase session token — authenticates your OAuth session and auto-refreshes it. The exact name includes your project reference.</td>
               </tr>
               <tr>
                 <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">_analytics</td>
@@ -221,6 +216,8 @@ useSeoMeta({
             href="mailto:p.christopherschreiber@gmail.com"
             class="text-brand dark:text-brand-hover hover:underline"
           >p.christopherschreiber@gmail.com</a>.
+          See also our
+          <NuxtLink to="/terms" class="text-brand dark:text-brand-hover hover:underline">Terms of Service</NuxtLink>.
         </p>
       </footer>
     </article>

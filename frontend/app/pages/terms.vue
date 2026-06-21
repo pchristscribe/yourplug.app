@@ -2,7 +2,6 @@
 useSeoMeta({
   title: 'Terms of Service — yourplug',
   description: 'Read the Terms of Service governing your use of the yourplug affiliate product platform.',
-  robots: 'index, follow',
 })
 </script>
 
@@ -11,6 +10,7 @@ useSeoMeta({
     <!-- Back link -->
     <NuxtLink
       to="/"
+      aria-label="Back to Products"
       class="inline-flex items-center text-brand dark:text-brand-hover hover:text-brand-active dark:hover:text-accent transition-colors duration-base mb-8"
     >
       ← Back to Products
