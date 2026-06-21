@@ -36,8 +36,8 @@ beforeAll(async () => {
     const rawCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie
     cookie = rawCookie.split(';')[0].trim()
     infraReady = true
-  } catch {
-    console.warn('Admin integration tests skipped: infrastructure unavailable')
+  } catch (err) {
+    console.warn('Admin integration tests skipped:', err.message)
   }
 })
 

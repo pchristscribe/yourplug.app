@@ -92,7 +92,7 @@ export async function buildApp(opts = {}) {
   fastify.addHook('onReady', async () => {
     cleanupExpiredChallenges(sqlClient, fastify.log).catch(captureException)
     const interval = setInterval(
-      () => cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException),
+      () => cleanupExpiredChallenges(sqlClient, fastify.log).catch(captureException),
       5 * 60 * 1000
     )
     interval.unref()

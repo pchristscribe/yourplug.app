@@ -1,28 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 
-vi.mock('../src/lib/sql.js', () => {
-  const fn = vi.fn(async (strings, ...values) => {
-    if (!strings?.raw) return strings
-    const first = strings[0].trim().toLowerCase()
-    if (first.startsWith('select count(*)')) return [{ count: 0 }]
-    if (first.startsWith('select 1')) return [{ '?column?': 1 }]
-    return []
-  })
-  fn.begin = vi.fn(async (f) => f(fn))
-  return { default: fn }
-})
-
-vi.mock('../src/lib/redis.js', () => ({
-  default: {
-    on: vi.fn(),
-    ping: vi.fn().mockResolvedValue('PONG'),
-    get: vi.fn().mockResolvedValue(null),
-    setex: vi.fn().mockResolvedValue('OK'),
-    set: vi.fn().mockResolvedValue('OK'),
-    del: vi.fn().mockResolvedValue(1),
-  },
-}))
+vi.mock('../src/lib/sql.js')
+vi.mock('../src/lib/redis.js')
 
 let app
 
