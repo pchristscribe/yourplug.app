@@ -1,7 +1,11 @@
 <script setup lang="ts">
+const { public: { siteUrl } } = useRuntimeConfig()
 useSeoMeta({
   title: 'Terms of Service — yourplug',
   description: 'Read the Terms of Service governing your use of the yourplug affiliate product platform.',
+  ogTitle: 'Terms of Service — yourplug',
+  ogDescription: 'Read the Terms of Service governing your use of the yourplug affiliate product platform.',
+  ogUrl: `${siteUrl}/terms`,
 })
 </script>
 

@@ -1,7 +1,11 @@
 <script setup lang="ts">
+const { public: { siteUrl } } = useRuntimeConfig()
 useSeoMeta({
   title: 'Privacy Policy — yourplug',
   description: 'Learn how yourplug collects, uses, and protects your personal information.',
+  ogTitle: 'Privacy Policy — yourplug',
+  ogDescription: 'Learn how yourplug collects, uses, and protects your personal information.',
+  ogUrl: `${siteUrl}/privacy`,
 })
 </script>
 
