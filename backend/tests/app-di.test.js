@@ -1,17 +1,18 @@
-/**
- * Tests for app.js changes introduced in this PR:
- * 1. Dependency injection: opts.sql and opts.redis override defaults
- * 2. AJV removeAdditional: false — unknown properties return 400 instead of being silently stripped
- * 3. Health endpoint uses injected clients (returns 503 when they fail)
- * 4. fastify decorators (.sql, .redis) expose the injected clients
- */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 
 vi.mock('../src/lib/sql.js')
 vi.mock('../src/lib/redis.js')
 
-// ─── Dependency injection ─────────────────────────────────────────────────────
+const makeRedisMock = (overrides = {}) => ({
+  on: vi.fn(),
+  ping: vi.fn().mockResolvedValue('PONG'),
+  get: vi.fn().mockResolvedValue(null),
+  setex: vi.fn().mockResolvedValue('OK'),
+  set: vi.fn().mockResolvedValue('OK'),
+  del: vi.fn().mockResolvedValue(1),
+  ...overrides,
+})
 
 describe('buildApp dependency injection', () => {
   describe('opts.sql injection', () => {
@@ -25,8 +26,6 @@ describe('buildApp dependency injection', () => {
     })
 
     it('decorates fastify with the default sql client when none is provided', async () => {
-      // When no sql opt is given, the module-level default (mocked) is used.
-      // Import the mock so we can compare by reference.
       const { default: defaultSql } = await import('../src/lib/sql.js')
       const app = await buildApp({ logger: false })
       expect(app.sql).toBe(defaultSql)
@@ -47,15 +46,7 @@ describe('buildApp dependency injection', () => {
 
   describe('opts.redis injection', () => {
     it('decorates fastify with the injected redis client', async () => {
-      const customRedis = {
-        on: vi.fn(),
-        ping: vi.fn().mockResolvedValue('PONG'),
-        get: vi.fn().mockResolvedValue(null),
-        setex: vi.fn().mockResolvedValue('OK'),
-        set: vi.fn().mockResolvedValue('OK'),
-        del: vi.fn().mockResolvedValue(1),
-      }
-
+      const customRedis = makeRedisMock()
       const app = await buildApp({ logger: false, redis: customRedis })
       expect(app.redis).toBe(customRedis)
       await app.close()
@@ -69,15 +60,7 @@ describe('buildApp dependency injection', () => {
     })
 
     it('passes injected redis client to the health check route', async () => {
-      const customRedis = {
-        on: vi.fn(),
-        ping: vi.fn().mockResolvedValue('PONG'),
-        get: vi.fn().mockResolvedValue(null),
-        setex: vi.fn().mockResolvedValue('OK'),
-        set: vi.fn().mockResolvedValue('OK'),
-        del: vi.fn().mockResolvedValue(1),
-      }
-
+      const customRedis = makeRedisMock()
       const app = await buildApp({ logger: false, redis: customRedis })
       const res = await app.inject({ method: 'GET', url: '/health' })
       expect(res.statusCode).toBe(200)
@@ -90,14 +73,7 @@ describe('buildApp dependency injection', () => {
     it('uses both injected clients simultaneously', async () => {
       const customSql = vi.fn(async () => [{ '?column?': 1 }])
       customSql.begin = vi.fn(async (f) => f(customSql))
-      const customRedis = {
-        on: vi.fn(),
-        ping: vi.fn().mockResolvedValue('PONG'),
-        get: vi.fn().mockResolvedValue(null),
-        setex: vi.fn().mockResolvedValue('OK'),
-        set: vi.fn().mockResolvedValue('OK'),
-        del: vi.fn().mockResolvedValue(1),
-      }
+      const customRedis = makeRedisMock()
 
       const app = await buildApp({ logger: false, sql: customSql, redis: customRedis })
       expect(app.sql).toBe(customSql)
@@ -106,8 +82,6 @@ describe('buildApp dependency injection', () => {
     })
   })
 })
-
-// ─── Health endpoint ──────────────────────────────────────────────────────────
 
 describe('Health endpoint with injected clients', () => {
   it('returns 200 with ok status when both clients succeed', async () => {
@@ -126,16 +100,8 @@ describe('Health endpoint with injected clients', () => {
   it('returns 503 when sql client throws', async () => {
     const failingSql = vi.fn(async () => { throw new Error('DB unavailable') })
     failingSql.begin = vi.fn(async (f) => f(failingSql))
-    const customRedis = {
-      on: vi.fn(),
-      ping: vi.fn().mockResolvedValue('PONG'),
-      get: vi.fn().mockResolvedValue(null),
-      setex: vi.fn().mockResolvedValue('OK'),
-      set: vi.fn().mockResolvedValue('OK'),
-      del: vi.fn().mockResolvedValue(1),
-    }
 
-    const app = await buildApp({ logger: false, sql: failingSql, redis: customRedis })
+    const app = await buildApp({ logger: false, sql: failingSql, redis: makeRedisMock() })
     const res = await app.inject({ method: 'GET', url: '/health' })
 
     expect(res.statusCode).toBe(503)
@@ -149,16 +115,12 @@ describe('Health endpoint with injected clients', () => {
   it('returns 503 when redis ping throws', async () => {
     const customSql = vi.fn(async () => [{ '?column?': 1 }])
     customSql.begin = vi.fn(async (f) => f(customSql))
-    const failingRedis = {
-      on: vi.fn(),
-      ping: vi.fn().mockRejectedValue(new Error('Redis unavailable')),
-      get: vi.fn().mockResolvedValue(null),
-      setex: vi.fn().mockResolvedValue('OK'),
-      set: vi.fn().mockResolvedValue('OK'),
-      del: vi.fn().mockResolvedValue(1),
-    }
 
-    const app = await buildApp({ logger: false, sql: customSql, redis: failingRedis })
+    const app = await buildApp({
+      logger: false,
+      sql: customSql,
+      redis: makeRedisMock({ ping: vi.fn().mockRejectedValue(new Error('Redis unavailable')) }),
+    })
     const res = await app.inject({ method: 'GET', url: '/health' })
 
     expect(res.statusCode).toBe(503)
@@ -180,8 +142,6 @@ describe('Health endpoint with injected clients', () => {
   })
 })
 
-// ─── AJV removeAdditional: false ─────────────────────────────────────────────
-
 describe('AJV removeAdditional: false', () => {
   let app
 
@@ -193,32 +153,22 @@ describe('AJV removeAdditional: false', () => {
     await app.close()
   })
 
-  it('rejects requests with extra unknown properties on endpoints that use additionalProperties: false', async () => {
-    // The webauthn authenticate/options endpoint has additionalProperties: false.
-    // With removeAdditional: false (new behaviour), extra fields cause a 400.
+  it('rejects unknown properties on endpoints with additionalProperties: false', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/webauthn/authenticate/options',
-      payload: {
-        email: 'test@example.com',
-        extraField: 'should-be-rejected',
-      },
+      payload: { email: 'test@example.com', extraField: 'should-be-rejected' },
     })
-
     expect(res.statusCode).toBe(400)
   })
 
-  it('does not reject requests that have only known properties', async () => {
-    // Providing only the expected field should not be rejected due to AJV config
-    // (it may still return 400/404 for other reasons, but not because of AJV stripping)
+  it('does not reject requests with only known properties', async () => {
+    // May still return 400 (admin not found) or similar — the point is AJV alone doesn't cause 500
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/webauthn/authenticate/options',
       payload: { email: 'test@example.com' },
     })
-
-    // Should not be rejected purely for schema reasons related to additional properties
-    // (it may return 400 if admin not found, or 404, but not a schema property error)
     expect(res.statusCode).not.toBe(500)
   })
 
@@ -226,18 +176,11 @@ describe('AJV removeAdditional: false', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/webauthn/register/options',
-      payload: {
-        email: 'test@example.com',
-        unknownProp: 'attack',
-      },
+      payload: { email: 'test@example.com', unknownProp: 'attack' },
     })
-
-    // With removeAdditional: false, unknown properties cause validation failure
     expect(res.statusCode).toBe(400)
   })
 })
-
-// ─── SESSION_SECRET guard ─────────────────────────────────────────────────────
 
 describe('buildApp SESSION_SECRET requirement', () => {
   it('throws when SESSION_SECRET is not set', async () => {

@@ -37,6 +37,7 @@ beforeAll(async () => {
     cookie = rawCookie.split(';')[0].trim()
     infraReady = true
   } catch (err) {
+    if (process.env.CI) throw err
     console.warn('Admin integration tests skipped:', err.message)
   }
 })

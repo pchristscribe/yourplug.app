@@ -11,6 +11,7 @@ const mockAdmin = {
 }
 
 const fn = vi.fn(async (strings, ..._values) => {
+  // Non-template call is the postgres-js identifier helper: sql(colName) → pass through for interpolation
   if (!strings?.raw) return strings
   const first = strings[0].trim().toLowerCase()
   if (first.startsWith('insert into admins')) return [mockAdmin]
