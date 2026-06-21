@@ -39,11 +39,11 @@ jobs:
       SESSION_SECRET: test-session-secret-at-least-32-characters-long
       NODE_ENV: test
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
@@ -60,8 +60,10 @@ jobs:
           set -euo pipefail
           psql -h localhost -U yourplug -d yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
-          find supabase/migrations -name '*.sql' | sort | \
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;"
+          find supabase/migrations -name '*.sql' | sort -V | \
             xargs cat | \
             psql -h localhost -U yourplug -d yourplug_test -1
 
@@ -75,13 +77,13 @@ jobs:
     needs: test
     environment: production
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
 
@@ -98,6 +100,7 @@ jobs:
         run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-worker --detach
 
       - name: Post-deploy health check
+        if: success()
         env:
           # Set BACKEND_HEALTH_URL as a GitHub Actions secret or variable with your
           # Railway-assigned domain (e.g. https://<service>-<hash>.up.railway.app).
@@ -106,7 +109,11 @@ jobs:
           BACKEND_HEALTH_URL: ${{ secrets.BACKEND_HEALTH_URL || vars.BACKEND_HEALTH_URL }}
         run: |
           set -euo pipefail
-          HEALTH_URL="${BACKEND_HEALTH_URL:-https://yourplug-api.up.railway.app}/health"
+          if [ -z "${BACKEND_HEALTH_URL:-}" ]; then
+            echo "ERROR: BACKEND_HEALTH_URL is not set. Configure it as a repo secret or variable (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          HEALTH_URL="${BACKEND_HEALTH_URL}/health"
           echo "Waiting for backend to become healthy at ${HEALTH_URL} ..."
           # Allow 120s: Railway --detach returns before the container boots, and
           # cold starts (image pull + app startup) routinely take 60-90 seconds.
