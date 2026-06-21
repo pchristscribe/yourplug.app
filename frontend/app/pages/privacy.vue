@@ -2,12 +2,12 @@
 useSeoMeta({
   title: 'Privacy Policy — yourplug',
   description: 'Learn how yourplug collects, uses, and protects your personal information.',
-  robots: 'noindex, nofollow',
+  robots: 'index, follow',
 })
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto py-10 px-4 sm:px-6">
+  <main class="max-w-3xl mx-auto py-10 px-4 sm:px-6">
     <!-- Back link -->
     <NuxtLink
       to="/"
@@ -184,14 +184,14 @@ useSeoMeta({
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
               <tr>
-                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-*</td>
+                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-access-token</td>
                 <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle">Required</td>
-                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase session — keeps you signed in</td>
+                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase OAuth access token — authenticates your session</td>
               </tr>
               <tr>
-                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">yourplug-session</td>
+                <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">sb-refresh-token</td>
                 <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle">Required</td>
-                <td class="py-2 text-ink-muted dark:text-ink-subtle">Server-side session for authenticated requests</td>
+                <td class="py-2 text-ink-muted dark:text-ink-subtle">Supabase OAuth refresh token — renews your session without re-login</td>
               </tr>
               <tr>
                 <td class="py-2 pr-4 text-ink-muted dark:text-ink-subtle font-mono text-xs">_analytics</td>
@@ -224,5 +224,5 @@ useSeoMeta({
         </p>
       </footer>
     </article>
-  </div>
+  </main>
 </template>

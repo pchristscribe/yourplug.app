@@ -2,12 +2,12 @@
 useSeoMeta({
   title: 'Terms of Service — yourplug',
   description: 'Read the Terms of Service governing your use of the yourplug affiliate product platform.',
-  robots: 'noindex, nofollow',
+  robots: 'index, follow',
 })
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto py-10 px-4 sm:px-6">
+  <main class="max-w-3xl mx-auto py-10 px-4 sm:px-6">
     <!-- Back link -->
     <NuxtLink
       to="/"
@@ -35,7 +35,7 @@ useSeoMeta({
       </section>
 
       <!-- FTC Disclosure — prominently placed -->
-      <section class="bg-brand-muted dark:bg-brand/10 border border-brand/20 dark:border-brand-hover/30 rounded-card p-6">
+      <section class="bg-brand-muted dark:bg-surface-raised border border-brand-muted dark:border-brand rounded-card p-6">
         <h2 class="text-xl font-semibold text-brand dark:text-brand-hover mb-3">
           FTC Affiliate Disclosure
         </h2>
@@ -178,5 +178,5 @@ useSeoMeta({
         </p>
       </footer>
     </article>
-  </div>
+  </main>
 </template>
