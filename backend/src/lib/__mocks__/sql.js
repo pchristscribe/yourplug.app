@@ -17,7 +17,7 @@ const fn = vi.fn(async (strings, ..._values) => {
   if (first.startsWith('insert into admins')) return [mockAdmin]
   if (first.startsWith('select count(*)')) return [{ count: 0 }]
   if (first.startsWith('select 1')) return [{ '?column?': 1 }]
-  return []
+  return [] // unrecognised queries return empty — callers see "not found", not an error
 })
 fn.begin = vi.fn(async (f) => f(fn))
 
