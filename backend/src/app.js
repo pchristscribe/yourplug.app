@@ -17,6 +17,9 @@ import { initSentry, captureException } from './lib/sentry.js';
 import * as Sentry from '@sentry/node';
 
 export async function buildApp(opts = {}) {
+  const sqlClient = opts.sql ?? sql
+  const redisClient = opts.redis ?? redis
+
   const fastify = Fastify({
     logger: opts.logger ?? {
       level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -30,6 +33,13 @@ export async function buildApp(opts = {}) {
               },
             }
           : undefined,
+    },
+    ajv: {
+      customOptions: {
+        // Reject requests with unknown properties instead of silently removing them.
+        // This makes additionalProperties: false schemas actually enforce the constraint.
+        removeAdditional: false,
+      },
     },
   });
 
@@ -54,7 +64,7 @@ export async function buildApp(opts = {}) {
   }
 
   await fastify.register(session, {
-    store: new RedisSessionStore(redis),
+    store: new RedisSessionStore(redisClient),
     secret: sessionSecret,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
@@ -66,8 +76,8 @@ export async function buildApp(opts = {}) {
   });
 
   // Decorators for database clients
-  fastify.decorate('sql', sql);
-  fastify.decorate('redis', redis);
+  fastify.decorate('sql', sqlClient);
+  fastify.decorate('redis', redisClient);
 
   // Sentry user context tracking
   fastify.addHook('onRequest', async (request, reply) => {
@@ -80,7 +90,7 @@ export async function buildApp(opts = {}) {
   // handles this when deployed as a separate process; this interval is the fallback
   // for environments (e.g. Railway single-service) where the worker isn't running.
   fastify.addHook('onReady', async () => {
-    cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException)
+    cleanupExpiredChallenges(sqlClient, fastify.log).catch(captureException)
     const interval = setInterval(
       () => cleanupExpiredChallenges(fastify.sql, fastify.log).catch(captureException),
       5 * 60 * 1000
@@ -129,8 +139,8 @@ export async function buildApp(opts = {}) {
   // Health check route
   fastify.get('/health', async (request, reply) => {
     try {
-      await sql`SELECT 1`;
-      await redis.ping();
+      await sqlClient`SELECT 1`;
+      await redisClient.ping();
       return {
         status: 'ok',
         database: 'connected',
