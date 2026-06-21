@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { RedisSessionStore } from './lib/sessionStore.js';
 import sql from './lib/sql.js';
 import redis from './lib/redis.js';
@@ -47,6 +49,8 @@ export async function buildApp(opts = {}) {
   // Initialize Sentry for error tracking
   initSentry(fastify);
 
+  await fastify.register(helmet, { global: true });
+
   // Register CORS - allow both frontend and admin app
   await fastify.register(cors, {
     origin: process.env.NODE_ENV === 'production'
@@ -79,6 +83,24 @@ export async function buildApp(opts = {}) {
   // Decorators for database clients
   fastify.decorate('sql', sqlClient)
   fastify.decorate('redis', redisClient)
+
+  await fastify.register(rateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: '1 minute',
+    redis,
+    addHeadersOnExceeding: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true
+    },
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true
+    }
+  });
 
   // Sentry user context tracking
   fastify.addHook('onRequest', async (request, reply) => {
