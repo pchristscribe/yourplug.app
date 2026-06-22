@@ -457,4 +457,3 @@ Key variables (see `.env.example` for full list):
 ## Legal Compliance
 
 All affiliate links and sponsored content must include FTC-compliant disclosures stating that the site receives monetary compensation from affiliate programs.
-

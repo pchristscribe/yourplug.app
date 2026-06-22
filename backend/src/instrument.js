@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import * as Sentry from '@sentry/node'
 import { nodeProfilingIntegration } from '@sentry/profiling-node'
 import { sanitizeSensitiveData } from './lib/sentry.js'
@@ -12,7 +13,11 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     release: process.env.SENTRY_RELEASE || undefined,
-    integrations: [nodeProfilingIntegration()],
+    enableLogs: true,
+    integrations: [
+      nodeProfilingIntegration(),
+      Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+    ],
     tracesSampleRate,
     profilesSampleRate,
     ignoreErrors: [

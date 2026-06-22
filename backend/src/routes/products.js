@@ -103,19 +103,25 @@ export default async function productRoutes(fastify, options) {
       return { error: 'Product not found' }
     }
 
-    const [[category], links, reviews] = await Promise.all([
+    const [[category], links, reviews, variants] = await Promise.all([
       product.categoryId
         ? sql`select * from categories where id = ${product.categoryId}`
         : Promise.resolve([null]),
       sql`select * from affiliate_links where product_id = ${id}`,
-      sql`select * from reviews where product_id = ${id} order by created_at desc`
+      sql`select * from reviews where product_id = ${id} order by created_at desc`,
+      sql`
+        select * from product_variants
+        where product_id = ${id}
+        order by variant_type, sort_order, value
+      `
     ])
 
     const result = {
       ...product,
       category: category || null,
       affiliateLinks: links,
-      reviews
+      reviews,
+      variants
     }
 
     await redis.setex(`product:${id}`, 3600, JSON.stringify(result))

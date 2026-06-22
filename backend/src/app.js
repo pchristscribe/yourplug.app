@@ -7,11 +7,14 @@ import sql from './lib/sql.js';
 import redis from './lib/redis.js';
 import productRoutes from './routes/products.js';
 import categoryRoutes from './routes/categories.js';
+import blogPostRoutes from './routes/blog-posts.js';
 import adminAuthRoutes from './routes/admin/auth.js';
 import adminWebAuthnRoutes from './routes/admin/webauthn.js';
 import adminProductRoutes from './routes/admin/products.js';
 import adminCategoryRoutes from './routes/admin/categories.js';
 import adminReviewRoutes from './routes/admin/reviews.js';
+import adminBlogPostRoutes from './routes/admin/blog-posts.js';
+import adminProductVariantRoutes from './routes/admin/product-variants.js';
 import { cleanupExpiredChallenges } from './utils/cleanupExpiredChallenges.js';
 import { initSentry, captureException } from './lib/sentry.js';
 import * as Sentry from '@sentry/node';
@@ -150,6 +153,7 @@ export async function buildApp(opts = {}) {
   // Register public routes
   fastify.register(productRoutes, { prefix: '/api/products' });
   fastify.register(categoryRoutes, { prefix: '/api/categories' });
+  fastify.register(blogPostRoutes, { prefix: '/api/blog-posts' });
 
   // Register admin routes
   fastify.register(adminAuthRoutes, { prefix: '/api/admin/auth' });
@@ -157,6 +161,8 @@ export async function buildApp(opts = {}) {
   fastify.register(adminProductRoutes, { prefix: '/api/admin/products' });
   fastify.register(adminCategoryRoutes, { prefix: '/api/admin/categories' });
   fastify.register(adminReviewRoutes, { prefix: '/api/admin/reviews' });
+  fastify.register(adminBlogPostRoutes, { prefix: '/api/admin/blog-posts' });
+  fastify.register(adminProductVariantRoutes, { prefix: '/api/admin/variants' });
 
   return fastify;
 }

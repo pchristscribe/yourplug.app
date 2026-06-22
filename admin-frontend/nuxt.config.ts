@@ -39,9 +39,9 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'yourplug Admin',
+      title: 'yourplug.app Admin',
       meta: [
-        { name: 'description', content: 'Admin panel for yourplug affiliate platform' },
+        { name: 'description', content: 'Admin panel for yourplug.app affiliate platform' },
         // Content Security Policy - Defense against XSS attacks
         {
           'http-equiv': 'Content-Security-Policy',
@@ -88,5 +88,14 @@ export default defineNuxtConfig({
         clientPort: 24678
       }
     }
+  },
+
+  sentry: {
+    org: 'yourplug',
+    project: 'admin-frontend-nuxt'
+  },
+
+  sourcemap: {
+    client: 'hidden'
   }
 })
