@@ -20,7 +20,7 @@ export default defineNuxtConfig({
   supabase: {
     url: process.env.NUXT_PUBLIC_SUPABASE_URL,
     key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-    serviceKey: process.env.SUPABASE_SECRET_KEY,
+    // @nuxtjs/supabase reads NUXT_SUPABASE_SERVICE_KEY at runtime; unused in this app
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
@@ -29,7 +29,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || '',
+    // Use NUXT_SUPABASE_SERVICE_KEY env var — not set here to avoid baking secret into bundle
     public: {
       apiBase: process.env.API_BASE_URL || 'http://localhost:3001',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
