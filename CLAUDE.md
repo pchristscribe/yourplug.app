@@ -395,7 +395,7 @@ Key variables (see `.env.example` for full list):
 |----------|-------------|
 | `NUXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NUXT_PUBLIC_SUPABASE_KEY` | Supabase anon key |
-| `SUPABASE_SECRET_KEY` | Supabase service role key (admin only — never expose client) |
+| `NUXT_SUPABASE_SERVICE_KEY` | Supabase service role key (admin only — never expose client) |
 | `NUXT_PUBLIC_SITE_URL` | Public site URL (canonical links, OG, sitemap) |
 | `NUXT_PUBLIC_API_BASE` | Backend API base — set this in both frontends; exposed via Nuxt runtime config (`useRuntimeConfig().public.apiBase`) |
 | `API_BASE_URL` | Backend API base for server-side / backend-internal use (default: `http://localhost:3001`); not visible to the browser |

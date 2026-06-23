@@ -96,9 +96,12 @@ jobs:
         run: |
           psql postgresql://yourplug:test@localhost:5432/yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
-          find supabase/migrations -name '*.sql' | sort | \
-            xargs cat | \
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
+            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
+          find supabase/migrations -name '*.sql' -print0 | sort -zV | \
+            xargs -0 cat | \
             psql postgresql://yourplug:test@localhost:5432/yourplug_test -1
         env:
           PGPASSWORD: test

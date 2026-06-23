@@ -288,7 +288,7 @@ pnpm vitest tests/auth.test.ts
 # Supabase
 NUXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NUXT_PUBLIC_SUPABASE_KEY=your-anon-key
-SUPABASE_SECRET_KEY=your-service-role-key
+NUXT_SUPABASE_SERVICE_KEY=your-service-role-key
 
 # Backend API
 API_BASE_URL=https://api.yourplug.app
