@@ -77,8 +77,8 @@ export async function buildApp(opts = {}) {
   });
 
   // Decorators for database clients
-  fastify.decorate('sql', sqlClient);
-  fastify.decorate('redis', redisClient);
+  fastify.decorate('sql', sqlClient)
+  fastify.decorate('redis', redisClient)
 
   // Sentry user context tracking
   fastify.addHook('onRequest', async (request, reply) => {
@@ -140,8 +140,8 @@ export async function buildApp(opts = {}) {
   // Health check route
   fastify.get('/health', async (request, reply) => {
     try {
-      await sqlClient`SELECT 1`;
-      await redisClient.ping();
+      await sqlClient`SELECT 1`
+      await redisClient.ping()
       return {
         status: 'ok',
         database: 'connected',
