@@ -53,7 +53,7 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | ---------------------------- | -------- | ---------------------------------------------------- |
 | `NUXT_PUBLIC_SUPABASE_URL`   | yes      | Supabase project URL                                 |
 | `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
-| `NUXT_SUPABASE_SERVICE_KEY`        | yes      | Service role key (admin-only, never expose client)   |
+| `SUPABASE_SECRET_KEY`        | yes      | Service role key (admin-only, never expose client)   |
 | `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
 | `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |

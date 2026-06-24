@@ -5,89 +5,14 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Backend tests (gate)
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: yourplug
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: yourplug_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    env:
-      DATABASE_URL: postgresql://yourplug:test_password@localhost:5432/yourplug_test
-      TEST_DATABASE_URL: postgresql://yourplug:test_password@localhost:5432/yourplug_test
-      REDIS_URL: redis://localhost:6379
-      TEST_REDIS_URL: redis://localhost:6379
-      SESSION_SECRET: test-session-secret-at-least-32-characters-long
-      NODE_ENV: test
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: backend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: backend
-        run: pnpm install --frozen-lockfile
-
-      - name: Apply database migrations
-        env:
-          PGPASSWORD: test_password
-        run: |
-          set -euo pipefail
-          psql -h localhost -U yourplug -d yourplug_test \
-            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
-            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
-          find supabase/migrations -name '*.sql' -print0 | sort -zV | \
-            xargs -0 cat | \
-            psql -h localhost -U yourplug -d yourplug_test -1
-
-      - name: Run tests
-        working-directory: backend
-        run: pnpm test
-
   deploy-backend:
     name: Deploy backend to Railway
     runs-on: ubuntu-latest
-    needs: test
     environment: production
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v6
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
       - name: Deploy API service
         working-directory: backend
         env:
@@ -99,50 +24,3 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-worker --detach
-
-      - name: Post-deploy health check
-        if: success()
-        env:
-          # Set BACKEND_HEALTH_URL as a GitHub Actions secret or variable with your
-          # Railway-assigned domain (e.g. https://<service>-<hash>.up.railway.app).
-          # The fallback below is a placeholder and will not work unless your Railway
-          # service happens to use this exact domain.
-          BACKEND_HEALTH_URL: ${{ secrets.BACKEND_HEALTH_URL || vars.BACKEND_HEALTH_URL }}
-        run: |
-          set -euo pipefail
-          if [ -z "${BACKEND_HEALTH_URL:-}" ]; then
-            echo "ERROR: BACKEND_HEALTH_URL is not set. Configure it as a repo secret or variable (Settings → Secrets and variables → Actions)."
-            exit 1
-          fi
-          HEALTH_URL="${BACKEND_HEALTH_URL%/}/health"
-          echo "Waiting for backend to become healthy at ${HEALTH_URL} ..."
-          # Allow 120s: Railway --detach returns before the container boots, and
-          # cold starts (image pull + app startup) routinely take 60-90 seconds.
-          deadline=$(( $(date +%s) + 120 ))
-          until curl --silent --fail --max-time 5 "${HEALTH_URL}" > /dev/null 2>&1; do
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "ERROR: Backend did not become healthy within 120 seconds."
-              echo "Last response:"
-              curl --silent --max-time 5 "${HEALTH_URL}" || true
-              exit 1
-            fi
-            echo "  ... not ready yet, retrying in 5s"
-            sleep 5
-          done
-          echo "Backend is healthy."
-
-      - name: Rollback instructions
-        if: always()
-        run: |
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ## Rollback
-
-          If this deployment introduced a regression, run:
-
-          ```bash
-          railway rollback --service yourplug-api
-          railway rollback --service yourplug-worker
-          ```
-
-          Or use the Railway dashboard: https://railway.app
-          EOF

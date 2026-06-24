@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import Queue from 'bull'
-import sql from '../lib/sql.js'
+import prisma from '../lib/prisma.js'
 import redis from '../lib/redis.js'
 import { cleanupExpiredChallenges } from '../utils/cleanupExpiredChallenges.js'
 import { initSentry, captureException, flushSentry } from '../lib/sentry.js'
@@ -19,7 +19,7 @@ const maintenanceQueue = new Queue('maintenance', { redis: redisConfig })
 // ── Job handlers ──────────────────────────────────────────────────────────
 
 maintenanceQueue.process('cleanup-expired-challenges', async (job) => {
-  const count = await cleanupExpiredChallenges(sql, console)
+  const count = await cleanupExpiredChallenges(prisma, console)
   return { cleaned: count }
 })
 
@@ -57,7 +57,7 @@ const shutdownGracefully = async (signal) => {
   console.log(`\nWorker received ${signal}, shutting down…`)
   try {
     await maintenanceQueue.close()
-    await sql.end()
+    await prisma.$disconnect()
     await redis.quit()
     await flushSentry()
     process.exit(0)

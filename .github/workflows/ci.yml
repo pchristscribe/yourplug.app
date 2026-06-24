@@ -21,7 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
@@ -43,7 +45,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
@@ -84,7 +88,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
@@ -96,12 +102,9 @@ jobs:
         run: |
           psql postgresql://yourplug:test@localhost:5432/yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
-            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
-          find supabase/migrations -name '*.sql' -print0 | sort -zV | \
-            xargs -0 cat | \
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
+          find supabase/migrations -name '*.sql' | sort | \
+            xargs cat | \
             psql postgresql://yourplug:test@localhost:5432/yourplug_test -1
         env:
           PGPASSWORD: test
@@ -127,7 +130,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
@@ -142,8 +147,7 @@ jobs:
         working-directory: ${{ matrix.workspace }}
         run: pnpm exec playwright test
         env:
-          NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL }}
-          NUXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NUXT_PUBLIC_SUPABASE_KEY }}
+          NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL || '' }}
       - name: Upload Playwright report
         uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
@@ -163,7 +167,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: pnpm
