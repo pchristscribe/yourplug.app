@@ -538,12 +538,6 @@ export default async function webauthnRoutes(fastify, options) {
   }
 
   fastify.delete('/credentials/:id', { preHandler: requireSessionThenCsrf }, async (request, reply) => {
-    // Session already verified by preHandler
-    if (!request.session?.adminId) {
-      reply.code(401)
-      return { error: 'Not authenticated' }
-    }
-
     const { id } = request.params
 
     if (!id || typeof id !== 'string' || id.trim().length === 0) {

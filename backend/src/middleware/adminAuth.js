@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 
 /**
  * Admin authentication middleware
@@ -41,7 +41,10 @@ export async function csrfProtection(request, reply) {
   const sessionToken = request.session && request.session.csrfToken
   const headerToken = request.headers['x-csrf-token']
 
-  if (!sessionToken || !headerToken || sessionToken !== headerToken) {
+  const tokensMatch = sessionToken && headerToken &&
+    sessionToken.length === headerToken.length &&
+    timingSafeEqual(Buffer.from(sessionToken), Buffer.from(headerToken))
+  if (!tokensMatch) {
     return reply.code(403).send({ error: 'Forbidden', message: 'Invalid or missing CSRF token' })
   }
 }

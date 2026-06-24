@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { generateCsrfToken, csrfProtection } from '../../middleware/adminAuth.js'
+import { generateCsrfToken, csrfProtection, adminAuth } from '../../middleware/adminAuth.js'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
 
@@ -105,10 +105,7 @@ export default async function adminAuthRoutes(fastify, options) {
     return { success: true, message: 'Logged out successfully' }
   })
 
-  // Issue a CSRF token — generates one if the session doesn't have one yet,
-  // otherwise returns the existing token so the client stays in sync.
-  // The client should call this once after page load to seed its sessionStorage.
-  fastify.get('/csrf-token', async (request, reply) => {
+  fastify.get('/csrf-token', { preHandler: adminAuth }, async (request, reply) => {
     if (!request.session.csrfToken) {
       request.session.csrfToken = generateCsrfToken()
     }
