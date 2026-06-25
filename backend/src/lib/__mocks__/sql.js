@@ -22,7 +22,7 @@ const sqlMock = vi.fn(async (strings, ...values) => {
   }
 
   if (/select\s+count\s*\(\s*\*\s*\)/.test(query)) {
-    return [{ count: 0 }]
+    return [{ count: '0' }]
   }
 
   if (/insert\s+into\s+admins/.test(query)) {
