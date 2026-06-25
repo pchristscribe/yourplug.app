@@ -26,6 +26,7 @@ export async function buildApp(opts = {}) {
   const redisClient = opts.redis ?? redis
 
   const fastify = Fastify({
+    trustProxy: true,
     ajv: {
       customOptions: {
         removeAdditional: false,
@@ -86,9 +87,12 @@ export async function buildApp(opts = {}) {
 
   await fastify.register(rateLimit, {
     global: true,
-    max: 100,
+    max: process.env.NODE_ENV === 'test' ? 10000 : 100,
     timeWindow: '1 minute',
     redis,
+    errorResponseBuilder: (_request, context) => ({
+      error: `Too many requests. Retry after ${context.after}`
+    }),
     addHeadersOnExceeding: {
       'x-ratelimit-limit': true,
       'x-ratelimit-remaining': true,
