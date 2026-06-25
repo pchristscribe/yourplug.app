@@ -19,7 +19,10 @@ export default async function adminAuthRoutes(fastify, options) {
   const { sql } = fastify
 
   // Login route
-  fastify.post('/login', { schema: loginSchema }, async (request, reply) => {
+  fastify.post('/login', {
+    schema: loginSchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     const { email: rawEmail, password } = request.body
 
     // Trim and validate email format
