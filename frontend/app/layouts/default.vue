@@ -80,6 +80,9 @@
 
     <!-- Global toast notification stack -->
     <AppFeedbackToastContainer />
+
+    <!-- GDPR/CCPA cookie consent banner -->
+    <CookieConsent />
   </div>
 </template>
 
