@@ -7,6 +7,7 @@ import {
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { isValidChallenge } from '../../utils/cleanupExpiredChallenges.js'
 import { UUID_RE } from '../../utils/constants.js'
+import { csrfProtection } from '../../middleware/adminAuth.js'
 
 const RP_NAME = 'yourplug Admin'
 const RP_ID = process.env.NODE_ENV === 'production'
@@ -527,13 +528,16 @@ export default async function webauthnRoutes(fastify, options) {
     return { credentials }
   })
 
-  // Delete a credential
-  fastify.delete('/credentials/:id', async (request, reply) => {
+  // Delete a credential — requires both a valid session and a CSRF token
+  async function requireSessionThenCsrf(request, reply) {
     if (!request.session?.adminId) {
       reply.code(401)
-      return { error: 'Not authenticated' }
+      return reply.send({ error: 'Not authenticated' })
     }
+    return csrfProtection(request, reply)
+  }
 
+  fastify.delete('/credentials/:id', { preHandler: requireSessionThenCsrf }, async (request, reply) => {
     const { id } = request.params
 
     if (!id || typeof id !== 'string' || id.trim().length === 0) {

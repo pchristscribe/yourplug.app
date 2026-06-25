@@ -1,4 +1,4 @@
-import { adminAuth } from '../../middleware/adminAuth.js'
+import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
 import {
   createReviewSchema,
   updateReviewSchema,
@@ -39,6 +39,7 @@ export default async function adminReviewRoutes(fastify, options) {
   const { sql } = fastify
 
   fastify.addHook('onRequest', adminAuth)
+  fastify.addHook('onRequest', csrfProtection)
 
   // List reviews
   fastify.get('/', { schema: listReviewsSchema }, async (request, reply) => {

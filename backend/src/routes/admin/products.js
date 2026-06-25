@@ -1,4 +1,4 @@
-import { adminAuth } from '../../middleware/adminAuth.js'
+import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
 import { attachRelations } from '../../utils/relations.js'
 import { UUID_RE, ADMIN_SORTABLE, VALID_PLATFORMS, VALID_STATUSES } from '../../utils/constants.js'
 
@@ -52,6 +52,7 @@ export default async function adminProductRoutes(fastify, options) {
   const { sql, redis } = fastify
 
   fastify.addHook('onRequest', adminAuth)
+  fastify.addHook('onRequest', csrfProtection)
 
   // List products
   fastify.get('/', async (request, reply) => {
