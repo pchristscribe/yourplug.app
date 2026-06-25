@@ -117,12 +117,12 @@ describe('SQL mock (__mocks__/sql.js)', () => {
 
     it('returns [{ count: 0 }] for SELECT COUNT(*) queries', async () => {
       const result = await sqlMock`SELECT COUNT(*) FROM admins`
-      expect(result).toEqual([{ count: 0 }])
+      expect(result).toEqual([{ count: '0' }])
     })
 
     it('returns [{ count: 0 }] for select count(*) (case-insensitive)', async () => {
       const result = await sqlMock`select count(*) from categories`
-      expect(result).toEqual([{ count: 0 }])
+      expect(result).toEqual([{ count: '0' }])
     })
 
     it('returns mockAdmin for INSERT INTO admins queries', async () => {

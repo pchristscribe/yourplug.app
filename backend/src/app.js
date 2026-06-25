@@ -89,7 +89,7 @@ export async function buildApp(opts = {}) {
     global: true,
     max: process.env.NODE_ENV === 'test' ? 10000 : 100,
     timeWindow: '1 minute',
-    redis,
+    redis: redisClient,
     errorResponseBuilder: (_request, context) => ({
       error: `Too many requests. Retry after ${context.after}`
     }),
