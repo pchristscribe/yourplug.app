@@ -33,18 +33,18 @@
     "@nuxt/cli": "^3.35.1",
     "@nuxt/eslint": "^1.16.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.61.1",
     "@types/domexception": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.61.1",
     "@vitejs/plugin-vue": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.8",
-    "@vitest/ui": "^4.0.15",
-    "@vue/test-utils": "^2.4.6",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
+    "@vue/test-utils": "^2.4.11",
     "eslint": "^10.5.0",
-    "happy-dom": "^20.8.9",
+    "happy-dom": "^20.10.6",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.9"
   }
 }
