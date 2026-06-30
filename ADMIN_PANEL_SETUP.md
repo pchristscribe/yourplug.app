@@ -28,7 +28,7 @@ WebAuthn (Web Authentication API) is a W3C web standard for secure, phishing-res
 - **Database**: PostgreSQL with Prisma ORM
 - **Sessions**: Redis-backed
 - **Auth library**: `@simplewebauthn/server`
-- **Default URL**: `http://localhost:3001'
+- **Default URL**: `http://localhost:3001`
 ## Quick Start
 
 ### 1. Start Infrastructure
