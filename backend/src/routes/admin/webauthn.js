@@ -524,30 +524,18 @@ export default async function webauthnRoutes(fastify, options) {
   })
 
   // List registered credentials for current admin
-  fastify.get('/credentials', async (request, reply) => {
-    if (!request.session?.adminId) {
-      reply.code(401)
-      return { error: 'Not authenticated' }
-    }
-
+  fastify.get('/credentials', { preHandler: adminAuth }, async (request, reply) => {
     const credentials = await sql`
       select id, device_name, transports, last_used_at, created_at
       from webauthn_credentials
-      where admin_id = ${request.session.adminId}
+      where admin_id = ${request.admin.id}
       order by created_at desc
     `
 
     return { credentials }
   })
 
-  // Delete a credential — requires an active admin account and a CSRF token
-  async function requireSessionThenCsrf(request, reply) {
-    await adminAuth(request, reply)
-    if (reply.sent) return
-    return csrfProtection(request, reply)
-  }
-
-  fastify.delete('/credentials/:id', { preHandler: requireSessionThenCsrf }, async (request, reply) => {
+  fastify.delete('/credentials/:id', { preHandler: [adminAuth, csrfProtection] }, async (request, reply) => {
     const { id } = request.params
 
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
@@ -572,7 +560,7 @@ export default async function webauthnRoutes(fastify, options) {
     await sql.begin(async sql => {
       const [credential] = await sql`
         select id from webauthn_credentials
-        where id = ${trimmedId} and admin_id = ${request.session.adminId}
+        where id = ${trimmedId} and admin_id = ${request.admin.id}
         for update
       `
 
@@ -584,7 +572,7 @@ export default async function webauthnRoutes(fastify, options) {
       const [{ count }] = await sql`
         select count(*)::int as count
         from webauthn_credentials
-        where admin_id = ${request.session.adminId}
+        where admin_id = ${request.admin.id}
       `
 
       if (Number(count) <= 1) {

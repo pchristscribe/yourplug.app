@@ -54,6 +54,7 @@ describe('buildApp dependency injection', () => {
         setex: vi.fn().mockResolvedValue('OK'),
         set: vi.fn().mockResolvedValue('OK'),
         del: vi.fn().mockResolvedValue(1),
+        rateLimit: vi.fn((...args) => { const cb = args[args.length - 1]; if (typeof cb === 'function') cb(null, [1, 60000]) }),
       }
 
       const app = await buildApp({ logger: false, redis: customRedis })
@@ -76,6 +77,7 @@ describe('buildApp dependency injection', () => {
         setex: vi.fn().mockResolvedValue('OK'),
         set: vi.fn().mockResolvedValue('OK'),
         del: vi.fn().mockResolvedValue(1),
+        rateLimit: vi.fn((...args) => { const cb = args[args.length - 1]; if (typeof cb === 'function') cb(null, [1, 60000]) }),
       }
 
       const app = await buildApp({ logger: false, redis: customRedis })
@@ -97,6 +99,7 @@ describe('buildApp dependency injection', () => {
         setex: vi.fn().mockResolvedValue('OK'),
         set: vi.fn().mockResolvedValue('OK'),
         del: vi.fn().mockResolvedValue(1),
+        rateLimit: vi.fn((...args) => { const cb = args[args.length - 1]; if (typeof cb === 'function') cb(null, [1, 60000]) }),
       }
 
       const app = await buildApp({ logger: false, sql: customSql, redis: customRedis })
