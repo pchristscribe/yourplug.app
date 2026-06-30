@@ -7,6 +7,7 @@ const redisMock = {
   setex: vi.fn().mockResolvedValue('OK'),
   set: vi.fn().mockResolvedValue('OK'),
   del: vi.fn().mockResolvedValue(1),
+  defineCommand: vi.fn(),
 }
 
 export default redisMock
