@@ -1,10 +1,10 @@
 /**
- * Tests for the revised app.js behavior introduced in this PR:
- * 1. Dependency injection was REMOVED — opts.sql and opts.redis no longer override module-level clients
- * 2. AJV customOptions (removeAdditional: false) was removed — default AJV validation applies
+ * Tests for app.js behavior:
+ * 1. Dependency injection — opts.sql and opts.redis override module-level clients when provided
+ * 2. AJV customOptions (removeAdditional: false) rejects unknown fields with 400
  * 3. Health endpoint uses module-level sql/redis directly
  * 4. SESSION_SECRET environment variable is still required
- * 5. fastify.sql and fastify.redis decorators expose the module-level clients
+ * 5. fastify.sql and fastify.redis decorators expose the active clients
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { buildApp } from '../src/app.js'
@@ -56,7 +56,7 @@ describe('buildApp SESSION_SECRET requirement', () => {
   })
 })
 
-// ─── buildApp opts no longer accepts sql/redis overrides ─────────────────────
+// ─── buildApp core behavior ───────────────────────────────────────────────────
 
 describe('buildApp no dependency injection', () => {
   let app
@@ -73,33 +73,6 @@ describe('buildApp no dependency injection', () => {
     const instance = await buildApp({ logger: false })
     expect(instance).toBeDefined()
     expect(typeof instance.inject).toBe('function')
-    await instance.close()
-  })
-
-  it('ignores opts.sql — fastify.sql is always the module-level client', async () => {
-    // opts.sql was removed in this PR; passing it should not affect which client is used
-    const fakeSql = () => Promise.resolve([])
-    fakeSql.begin = async (f) => f(fakeSql)
-
-    const instance = await buildApp({ logger: false, sql: fakeSql })
-    // The decorator should be the module-level sql, NOT the passed-in fakeSql
-    expect(instance.sql).not.toBe(fakeSql)
-    await instance.close()
-  })
-
-  it('ignores opts.redis — fastify.redis is always the module-level client', async () => {
-    // opts.redis was removed in this PR; passing it should not affect which client is used
-    const fakeRedis = {
-      on: () => {},
-      ping: () => Promise.resolve('PONG'),
-      get: () => Promise.resolve(null),
-      set: () => Promise.resolve('OK'),
-      del: () => Promise.resolve(1),
-    }
-
-    const instance = await buildApp({ logger: false, redis: fakeRedis })
-    // The decorator should be the module-level redis, NOT the passed-in fakeRedis
-    expect(instance.redis).not.toBe(fakeRedis)
     await instance.close()
   })
 

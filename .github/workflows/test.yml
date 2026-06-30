@@ -16,7 +16,7 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
 
@@ -41,7 +41,7 @@ jobs:
         working-directory: admin-frontend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
 
@@ -99,7 +99,7 @@ jobs:
       NODE_ENV: test
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
 
@@ -122,7 +122,10 @@ jobs:
           # against plain Postgres in CI.
           psql -h localhost -U yourplug -d yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;"
+            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
+            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
+            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
           find ../supabase/migrations -name '*.sql' | sort | \
             xargs cat | \
             psql -h localhost -U yourplug -d yourplug_test -1
