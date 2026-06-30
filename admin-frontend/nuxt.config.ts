@@ -29,7 +29,6 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || '',
     public: {
       apiBase: process.env.API_BASE_URL || 'http://localhost:3001',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',

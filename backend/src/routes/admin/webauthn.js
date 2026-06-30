@@ -7,6 +7,7 @@ import {
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { isValidChallenge } from '../../utils/cleanupExpiredChallenges.js'
 import { UUID_RE } from '../../utils/constants.js'
+import { csrfProtection } from '../../middleware/adminAuth.js'
 
 const RP_NAME = 'yourplug Admin'
 const RP_ID = process.env.NODE_ENV === 'production'
@@ -117,7 +118,10 @@ export default async function webauthnRoutes(fastify, options) {
   })
 
   // Step 1: Generate registration options
-  fastify.post('/register/options', { schema: registerOptionsSchema }, async (request, reply) => {
+  fastify.post('/register/options', {
+    schema: registerOptionsSchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     try {
       fastify.log.info('Registration options request received')
 
@@ -215,7 +219,10 @@ export default async function webauthnRoutes(fastify, options) {
   })
 
   // Step 2: Verify registration response and store credential
-  fastify.post('/register/verify', { schema: registerVerifySchema }, async (request, reply) => {
+  fastify.post('/register/verify', {
+    schema: registerVerifySchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     try {
       const emailValidation = validateEmail(request.body.email)
       if (!emailValidation.valid) {
@@ -318,7 +325,10 @@ export default async function webauthnRoutes(fastify, options) {
   })
 
   // Step 3: Generate authentication options (login challenge)
-  fastify.post('/authenticate/options', { schema: authenticateOptionsSchema }, async (request, reply) => {
+  fastify.post('/authenticate/options', {
+    schema: authenticateOptionsSchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     try {
       fastify.log.info('Authentication options request received')
 
@@ -399,7 +409,10 @@ export default async function webauthnRoutes(fastify, options) {
   })
 
   // Step 4: Verify authentication response and log in
-  fastify.post('/authenticate/verify', { schema: authenticateVerifySchema }, async (request, reply) => {
+  fastify.post('/authenticate/verify', {
+    schema: authenticateVerifySchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     try {
       const emailValidation = validateEmail(request.body.email)
       if (!emailValidation.valid) {
@@ -527,13 +540,16 @@ export default async function webauthnRoutes(fastify, options) {
     return { credentials }
   })
 
-  // Delete a credential
-  fastify.delete('/credentials/:id', async (request, reply) => {
+  // Delete a credential — requires both a valid session and a CSRF token
+  async function requireSessionThenCsrf(request, reply) {
     if (!request.session?.adminId) {
       reply.code(401)
-      return { error: 'Not authenticated' }
+      return reply.send({ error: 'Not authenticated' })
     }
+    return csrfProtection(request, reply)
+  }
 
+  fastify.delete('/credentials/:id', { preHandler: requireSessionThenCsrf }, async (request, reply) => {
     const { id } = request.params
 
     if (!id || typeof id !== 'string' || id.trim().length === 0) {

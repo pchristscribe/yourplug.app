@@ -71,6 +71,14 @@
           <p class="text-ink-subtle">
             © {{ new Date().getFullYear() }} yourplug. All rights reserved.
           </p>
+          <nav aria-label="Legal" class="mt-2 space-x-4">
+            <NuxtLink to="/privacy" class="text-xs text-ink-muted dark:text-ink-subtle hover:text-brand dark:hover:text-brand-hover transition-colors duration-base">
+              Privacy Policy
+            </NuxtLink>
+            <NuxtLink to="/terms" class="text-xs text-ink-muted dark:text-ink-subtle hover:text-brand dark:hover:text-brand-hover transition-colors duration-base">
+              Terms of Service
+            </NuxtLink>
+          </nav>
         </div>
       </div>
     </footer>
@@ -80,6 +88,9 @@
 
     <!-- Global toast notification stack -->
     <AppFeedbackToastContainer />
+
+    <!-- GDPR/CCPA cookie consent banner -->
+    <CookieConsent />
   </div>
 </template>
 

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { generateCsrfToken, csrfProtection, adminAuth } from '../../middleware/adminAuth.js'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
 
@@ -18,7 +19,10 @@ export default async function adminAuthRoutes(fastify, options) {
   const { sql } = fastify
 
   // Login route
-  fastify.post('/login', { schema: loginSchema }, async (request, reply) => {
+  fastify.post('/login', {
+    schema: loginSchema,
+    config: { rateLimit: { max: process.env.NODE_ENV === 'test' ? 10000 : 5, timeWindow: '15 minutes' } }
+  }, async (request, reply) => {
     const { email: rawEmail, password } = request.body
 
     // Trim and validate email format
@@ -96,12 +100,19 @@ export default async function adminAuthRoutes(fastify, options) {
     }
   })
 
-  // Logout route
-  fastify.post('/logout', async (request, reply) => {
+  // Logout route — requires a valid CSRF token to prevent CSRF-driven session destruction
+  fastify.post('/logout', { preHandler: csrfProtection }, async (request, reply) => {
     if (request.session) {
       await request.session.destroy()
     }
     return { success: true, message: 'Logged out successfully' }
+  })
+
+  fastify.get('/csrf-token', { preHandler: adminAuth }, async (request, reply) => {
+    if (!request.session.csrfToken) {
+      request.session.csrfToken = generateCsrfToken()
+    }
+    return { csrfToken: request.session.csrfToken }
   })
 
   // Get current session (check if logged in)

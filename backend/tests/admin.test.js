@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 
 let app
 let cookie // session cookie set after login
+let csrfToken // CSRF token fetched from the server after login
 const TEST_EMAIL = `test-admin-${Date.now()}@example.com`
 const TEST_PASSWORD = 'TestPass123!'
 let testAdminId
@@ -33,6 +34,15 @@ beforeAll(async () => {
   const setCookie = loginRes.headers['set-cookie']
   const rawCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie
   cookie = rawCookie.split(';')[0].trim()
+
+  // Fetch a server-issued CSRF token for the session (no token needed on the fetch itself)
+  const csrfRes = await app.inject({
+    method: 'GET',
+    url: '/api/admin/auth/csrf-token',
+    headers: { cookie },
+  })
+  expect(csrfRes.statusCode).toBe(200)
+  csrfToken = JSON.parse(csrfRes.body).csrfToken
 })
 
 afterAll(async () => {
@@ -56,7 +66,7 @@ describe('Admin Auth Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/auth/session',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -138,10 +148,17 @@ describe('Admin Auth Routes', () => {
       payload: { email: TEST_EMAIL, password: TEST_PASSWORD },
     })
     const tempCookie = loginRes.headers['set-cookie'].split(';')[0].trim()
+    // Fetch a CSRF token for this temporary session
+    const tempCsrfRes = await app.inject({
+      method: 'GET',
+      url: '/api/admin/auth/csrf-token',
+      headers: { cookie: tempCookie },
+    })
+    const tempCsrfToken = JSON.parse(tempCsrfRes.body).csrfToken
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/auth/logout',
-      headers: { cookie: tempCookie },
+      headers: { cookie: tempCookie, 'x-csrf-token': tempCsrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -161,7 +178,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -174,7 +191,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories?search=test',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -183,7 +200,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories?page=1&limit=5',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -194,7 +211,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Test Category', slug: `test-category-${Date.now()}` },
     })
     expect(res.statusCode).toBe(201)
@@ -208,13 +225,13 @@ describe('Admin Category Routes', () => {
     await app.inject({
       method: 'POST',
       url: '/api/admin/categories',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'First', slug },
     })
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Second', slug },
     })
     expect(res.statusCode).toBe(409)
@@ -227,7 +244,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/admin/categories/${testCategoryId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -238,7 +255,7 @@ describe('Admin Category Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -251,7 +268,7 @@ describe('Admin Product Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -263,7 +280,7 @@ describe('Admin Product Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products?search=sword',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -272,7 +289,7 @@ describe('Admin Product Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products?status=ACTIVE',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -281,7 +298,7 @@ describe('Admin Product Routes', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {
         externalId: `ext-test-${Date.now()}`,
         platform: 'DHGATE',
@@ -304,7 +321,7 @@ describe('Admin Product Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -317,7 +334,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -329,7 +346,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?page=1&limit=5',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -338,7 +355,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?status=APPROVED',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -347,7 +364,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -356,7 +373,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?isFeatured=true',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -365,7 +382,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?rating=5',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -374,7 +391,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?search=great',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -383,7 +400,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?productId=not-a-uuid',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -392,7 +409,7 @@ describe('Admin Review Routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews?sortBy=rating&order=asc',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -406,7 +423,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/categories/${testCategoryId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Updated Test Category' },
     })
     expect(res.statusCode).toBe(200)
@@ -419,7 +436,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/categories/${testCategoryId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     // Schema requires at least one writable field
@@ -430,7 +447,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/admin/categories/00000000-0000-0000-0000-000000000000',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Ghost' },
     })
     expect(res.statusCode).toBe(404)
@@ -441,7 +458,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/admin/categories/${testCategoryId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(409)
   })
@@ -450,7 +467,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/admin/categories/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -459,7 +476,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories?sortBy=createdAt&order=desc',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -468,7 +485,7 @@ describe('Admin Category CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/categories/not-a-uuid',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -482,7 +499,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/admin/products/${testProductId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -494,7 +511,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/admin/products?categoryId=${testCategoryId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -503,7 +520,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products?categoryId=not-a-uuid',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -513,7 +530,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/products/${testProductId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { title: 'Updated Test Product' },
     })
     expect(res.statusCode).toBe(200)
@@ -526,7 +543,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/products/${testProductId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     expect(res.statusCode).toBe(200)
@@ -538,7 +555,7 @@ describe('Admin Product CRUD', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/api/admin/products',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {
         externalId: `tmp-delete-${Date.now()}`,
         platform: 'DHGATE',
@@ -556,7 +573,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/admin/products/${tmpId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect([200, 204]).toContain(res.statusCode)
   })
@@ -565,7 +582,7 @@ describe('Admin Product CRUD', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/admin/products/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -581,7 +598,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {
         productId: testProductId,
         rating: 5,
@@ -603,7 +620,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/admin/reviews/${testReviewId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -615,7 +632,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/reviews/${testReviewId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { isFeatured: true },
     })
     expect(res.statusCode).toBe(200)
@@ -628,7 +645,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/admin/reviews?productId=${testProductId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -640,7 +657,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/admin/reviews/${testReviewId}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect([200, 204]).toContain(res.statusCode)
   })
@@ -649,7 +666,7 @@ describe('Admin Review CRUD', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/reviews/not-a-uuid',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -666,7 +683,7 @@ describe('Admin Bulk Operations', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/admin/reviews',
-        headers: { cookie, 'content-type': 'application/json' },
+        headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
         payload: {
           productId: testProductId,
           rating: 4,
@@ -684,7 +701,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/toggle-featured',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: [bulkReviewId], isFeatured: true },
     })
     expect(res.statusCode).toBe(200)
@@ -694,7 +711,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/toggle-featured',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: [], isFeatured: true },
     })
     expect(res.statusCode).toBe(400)
@@ -704,7 +721,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/toggle-featured',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: ['not-a-uuid'], isFeatured: false },
     })
     expect(res.statusCode).toBe(400)
@@ -714,7 +731,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: ['not-a-uuid'] },
     })
     expect(res.statusCode).toBe(400)
@@ -725,7 +742,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: [bulkReviewId] },
     })
     expect(res.statusCode).toBe(200)
@@ -736,7 +753,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { reviewIds: [] },
     })
     expect(res.statusCode).toBe(400)
@@ -747,7 +764,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/status',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: [testProductId], status: 'INACTIVE' },
     })
     expect(res.statusCode).toBe(200)
@@ -755,7 +772,7 @@ describe('Admin Bulk Operations', () => {
     await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/status',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: [testProductId], status: 'ACTIVE' },
     })
   })
@@ -764,7 +781,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/status',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     expect(res.statusCode).toBe(400)
@@ -774,7 +791,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/status',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: ['not-a-uuid'], status: 'ACTIVE' },
     })
     expect(res.statusCode).toBe(400)
@@ -785,7 +802,7 @@ describe('Admin Bulk Operations', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/status',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: [testProductId], status: 'INVALID_STATUS' },
     })
     expect(res.statusCode).toBe(400)
@@ -843,14 +860,14 @@ describe('Admin Category delete and bulk', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/api/admin/categories',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Empty Cat', slug: `empty-cat-${Date.now()}` },
     })
     const { id } = JSON.parse(createRes.body)
     const deleteRes = await app.inject({
       method: 'DELETE',
       url: `/api/admin/categories/${id}`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect([200, 204]).toContain(deleteRes.statusCode)
   })
@@ -859,7 +876,7 @@ describe('Admin Category delete and bulk', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { categoryIds: [] },
     })
     expect(res.statusCode).toBe(400)
@@ -870,14 +887,14 @@ describe('Admin Category delete and bulk', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/api/admin/categories',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { name: 'Bulk Del Cat', slug: `bulk-del-${Date.now()}` },
     })
     const { id } = JSON.parse(createRes.body)
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { categoryIds: [id] },
     })
     expect(res.statusCode).toBe(200)
@@ -888,7 +905,7 @@ describe('Admin Category delete and bulk', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { categoryIds: [testCategoryId] },
     })
     expect(res.statusCode).toBe(409)
@@ -902,7 +919,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: [] },
     })
     expect(res.statusCode).toBe(400)
@@ -912,7 +929,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: ['not-a-uuid'] },
     })
     expect(res.statusCode).toBe(400)
@@ -924,7 +941,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/api/admin/products',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {
         externalId: `bulk-del-${Date.now()}`,
         platform: 'ALIEXPRESS',
@@ -942,7 +959,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/products/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { productIds: [id] },
     })
     expect(res.statusCode).toBe(200)
@@ -952,7 +969,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/products/stats/dashboard',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -965,7 +982,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/products/${testProductId}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     expect(res.statusCode).toBe(200)
@@ -975,7 +992,7 @@ describe('Admin Products bulk/delete and dashboard', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/admin/products/00000000-0000-0000-0000-000000000000',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     expect(res.statusCode).toBe(404)
@@ -1023,7 +1040,7 @@ describe('WebAuthn routes', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/admin/webauthn/credentials',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -1048,7 +1065,7 @@ describe('WebAuthn routes', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/admin/webauthn/credentials/not-a-uuid',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -1057,7 +1074,7 @@ describe('WebAuthn routes', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/admin/webauthn/credentials/00000000-0000-0000-0000-000000000000',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -1183,7 +1200,7 @@ describe('Admin Categories bulk delete validation', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/categories/bulk/delete',
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: { categoryIds: ['not-a-uuid'] },
     })
     expect(res.statusCode).toBe(400)
@@ -1200,7 +1217,7 @@ describe('Admin Review toggle-featured', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/admin/reviews',
-        headers: { cookie, 'content-type': 'application/json' },
+        headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
         payload: {
           productId: testProductId,
           rating: 3,
@@ -1224,7 +1241,7 @@ describe('Admin Review toggle-featured', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/api/admin/reviews/${reviewIdForToggle}/toggle-featured`,
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -1235,7 +1252,7 @@ describe('Admin Review toggle-featured', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/not-a-uuid/toggle-featured',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -1244,7 +1261,7 @@ describe('Admin Review toggle-featured', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/reviews/00000000-0000-0000-0000-000000000000/toggle-featured',
-      headers: { cookie },
+      headers: { cookie, 'x-csrf-token': csrfToken },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -1254,7 +1271,7 @@ describe('Admin Review toggle-featured', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/admin/reviews/${reviewIdForToggle}`,
-      headers: { cookie, 'content-type': 'application/json' },
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
       payload: {},
     })
     // Schema may reject empty payload (400) or return existing review (200)

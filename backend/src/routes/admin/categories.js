@@ -1,4 +1,4 @@
-import { adminAuth } from '../../middleware/adminAuth.js'
+import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
 import {
   createCategorySchema,
   updateCategorySchema,
@@ -30,6 +30,7 @@ export default async function adminCategoryRoutes(fastify, options) {
   const { sql, redis } = fastify
 
   fastify.addHook('onRequest', adminAuth)
+  fastify.addHook('onRequest', csrfProtection)
 
   // List categories
   fastify.get('/', { schema: listCategoriesSchema }, async (request, reply) => {

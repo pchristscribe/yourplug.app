@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { RedisSessionStore } from './lib/sessionStore.js';
 import sql from './lib/sql.js';
 import redis from './lib/redis.js';
@@ -20,7 +22,16 @@ import { initSentry, captureException } from './lib/sentry.js';
 import * as Sentry from '@sentry/node';
 
 export async function buildApp(opts = {}) {
+  const sqlClient = opts.sql ?? sql
+  const redisClient = opts.redis ?? redis
+
   const fastify = Fastify({
+    trustProxy: true,
+    ajv: {
+      customOptions: {
+        removeAdditional: false,
+      },
+    },
     logger: opts.logger ?? {
       level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
       transport:
@@ -38,6 +49,8 @@ export async function buildApp(opts = {}) {
 
   // Initialize Sentry for error tracking
   initSentry(fastify);
+
+  await fastify.register(helmet, { global: true });
 
   // Register CORS - allow both frontend and admin app
   await fastify.register(cors, {
@@ -57,7 +70,7 @@ export async function buildApp(opts = {}) {
   }
 
   await fastify.register(session, {
-    store: new RedisSessionStore(redis),
+    store: new RedisSessionStore(redisClient),
     secret: sessionSecret,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
@@ -69,8 +82,29 @@ export async function buildApp(opts = {}) {
   });
 
   // Decorators for database clients
-  fastify.decorate('sql', sql);
-  fastify.decorate('redis', redis);
+  fastify.decorate('sql', sqlClient)
+  fastify.decorate('redis', redisClient)
+
+  await fastify.register(rateLimit, {
+    global: true,
+    max: process.env.NODE_ENV === 'test' ? 10000 : 100,
+    timeWindow: '1 minute',
+    redis: redisClient,
+    errorResponseBuilder: (_request, context) => ({
+      error: `Too many requests. Retry after ${context.after}`
+    }),
+    addHeadersOnExceeding: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true
+    },
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true
+    }
+  });
 
   // Sentry user context tracking
   fastify.addHook('onRequest', async (request, reply) => {
@@ -132,8 +166,8 @@ export async function buildApp(opts = {}) {
   // Health check route
   fastify.get('/health', async (request, reply) => {
     try {
-      await sql`SELECT 1`;
-      await redis.ping();
+      await sqlClient`SELECT 1`
+      await redisClient.ping()
       return {
         status: 'ok',
         database: 'connected',
