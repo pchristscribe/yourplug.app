@@ -58,7 +58,7 @@ describe('buildApp SESSION_SECRET requirement', () => {
 
 // ─── buildApp core behavior ───────────────────────────────────────────────────
 
-describe('buildApp no dependency injection', () => {
+describe('buildApp core behaviour', () => {
   let app
 
   beforeAll(async () => {
@@ -189,6 +189,49 @@ describe('AJV validation — default behavior after removeAdditional option remo
     })
 
     expect(res.statusCode).toBe(400)
+  })
+})
+
+// ─── Health endpoint 503 paths ───────────────────────────────────────────────
+
+describe('Health endpoint — 503 on client failure', () => {
+  it('returns 503 when sql client throws', async () => {
+    // Inject a sql stub that throws; use real redis so rate-limit and sessions work
+    const failingSql = () => { throw new Error('DB unavailable') }
+
+    const app = await buildApp({ logger: false, sql: failingSql })
+    const res = await app.inject({ method: 'GET', url: '/health' })
+
+    expect(res.statusCode).toBe(503)
+    const body = JSON.parse(res.body)
+    expect(body.status).toBe('error')
+    expect(body.message).toBe('DB unavailable')
+    await app.close()
+  })
+
+  it('returns 503 when redis ping throws', async () => {
+    // Fake sql that succeeds; fake redis with defineCommand for @fastify/rate-limit
+    // but a throwing ping so the health check fails
+    const fakeSql = async () => []
+    const failingRedis = {
+      defineCommand(name) { failingRedis[name] = async () => [0, 60000] },
+      on: () => {},
+      status: 'ready',
+      ping: async () => { throw new Error('Redis unavailable') },
+      get: async () => null,
+      set: async () => 'OK',
+      setex: async () => 'OK',
+      del: async () => 1,
+    }
+
+    const app = await buildApp({ logger: false, sql: fakeSql, redis: failingRedis })
+    const res = await app.inject({ method: 'GET', url: '/health' })
+
+    expect(res.statusCode).toBe(503)
+    const body = JSON.parse(res.body)
+    expect(body.status).toBe('error')
+    expect(body.message).toBe('Redis unavailable')
+    await app.close()
   })
 })
 
