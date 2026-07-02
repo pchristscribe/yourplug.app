@@ -29,7 +29,6 @@ WebAuthn (Web Authentication API) is a W3C web standard for secure, phishing-res
 - **Sessions**: Redis-backed
 - **Auth library**: `@simplewebauthn/server`
 - **Default URL**: `http://localhost:3001`
-
 ## Quick Start
 
 ### 1. Start Infrastructure
@@ -288,7 +287,7 @@ pnpm vitest tests/auth.test.ts
 # Supabase
 NUXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NUXT_PUBLIC_SUPABASE_KEY=your-anon-key
-NUXT_SUPABASE_SERVICE_KEY=your-service-role-key
+SUPABASE_SECRET_KEY=your-service-role-key
 
 # Backend API
 API_BASE_URL=https://api.yourplug.app

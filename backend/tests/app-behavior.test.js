@@ -1,10 +1,10 @@
 /**
- * Tests for the revised app.js behavior introduced in this PR:
- * 1. Dependency injection was REMOVED — opts.sql and opts.redis no longer override module-level clients
- * 2. AJV customOptions (removeAdditional: false) was removed — default AJV validation applies
+ * Tests for app.js behavior:
+ * 1. Dependency injection — opts.sql and opts.redis override module-level clients when provided
+ * 2. AJV customOptions (removeAdditional: false) rejects unknown fields with 400
  * 3. Health endpoint uses module-level sql/redis directly
  * 4. SESSION_SECRET environment variable is still required
- * 5. fastify.sql and fastify.redis decorators expose the module-level clients
+ * 5. fastify.sql and fastify.redis decorators expose the active clients
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { buildApp } from '../src/app.js'
@@ -56,9 +56,9 @@ describe('buildApp SESSION_SECRET requirement', () => {
   })
 })
 
-// ─── buildApp opts no longer accepts sql/redis overrides ─────────────────────
+// ─── buildApp core behavior ───────────────────────────────────────────────────
 
-describe('buildApp no dependency injection', () => {
+describe('buildApp core behaviour', () => {
   let app
 
   beforeAll(async () => {
@@ -73,33 +73,6 @@ describe('buildApp no dependency injection', () => {
     const instance = await buildApp({ logger: false })
     expect(instance).toBeDefined()
     expect(typeof instance.inject).toBe('function')
-    await instance.close()
-  })
-
-  it('ignores opts.sql — fastify.sql is always the module-level client', async () => {
-    // opts.sql was removed in this PR; passing it should not affect which client is used
-    const fakeSql = () => Promise.resolve([])
-    fakeSql.begin = async (f) => f(fakeSql)
-
-    const instance = await buildApp({ logger: false, sql: fakeSql })
-    // The decorator should be the module-level sql, NOT the passed-in fakeSql
-    expect(instance.sql).not.toBe(fakeSql)
-    await instance.close()
-  })
-
-  it('ignores opts.redis — fastify.redis is always the module-level client', async () => {
-    // opts.redis was removed in this PR; passing it should not affect which client is used
-    const fakeRedis = {
-      on: () => {},
-      ping: () => Promise.resolve('PONG'),
-      get: () => Promise.resolve(null),
-      set: () => Promise.resolve('OK'),
-      del: () => Promise.resolve(1),
-    }
-
-    const instance = await buildApp({ logger: false, redis: fakeRedis })
-    // The decorator should be the module-level redis, NOT the passed-in fakeRedis
-    expect(instance.redis).not.toBe(fakeRedis)
     await instance.close()
   })
 
@@ -216,6 +189,59 @@ describe('AJV validation — default behavior after removeAdditional option remo
     })
 
     expect(res.statusCode).toBe(400)
+  })
+})
+
+// ─── Health endpoint 503 paths ───────────────────────────────────────────────
+
+describe('Health endpoint — 503 on client failure', () => {
+  it('returns 503 when sql client throws', async () => {
+    // Inject a sql stub that throws; use real redis so rate-limit and sessions work
+    const failingSql = () => { throw new Error('DB unavailable') }
+
+    const app = await buildApp({ logger: false, sql: failingSql })
+    const res = await app.inject({ method: 'GET', url: '/health' })
+
+    expect(res.statusCode).toBe(503)
+    const body = JSON.parse(res.body)
+    expect(body.status).toBe('error')
+    expect(body.message).toBe('DB unavailable')
+    await app.close()
+  })
+
+  it('returns 503 when redis ping throws', async () => {
+    // Fake sql that succeeds; fake redis with defineCommand for @fastify/rate-limit
+    // but a throwing ping so the health check fails
+    const fakeSql = async () => []
+    const failingRedis = {
+      defineCommand(name) {
+        // @fastify/rate-limit's RedisStore invokes defineCommand-created
+        // methods in callback style (last arg), not as a promise — mirror
+        // that or the rate-limit hook never resolves and the test hangs.
+        failingRedis[name] = (...args) => {
+          const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null
+          const result = [0, 60000]
+          if (cb) return cb(null, result)
+          return Promise.resolve(result)
+        }
+      },
+      on: () => {},
+      status: 'ready',
+      ping: async () => { throw new Error('Redis unavailable') },
+      get: async () => null,
+      set: async () => 'OK',
+      setex: async () => 'OK',
+      del: async () => 1,
+    }
+
+    const app = await buildApp({ logger: false, sql: fakeSql, redis: failingRedis })
+    const res = await app.inject({ method: 'GET', url: '/health' })
+
+    expect(res.statusCode).toBe(503)
+    const body = JSON.parse(res.body)
+    expect(body.status).toBe('error')
+    expect(body.message).toBe('Redis unavailable')
+    await app.close()
   })
 })
 
