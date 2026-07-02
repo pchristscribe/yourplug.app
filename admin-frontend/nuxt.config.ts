@@ -20,7 +20,7 @@ export default defineNuxtConfig({
   supabase: {
     url: process.env.NUXT_PUBLIC_SUPABASE_URL,
     key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-    // @nuxtjs/supabase reads NUXT_SUPABASE_SERVICE_KEY at runtime; unused in this app
+    serviceKey: process.env.SUPABASE_SECRET_KEY,
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
@@ -29,7 +29,6 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // Use NUXT_SUPABASE_SERVICE_KEY env var — not set here to avoid baking secret into bundle
     public: {
       apiBase: process.env.API_BASE_URL || 'http://localhost:3001',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
@@ -39,9 +38,9 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'yourplug.app Admin',
+      title: 'yourplug Admin',
       meta: [
-        { name: 'description', content: 'Admin panel for yourplug.app affiliate platform' },
+        { name: 'description', content: 'Admin panel for yourplug affiliate platform' },
         // Content Security Policy - Defense against XSS attacks
         {
           'http-equiv': 'Content-Security-Policy',
