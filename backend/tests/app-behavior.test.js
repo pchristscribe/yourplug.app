@@ -214,7 +214,17 @@ describe('Health endpoint — 503 on client failure', () => {
     // but a throwing ping so the health check fails
     const fakeSql = async () => []
     const failingRedis = {
-      defineCommand(name) { failingRedis[name] = async () => [0, 60000] },
+      defineCommand(name) {
+        // @fastify/rate-limit's RedisStore invokes defineCommand-created
+        // methods in callback style (last arg), not as a promise — mirror
+        // that or the rate-limit hook never resolves and the test hangs.
+        failingRedis[name] = (...args) => {
+          const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null
+          const result = [0, 60000]
+          if (cb) return cb(null, result)
+          return Promise.resolve(result)
+        }
+      },
       on: () => {},
       status: 'ready',
       ping: async () => { throw new Error('Redis unavailable') },
