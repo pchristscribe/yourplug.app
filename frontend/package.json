@@ -22,7 +22,7 @@
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.4",
     "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "^10.58.0",
+    "@sentry/nuxt": "^10.63.0",
     "nuxt": "^4.4.7",
     "nuxt-headlessui": "^1.2.2",
     "pinia": "^3.0.4",
