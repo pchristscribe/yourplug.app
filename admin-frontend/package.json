@@ -41,7 +41,7 @@
     "@playwright/test": "^1.52.0",
     "@types/domexception": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.61.1",
+    "@typescript-eslint/parser": "^8.62.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
     "@vitest/ui": "^4.1.8",
