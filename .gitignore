@@ -35,7 +35,16 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
-.claude/
+# .claude/ is intentionally NOT fully ignored: agents/, rules/, commands/,
+# and hooks/ are shared project harness config and should be committed.
+# Only machine-local state is excluded below (settings.local.json further down).
+# settings.json is also excluded for now - it hardcodes this machine's absolute
+# bun path (/Users/.../.bun/bin/bun) and would break hooks for other clones
+# until that command is made portable.
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.claude/settings.json
+.claude/.DS_Store
 .cursor/
 .codex/
 *.swp

@@ -40,6 +40,8 @@ jobs:
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
 
@@ -54,19 +56,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply database migrations
-        env:
-          PGPASSWORD: test_password
-        run: |
-          set -euo pipefail
-          psql -h localhost -U yourplug -d yourplug_test \
-            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
-            -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
-            -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
-            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
-          find supabase/migrations -name '*.sql' -print0 | sort -zV | \
-            xargs -0 cat | \
-            psql -h localhost -U yourplug -d yourplug_test -1
+        uses: ./.github/actions/apply-test-migrations
+        with:
+          db-user: yourplug
+          db-password: test_password
+          db-name: yourplug_test
 
       - name: Run tests
         working-directory: backend
@@ -77,8 +71,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     environment: production
+    env:
+      RAILWAY_CLI_VERSION: 4.66.1
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -92,13 +90,13 @@ jobs:
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-api --detach
+        run: pnpm dlx @railway/cli@${{ env.RAILWAY_CLI_VERSION }} up --service yourplug-api --detach
 
       - name: Deploy worker service
         working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: pnpm dlx @railway/cli@4.66.1 up --service yourplug-worker --detach
+        run: pnpm dlx @railway/cli@${{ env.RAILWAY_CLI_VERSION }} up --service yourplug-worker --detach
 
       - name: Post-deploy health check
         if: success()

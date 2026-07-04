@@ -1,5 +1,5 @@
 # ESLint static analysis with SARIF upload
-# Uses the project's ESLint v9 flat config (eslint.config.ts)
+# frontend uses the project's ESLint v9 flat config (eslint.config.ts)
 
 name: ESLint
 
@@ -13,12 +13,16 @@ on:
 
 jobs:
   eslint:
-    name: Run eslint scanning
+    name: Run eslint scanning (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
       actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [frontend, admin-frontend, backend]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,14 +35,14 @@ jobs:
         with:
           node-version: '24'
           cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: ${{ matrix.workspace }}
         run: pnpm install --frozen-lockfile
 
       - name: Run ESLint
-        working-directory: frontend
+        working-directory: ${{ matrix.workspace }}
         env:
           SARIF_ESLINT_IGNORE_SUPPRESSED: "true"
         run: |
@@ -50,5 +54,6 @@ jobs:
       - name: Upload analysis results to GitHub
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: frontend/eslint-results.sarif
+          sarif_file: ${{ matrix.workspace }}/eslint-results.sarif
+          category: eslint-${{ matrix.workspace }}
           wait-for-processing: true

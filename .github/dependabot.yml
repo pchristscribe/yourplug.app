@@ -39,8 +39,6 @@ updates:
     groups:
       fastify:
         patterns: ["fastify", "@fastify/*"]
-      prisma:
-        patterns: ["prisma", "@prisma/*"]
       sentry:
         patterns: ["@sentry/*"]
       webauthn:
@@ -51,3 +49,6 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    groups:
+      actions:
+        patterns: ["*"]
