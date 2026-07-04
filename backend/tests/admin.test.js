@@ -1061,6 +1061,57 @@ describe('WebAuthn routes', () => {
     expect(res.statusCode).toBe(401)
   })
 
+  it('GET and DELETE /api/admin/webauthn/credentials return 401 when admin becomes inactive mid-session', async () => {
+    // Regression test: a live session must not survive admin deactivation.
+    // Use a dedicated login so the shared cookie stays valid for other tests.
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { email: TEST_EMAIL, password: TEST_PASSWORD },
+    })
+    const rawCookie = loginRes.headers['set-cookie']
+    const sessionCookie = (Array.isArray(rawCookie) ? rawCookie[0] : rawCookie).split(';')[0].trim()
+    const csrfRes = await app.inject({
+      method: 'GET',
+      url: '/api/admin/auth/csrf-token',
+      headers: { cookie: sessionCookie },
+    })
+    const sessionCsrf = JSON.parse(csrfRes.body).csrfToken
+
+    const [cred] = await app.sql`
+      insert into webauthn_credentials (admin_id, credential_id, public_key, counter, device_name, transports)
+      values (${testAdminId}, 'inactive-test-cred', 'fake-public-key', 0, 'Inactive Test Key', '{"usb"}')
+      returning id
+    `
+
+    try {
+      await app.sql`update admins set is_active = false where id = ${testAdminId}`
+
+      const listRes = await app.inject({
+        method: 'GET',
+        url: '/api/admin/webauthn/credentials',
+        headers: { cookie: sessionCookie },
+      })
+      expect(listRes.statusCode).toBe(401)
+
+      const deleteRes = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/webauthn/credentials/${cred.id}`,
+        headers: { cookie: sessionCookie, 'x-csrf-token': sessionCsrf },
+      })
+      expect(deleteRes.statusCode).toBe(401)
+
+      // The credential must be untouched
+      const [survivor] = await app.sql`
+        select id from webauthn_credentials where id = ${cred.id}
+      `
+      expect(survivor).toBeDefined()
+    } finally {
+      await app.sql`update admins set is_active = true where id = ${testAdminId}`.catch(() => {})
+      await app.sql`delete from webauthn_credentials where id = ${cred.id}`.catch(() => {})
+    }
+  })
+
   it('DELETE /api/admin/webauthn/credentials/:id returns 404 for non-UUID', async () => {
     const res = await app.inject({
       method: 'DELETE',

@@ -19,7 +19,7 @@ export async function adminAuth(request, reply) {
   `
 
   if (!admin || !admin.isActive) {
-    request.session.destroy()
+    await request.session.destroy()
     reply.code(401).send({ error: 'Unauthorized', message: 'Admin account not found or inactive' })
     return
   }
