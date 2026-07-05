@@ -17,6 +17,12 @@ import adminCategoryRoutes from './routes/admin/categories.js';
 import adminReviewRoutes from './routes/admin/reviews.js';
 import adminBlogPostRoutes from './routes/admin/blog-posts.js';
 import adminProductVariantRoutes from './routes/admin/product-variants.js';
+import multipart from '@fastify/multipart';
+import consignmentListingRoutes from './routes/consignment/listings.js';
+import consignmentSellerRoutes from './routes/consignment/seller.js';
+import consignmentOfferRoutes from './routes/consignment/offers.js';
+import adminConsignmentRoutes from './routes/admin/consignment.js';
+import stripeWebhookRoutes from './routes/stripe-webhooks.js';
 import { cleanupExpiredChallenges } from './utils/cleanupExpiredChallenges.js';
 import { initSentry, captureException } from './lib/sentry.js';
 import * as Sentry from '@sentry/node';
@@ -55,8 +61,8 @@ export async function buildApp(opts = {}) {
   // Register CORS - allow both frontend and admin app
   await fastify.register(cors, {
     origin: process.env.NODE_ENV === 'production'
-      ? [process.env.FRONTEND_URL, process.env.ADMIN_URL]
-      : ['http://localhost:3000', 'http://localhost:3002'],
+      ? [process.env.FRONTEND_URL, process.env.ADMIN_URL, process.env.MARKETPLACE_URL].filter(Boolean)
+      : ['http://localhost:3000', 'http://localhost:3002', 'http://localhost:3003'],
     credentials: true,
   });
 
@@ -184,6 +190,9 @@ export async function buildApp(opts = {}) {
     }
   });
 
+  // Multipart for image uploads (consignment)
+  await fastify.register(multipart);
+
   // Register public routes
   fastify.register(productRoutes, { prefix: '/api/products' });
   fastify.register(categoryRoutes, { prefix: '/api/categories' });
@@ -197,6 +206,13 @@ export async function buildApp(opts = {}) {
   fastify.register(adminReviewRoutes, { prefix: '/api/admin/reviews' });
   fastify.register(adminBlogPostRoutes, { prefix: '/api/admin/blog-posts' });
   fastify.register(adminProductVariantRoutes, { prefix: '/api/admin/variants' });
+
+  // Consignment marketplace routes
+  fastify.register(consignmentListingRoutes, { prefix: '/api/consignment/listings' });
+  fastify.register(consignmentSellerRoutes, { prefix: '/api/consignment/seller' });
+  fastify.register(consignmentOfferRoutes, { prefix: '/api/consignment/offers' });
+  fastify.register(adminConsignmentRoutes, { prefix: '/api/admin/consignment' });
+  fastify.register(stripeWebhookRoutes, { prefix: '/api/webhooks' });
 
   return fastify;
 }
