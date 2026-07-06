@@ -4,9 +4,35 @@ import { buildApp } from '../src/app.js'
 const VALID_UUID = '00000000-0000-0000-0000-000000000001'
 const SELLER_UUID = '00000000-0000-0000-0000-000000000002'
 
+function makeRedis() {
+  const redis = {
+    defineCommand(name) {
+      redis[name] = (...args) => {
+        const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null
+        const result = [0, 60000]
+        if (cb) return cb(null, result)
+        return Promise.resolve(result)
+      }
+    },
+    on: () => {},
+    status: 'ready',
+    ping: vi.fn().mockResolvedValue('PONG'),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    quit: vi.fn().mockResolvedValue('OK'),
+  }
+  return redis
+}
+
 function makeApp(sqlOverrides = {}) {
   const sql = Object.assign(
-    vi.fn(async () => []),
+    vi.fn(async (strings) => {
+      const query = Array.isArray(strings) ? strings.join('') : String(strings ?? '')
+      if (query.includes('count(*)')) return [{ count: '0' }]
+      return []
+    }),
     {
       json: v => v,
       ...sqlOverrides,
@@ -15,7 +41,7 @@ function makeApp(sqlOverrides = {}) {
 
   return buildApp({
     sql,
-    redis: { ping: vi.fn().mockResolvedValue('PONG'), get: vi.fn().mockResolvedValue(null), set: vi.fn(), quit: vi.fn() },
+    redis: makeRedis(),
     logger: false,
   })
 }

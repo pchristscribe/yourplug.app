@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@anthropic-ai/sdk', () => {
-  const create = vi.fn()
-  return { default: vi.fn(() => ({ messages: { create } })) }
-})
+const mockCreate = vi.fn()
+
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: class MockAnthropic {
+    constructor() {
+      this.messages = { create: mockCreate }
+    }
+  },
+}))
 
 vi.mock('exif-reader', () => ({ read: vi.fn(() => null) }))
 
@@ -13,35 +18,19 @@ const mockSql = (rows = []) => {
   return fn
 }
 
-async function importMod() {
-  const mod = await import('../src/lib/moderation.js')
-  return mod
-}
-
 describe('moderateListingText', () => {
   beforeEach(() => {
     process.env.ANTHROPIC_API_KEY = 'test-key'
-    vi.resetModules()
+    mockCreate.mockReset()
   })
 
   it('returns APPROVED decision and logs result', async () => {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    Anthropic.mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', flags: [] }) }],
-          usage: { input_tokens: 100, output_tokens: 50 },
-        }),
-      },
-    }))
-
-    const calls = []
-    const sql = vi.fn((...args) => {
-      calls.push(args)
-      return Promise.resolve([])
+    mockCreate.mockResolvedValue({
+      content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', flags: [] }) }],
+      usage: { input_tokens: 100, output_tokens: 50 },
     })
-    sql.json = vi.fn(v => v)
 
+    const sql = mockSql()
     const { moderateListingText } = await import('../src/lib/moderation.js')
     const result = await moderateListingText(sql, {
       id: 'listing-1',
@@ -58,20 +47,12 @@ describe('moderateListingText', () => {
   })
 
   it('returns REJECTED for disallowed content', async () => {
-    vi.resetModules()
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    Anthropic.mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ text: JSON.stringify({ decision: 'REJECTED', reason: 'illegal item', flags: ['illegal'] }) }],
-          usage: { input_tokens: 80, output_tokens: 30 },
-        }),
-      },
-    }))
+    mockCreate.mockResolvedValue({
+      content: [{ text: JSON.stringify({ decision: 'REJECTED', reason: 'illegal item', flags: ['illegal'] }) }],
+      usage: { input_tokens: 80, output_tokens: 30 },
+    })
 
-    const sql = vi.fn(() => Promise.resolve([]))
-    sql.json = vi.fn(v => v)
-
+    const sql = mockSql()
     const { moderateListingText } = await import('../src/lib/moderation.js')
     const result = await moderateListingText(sql, {
       id: 'listing-2',
@@ -87,20 +68,12 @@ describe('moderateListingText', () => {
   })
 
   it('returns FLAGGED for borderline content', async () => {
-    vi.resetModules()
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    Anthropic.mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ text: JSON.stringify({ decision: 'FLAGGED', reason: 'borderline', flags: [] }) }],
-          usage: { input_tokens: 90, output_tokens: 40 },
-        }),
-      },
-    }))
+    mockCreate.mockResolvedValue({
+      content: [{ text: JSON.stringify({ decision: 'FLAGGED', reason: 'borderline', flags: [] }) }],
+      usage: { input_tokens: 90, output_tokens: 40 },
+    })
 
-    const sql = vi.fn(() => Promise.resolve([]))
-    sql.json = vi.fn(v => v)
-
+    const sql = mockSql()
     const { moderateListingText } = await import('../src/lib/moderation.js')
     const result = await moderateListingText(sql, {
       id: 'listing-3',
@@ -115,20 +88,12 @@ describe('moderateListingText', () => {
   })
 
   it('handles malformed JSON response by returning FLAGGED', async () => {
-    vi.resetModules()
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    Anthropic.mockImplementation(() => ({
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ text: 'not valid json at all' }],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        }),
-      },
-    }))
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'not valid json at all' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    })
 
-    const sql = vi.fn(() => Promise.resolve([]))
-    sql.json = vi.fn(v => v)
-
+    const sql = mockSql()
     const { moderateListingText } = await import('../src/lib/moderation.js')
     const result = await moderateListingText(sql, {
       id: 'listing-4',
