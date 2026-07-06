@@ -144,15 +144,36 @@ create policy "seller_profiles_owner_write" on seller_profiles
 create policy "seller_profiles_service_all" on seller_profiles
   for all using (auth.role() = 'service_role');
 
--- consignment_listings: public read for APPROVED; owner read/write own; service role full
+-- consignment_listings: public read for APPROVED; owner read own; owner may only
+-- create/edit listings in seller-editable states (DRAFT/REJECTED) and may only move
+-- them to DRAFT or PENDING_MODERATION — moderation verdicts and sale state changes
+-- are reserved for the service role / backend. Column-level protection for rows in
+-- editable states (moderation fields, platform_fee_pct, seller_id) is enforced by
+-- the consignment_guard_* triggers below.
 create policy "consignment_listings_public_read" on consignment_listings
   for select using (status = 'APPROVED');
 
 create policy "consignment_listings_owner_read" on consignment_listings
   for select using (auth.uid() = seller_id);
 
-create policy "consignment_listings_owner_write" on consignment_listings
-  for all using (auth.uid() = seller_id);
+create policy "consignment_listings_owner_insert" on consignment_listings
+  for insert with check (
+    auth.uid() = seller_id
+    and status in ('DRAFT', 'PENDING_MODERATION')
+    and moderation_status = 'PENDING'
+    and moderation_reason is null
+    and moderation_at is null
+    and sold_at is null
+  );
+
+create policy "consignment_listings_owner_update" on consignment_listings
+  for update
+  using (auth.uid() = seller_id and status in ('DRAFT', 'REJECTED'))
+  with check (auth.uid() = seller_id and status in ('DRAFT', 'PENDING_MODERATION'));
+
+create policy "consignment_listings_owner_delete" on consignment_listings
+  for delete
+  using (auth.uid() = seller_id and status in ('DRAFT', 'REJECTED'));
 
 create policy "consignment_listings_service_all" on consignment_listings
   for all using (auth.role() = 'service_role');
@@ -174,11 +195,39 @@ create policy "consignment_images_owner_read" on consignment_images
     )
   );
 
-create policy "consignment_images_owner_write" on consignment_images
-  for all using (
+-- Owners may only add/change/remove images while the listing is seller-editable,
+-- and may never self-attest moderation or freshness verdicts (those columns are
+-- written by the service role / backend; updates are guarded by trigger below).
+create policy "consignment_images_owner_insert" on consignment_images
+  for insert with check (
     exists (
       select 1 from consignment_listings l
-      where l.id = listing_id and l.seller_id = auth.uid()
+      where l.id = listing_id
+        and l.seller_id = auth.uid()
+        and l.status in ('DRAFT', 'REJECTED')
+    )
+    and moderation_passed is null
+    and freshness_ok is null
+    and freshness_delta_sec is null
+  );
+
+create policy "consignment_images_owner_update" on consignment_images
+  for update using (
+    exists (
+      select 1 from consignment_listings l
+      where l.id = listing_id
+        and l.seller_id = auth.uid()
+        and l.status in ('DRAFT', 'REJECTED')
+    )
+  );
+
+create policy "consignment_images_owner_delete" on consignment_images
+  for delete using (
+    exists (
+      select 1 from consignment_listings l
+      where l.id = listing_id
+        and l.seller_id = auth.uid()
+        and l.status in ('DRAFT', 'REJECTED')
     )
   );
 
@@ -197,8 +246,23 @@ create policy "consignment_offers_seller_read" on consignment_offers
     )
   );
 
-create policy "consignment_offers_buyer_write" on consignment_offers
-  for all using (auth.uid() = buyer_id);
+-- Buyers may only create PENDING offers on APPROVED listings, and may only revise
+-- a PENDING offer or withdraw it. Acceptance/rejection/expiry transitions are
+-- reserved for the service role / backend (offer acceptance is the seller flow).
+create policy "consignment_offers_buyer_insert" on consignment_offers
+  for insert with check (
+    auth.uid() = buyer_id
+    and status = 'PENDING'
+    and exists (
+      select 1 from consignment_listings l
+      where l.id = listing_id and l.status = 'APPROVED'
+    )
+  );
+
+create policy "consignment_offers_buyer_update" on consignment_offers
+  for update
+  using (auth.uid() = buyer_id and status = 'PENDING')
+  with check (auth.uid() = buyer_id and status in ('PENDING', 'WITHDRAWN'));
 
 create policy "consignment_offers_service_all" on consignment_offers
   for all using (auth.role() = 'service_role');
@@ -210,3 +274,103 @@ create policy "consignment_transactions_service_all" on consignment_transactions
 -- consignment_moderation_logs: service role only
 create policy "consignment_moderation_logs_service_all" on consignment_moderation_logs
   for all using (auth.role() = 'service_role');
+
+-- ── Column guards for end-user updates ────────────────────────────────────
+-- RLS WITH CHECK cannot compare NEW against OLD, so protected columns are frozen
+-- here for end-user JWT roles (anon/authenticated). The service role and the
+-- backend's direct Postgres connection are exempt — moderation verdicts, sale
+-- state, fees, and offer acceptance flow through them exclusively.
+
+create or replace function consignment_guard_listing_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(auth.role(), '') not in ('anon', 'authenticated') then
+    return new;
+  end if;
+
+  if new.seller_id         is distinct from old.seller_id
+     or new.platform_fee_pct  is distinct from old.platform_fee_pct
+     or new.moderation_status is distinct from old.moderation_status
+     or new.moderation_reason is distinct from old.moderation_reason
+     or new.moderation_at     is distinct from old.moderation_at
+     or new.sold_at           is distinct from old.sold_at
+     or new.created_at        is distinct from old.created_at then
+    raise exception 'consignment_listings: protected column changed';
+  end if;
+
+  if new.status is distinct from old.status
+     and not (old.status in ('DRAFT', 'REJECTED')
+              and new.status in ('DRAFT', 'PENDING_MODERATION')) then
+    raise exception 'consignment_listings: invalid status transition % -> %',
+      old.status, new.status;
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function consignment_guard_image_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(auth.role(), '') not in ('anon', 'authenticated') then
+    return new;
+  end if;
+
+  -- Sellers may reorder (sort_order) and set the primary image; everything
+  -- else — file pointers, EXIF data, moderation/freshness verdicts — is frozen.
+  if new.listing_id          is distinct from old.listing_id
+     or new.storage_path        is distinct from old.storage_path
+     or new.public_url          is distinct from old.public_url
+     or new.exif_captured_at    is distinct from old.exif_captured_at
+     or new.freshness_delta_sec is distinct from old.freshness_delta_sec
+     or new.freshness_ok        is distinct from old.freshness_ok
+     or new.moderation_passed   is distinct from old.moderation_passed
+     or new.created_at          is distinct from old.created_at then
+    raise exception 'consignment_images: protected column changed';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function consignment_guard_offer_update()
+returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(auth.role(), '') not in ('anon', 'authenticated') then
+    return new;
+  end if;
+
+  if new.listing_id    is distinct from old.listing_id
+     or new.buyer_id   is distinct from old.buyer_id
+     or new.expires_at is distinct from old.expires_at
+     or new.created_at is distinct from old.created_at then
+    raise exception 'consignment_offers: protected column changed';
+  end if;
+
+  if new.status is distinct from old.status and new.status <> 'WITHDRAWN' then
+    raise exception 'consignment_offers: invalid status transition % -> %',
+      old.status, new.status;
+  end if;
+
+  if new.amount is distinct from old.amount and new.status <> 'PENDING' then
+    raise exception 'consignment_offers: amount can only change while PENDING';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger consignment_listings_guard before update on consignment_listings
+  for each row execute function consignment_guard_listing_update();
+
+create trigger consignment_images_guard before update on consignment_images
+  for each row execute function consignment_guard_image_update();
+
+create trigger consignment_offers_guard before update on consignment_offers
+  for each row execute function consignment_guard_offer_update();
