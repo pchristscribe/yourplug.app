@@ -1,0 +1,46 @@
+name: Nightly E2E
+
+# Runs Playwright E2E unconditionally on a schedule so regressions aren't
+# invisible while PR CI keeps E2E gated behind vars.E2E_ENABLED for speed.
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    name: E2E tests (${{ matrix.workspace }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [frontend, admin-frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.workspace }}/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: ${{ matrix.workspace }}
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        working-directory: ${{ matrix.workspace }}
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run E2E tests
+        working-directory: ${{ matrix.workspace }}
+        run: pnpm exec playwright test
+        env:
+          NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL }}
+          NUXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NUXT_PUBLIC_SUPABASE_KEY }}
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: nightly-playwright-report-${{ matrix.workspace }}
+          path: ${{ matrix.workspace }}/playwright-report/
+          retention-days: 14
