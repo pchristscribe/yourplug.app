@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+#
+# One-shot development setup for the yourplug monorepo.
+#
+#   ./setup            install everything, create .env, start Docker infra
+#   ./setup --no-docker    skip starting Postgres/Redis containers
+#   ./setup --workspace backend   set up a single workspace only
+#   ./setup --check    verify prerequisites and report, change nothing
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACES=(. backend frontend admin-frontend mcp-dhgate)
+
+RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; NC=$'\033[0m'
+info()  { printf '%s==>%s %s\n' "$GREEN" "$NC" "$*"; }
+warn()  { printf '%swarn:%s %s\n' "$YELLOW" "$NC" "$*"; }
+fail()  { printf '%serror:%s %s\n' "$RED" "$NC" "$*" >&2; exit 1; }
+
+NO_DOCKER=0
+CHECK_ONLY=0
+ONLY_WORKSPACE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-docker) NO_DOCKER=1; shift ;;
+    --check) CHECK_ONLY=1; shift ;;
+    --workspace) ONLY_WORKSPACE="${2:?--workspace needs a value}"; shift 2 ;;
+    -h|--help) sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) fail "unknown option: $1 (try --help)" ;;
+  esac
+done
+
+# ─── Prerequisites ────────────────────────────────────────────────────────────
+
+check_prereqs() {
+  local ok=1
+
+  if command -v node >/dev/null; then
+    local node_major
+    node_major="$(node -e 'process.stdout.write(String(process.versions.node.split(".")[0]))')"
+    if (( node_major >= 24 )); then
+      info "node $(node --version)"
+    else
+      warn "node $(node --version) found — backend requires >= 24 (see backend/package.json engines)"
+    fi
+  else
+    warn "node not found — install Node.js 24+ (https://nodejs.org or via mise: 'mise install')"
+    ok=0
+  fi
+
+  if command -v pnpm >/dev/null; then
+    info "pnpm $(pnpm --version)"
+  else
+    warn "pnpm not found — enable it with 'corepack enable' or 'npm i -g pnpm'"
+    ok=0
+  fi
+
+  if [[ $NO_DOCKER -eq 0 ]]; then
+    if docker info >/dev/null 2>&1; then
+      info "docker daemon reachable"
+    else
+      warn "docker daemon not reachable — Postgres/Redis containers will be skipped (use --no-docker to silence this)"
+      NO_DOCKER=1
+    fi
+  fi
+
+  (( ok )) || fail "missing required tools; install them and re-run ./setup"
+}
+
+# ─── Steps ────────────────────────────────────────────────────────────────────
+
+setup_env() {
+  if [[ -f "$ROOT/.env" ]]; then
+    info ".env already exists — leaving it untouched"
+  elif [[ -f "$ROOT/.env.example" ]]; then
+    cp "$ROOT/.env.example" "$ROOT/.env"
+    info "created .env from .env.example — fill in real values before running services"
+  else
+    warn "no .env.example found; skipping .env creation"
+  fi
+}
+
+install_workspace() {
+  local ws="$1"
+  local dir="$ROOT/$ws"
+  [[ "$ws" == "." ]] && dir="$ROOT"
+
+  if [[ ! -f "$dir/package.json" ]]; then
+    warn "skipping $ws — no package.json"
+    return
+  fi
+
+  info "installing dependencies in ${ws/./root}"
+  (cd "$dir" && pnpm install --frozen-lockfile) \
+    || (cd "$dir" && warn "frozen lockfile install failed in $ws, retrying without --frozen-lockfile" && pnpm install)
+}
+
+start_docker() {
+  if [[ $NO_DOCKER -eq 1 ]]; then
+    info "skipping Docker infra (Postgres/Redis)"
+    return
+  fi
+  info "starting Postgres + Redis via docker compose"
+  (cd "$ROOT" && docker compose up -d)
+  (cd "$ROOT" && docker compose ps)
+}
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+cd "$ROOT"
+check_prereqs
+[[ $CHECK_ONLY -eq 1 ]] && { info "prerequisite check complete"; exit 0; }
+
+setup_env
+
+if [[ -n "$ONLY_WORKSPACE" ]]; then
+  install_workspace "$ONLY_WORKSPACE"
+else
+  for ws in "${WORKSPACES[@]}"; do
+    install_workspace "$ws"
+  done
+fi
+
+start_docker
+
+cat <<DONE
+
+${GREEN}Setup complete.${NC} Next steps:
+
+  backend   cd backend && pnpm dev          # Fastify API on :3001
+  frontend  cd frontend && pnpm dev         # user site on :3000
+  admin     cd admin-frontend && pnpm dev   # admin panel on :3002
+
+  tests     cd <workspace> && pnpm test
+  db shell  docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
+
+Remember to fill in .env before starting services.
+DONE
