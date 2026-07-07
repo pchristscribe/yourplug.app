@@ -13,8 +13,10 @@ function mapDbListing(row: Record<string, unknown>): ListingSummary {
     category: row.category as ListingSummary['category'],
     askingPrice: Number(row.asking_price ?? row.askingPrice),
     createdAt: (row.created_at ?? row.createdAt) as string,
-    sellerDisplayName: (row.seller_display_name ?? row.sellerDisplayName) as string | null,
-    primaryImageUrl: (row.primary_image_url ?? row.primaryImageUrl) as string | null,
+    // Trailing ?? null matters: when the API returns an explicit null,
+    // `null ?? row.camelCase` would otherwise yield undefined, not null.
+    sellerDisplayName: (row.seller_display_name ?? row.sellerDisplayName ?? null) as string | null,
+    primaryImageUrl: (row.primary_image_url ?? row.primaryImageUrl ?? null) as string | null,
   }
 }
 
@@ -53,6 +55,8 @@ export function useListings() {
     }
   }
 
+  // Returns null ONLY for a genuine 404; any other failure (network, 5xx,
+  // mapping) propagates so callers can distinguish "gone" from "broken".
   async function getListing(id: string): Promise<ListingDetail | null> {
     try {
       const row = await $fetch<Record<string, unknown>>(`${apiBase}/api/consignment/listings/${id}`)
@@ -72,8 +76,11 @@ export function useListings() {
           createdAt: (img.created_at ?? img.createdAt) as string,
         })),
       }
-    } catch {
-      return null
+    } catch (err) {
+      const status = (err as { statusCode?: number; status?: number })?.statusCode
+        ?? (err as { status?: number })?.status
+      if (status === 404) return null
+      throw err
     }
   }
 

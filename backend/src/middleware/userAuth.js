@@ -1,24 +1,32 @@
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '../lib/supabase.js'
 
-let _supabase = null
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      process.env.NUXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SECRET_KEY
-    )
-  }
-  return _supabase
-}
+const AUTH_TIMEOUT_MS = 5000
 
 export async function userAuth(request, reply) {
   const auth = request.headers.authorization
   if (!auth?.startsWith('Bearer ')) {
     return reply.code(401).send({ error: 'Unauthorized' })
   }
-  const { data, error } = await getSupabase().auth.getUser(auth.slice(7))
-  if (error || !data.user) {
-    return reply.code(401).send({ error: 'Unauthorized' })
+
+  // Bound the external auth lookup so a slow Supabase call can't hang
+  // every authenticated request indefinitely.
+  let timer
+  try {
+    const timeout = new Promise((_, rejectFn) => {
+      timer = setTimeout(() => rejectFn(new Error('auth timeout')), AUTH_TIMEOUT_MS)
+    })
+    const { data, error } = await Promise.race([
+      getSupabase().auth.getUser(auth.slice(7)),
+      timeout,
+    ])
+    if (error || !data.user) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+    request.userId = data.user.id
+  } catch (err) {
+    request.log.error({ err }, 'User auth lookup failed')
+    return reply.code(503).send({ error: 'Authentication service unavailable' })
+  } finally {
+    clearTimeout(timer)
   }
-  request.userId = data.user.id
 }

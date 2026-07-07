@@ -76,9 +76,12 @@ const error = ref<string | null>(null)
 const activeImage = ref<string | null>(null)
 const offerOpen = ref(false)
 
-onMounted(async () => {
+async function load(id: string) {
+  loading.value = true
+  error.value = null
+  activeImage.value = null
   try {
-    listing.value = await getListing(route.params.id as string)
+    listing.value = await getListing(id)
     if (!listing.value) {
       error.value = 'Listing not found'
     } else {
@@ -90,5 +93,12 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+// Watch the route param, not just onMounted: client-side navigation between
+// two listings reuses this component instance, which would otherwise keep
+// showing the previous listing under the new URL.
+watch(() => route.params.id, (id) => {
+  if (typeof id === 'string') load(id)
+}, { immediate: true })
 </script>

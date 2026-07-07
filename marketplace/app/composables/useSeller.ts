@@ -3,17 +3,11 @@ import type { SellerListing } from '~/types/listings'
 export function useSeller() {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase
-  const supabase = useSupabaseClient()
+  const { getAuthHeaders } = useAuthHeaders()
 
   const listings = ref<SellerListing[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-
-  async function getAuthHeaders(): Promise<Record<string, string>> {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
 
   async function fetchMyListings() {
     loading.value = true

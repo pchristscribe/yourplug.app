@@ -50,6 +50,41 @@ export const createOfferSchema = {
   },
 }
 
+export const uuidParamsSchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      // Fastify's default Ajv has no 'uuid' format (needs ajv-formats), so use a pattern
+      id: { type: 'string', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+    },
+  },
+}
+
+export const adminListListingsSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      moderationStatus: { type: 'string', enum: ['APPROVED', 'REJECTED', 'FLAGGED', 'PENDING_MODERATION'] },
+      page: { type: 'integer', minimum: 1, default: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+    },
+    additionalProperties: false,
+  },
+}
+
+export const rejectListingSchema = {
+  ...uuidParamsSchema,
+  body: {
+    type: 'object',
+    required: ['reason'],
+    properties: {
+      reason: { type: 'string', minLength: 1, maxLength: 1000 },
+    },
+    additionalProperties: false,
+  },
+}
+
 export const listListingsSchema = {
   querystring: {
     type: 'object',

@@ -120,6 +120,16 @@ export default async function consignmentOfferRoutes(fastify) {
       return { error: 'Seller has not completed Stripe onboarding' }
     }
 
+    // Idempotency: one transaction per offer (unique offer_id). A repeat
+    // call must not create a second checkout session or duplicate row.
+    const [existing] = await sql`
+      select id, payment_status from consignment_transactions where offer_id = ${offerId}
+    `
+    if (existing && existing.paymentStatus !== 'PENDING') {
+      reply.code(422)
+      return { error: 'This offer has already been paid' }
+    }
+
     const [buyer] = await sql`select email from auth.users where id = ${request.userId}`
 
     const platformFeePct = parseFloat(offer.platformFeePct || 0.15)
@@ -129,6 +139,8 @@ export default async function consignmentOfferRoutes(fastify) {
       platformFeePct,
     }
 
+    // Safe to call repeatedly: keyed with idempotencyKey checkout-session:<offerId>,
+    // so Stripe returns the same session instead of creating a new one.
     const session = await createCheckoutSession({
       listing,
       offer: { id: offer.id, amount: parseFloat(offer.amount) },
@@ -153,6 +165,8 @@ export default async function consignmentOfferRoutes(fastify) {
         ${sellerPayout},
         ${session.payment_intent}
       )
+      on conflict (offer_id) do update
+        set stripe_payment_intent = excluded.stripe_payment_intent
     `
 
     return { checkoutUrl: session.url }

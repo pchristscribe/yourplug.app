@@ -27,6 +27,8 @@ export async function createCheckoutSession({ listing, offer, sellerStripeAccoun
   const unitAmount = Math.round(offer.amount * 100)
   const feeAmount = Math.round(unitAmount * listing.platformFeePct)
 
+  // Idempotency key scoped to the offer: a retried request reuses the
+  // same checkout session instead of creating a duplicate money-moving call.
   return stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -51,16 +53,18 @@ export async function createCheckoutSession({ listing, offer, sellerStripeAccoun
     },
     success_url: `${process.env.MARKETPLACE_URL}/dashboard?checkout=success`,
     cancel_url: `${process.env.MARKETPLACE_URL}/listings/${listing.id}?checkout=cancel`,
+  }, {
+    idempotencyKey: `checkout-session:${offer.id}`,
   })
 }
 
-export async function createTransfer(amountCents, connectedAccountId, metadata = {}) {
+export async function createTransfer(amountCents, connectedAccountId, metadata = {}, idempotencyKey) {
   return getStripe().transfers.create({
     amount: amountCents,
     currency: 'usd',
     destination: connectedAccountId,
     metadata,
-  })
+  }, idempotencyKey ? { idempotencyKey } : undefined)
 }
 
 export function constructWebhookEvent(rawBody, sig, secret) {

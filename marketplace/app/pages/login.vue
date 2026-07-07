@@ -18,6 +18,10 @@
         </button>
       </div>
 
+      <p v-if="errorMessage" class="rounded-input bg-brand-muted border border-brand p-3 text-sm text-brand text-center" role="alert">
+        {{ errorMessage }}
+      </p>
+
       <p class="text-xs text-center text-ink-subtle">
         By signing in you agree to our terms. This marketplace is for adults 18+.
       </p>
@@ -28,14 +32,16 @@
 <script setup lang="ts">
 const supabase = useSupabaseClient()
 const config = useRuntimeConfig()
+const errorMessage = ref<string | null>(null)
 
 async function signIn(provider: 'google' | 'github' | 'discord') {
+  errorMessage.value = null
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${config.public.siteUrl}/confirm`,
     },
   })
-  if (error) console.error(error)
+  if (error) errorMessage.value = 'Sign-in failed. Please try again.'
 }
 </script>

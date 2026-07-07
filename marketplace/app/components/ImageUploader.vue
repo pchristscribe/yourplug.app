@@ -60,17 +60,33 @@ async function getToken(): Promise<string | null> {
   return data.session?.access_token ?? null
 }
 
+const ALLOWED_MIME = ['image/jpeg', 'image/webp', 'image/png']
+
 async function processFile(file: File) {
   freshnessWarning.value = ''
   uploadError.value = ''
 
+  // The client-side freshness check is advisory only: EXIF DateTimeOriginal
+  // carries no timezone, so this local-time comparison can be off by hours
+  // across timezones. Parse OffsetTimeOriginal when present to disambiguate;
+  // the server enforces the authoritative cutoff either way, so a photo that
+  // slips past this warning is still rejected server-side.
   try {
-    const exif = await parseExif(file, ['DateTimeOriginal'])
+    const exif = await parseExif(file, ['DateTimeOriginal', 'OffsetTimeOriginal'])
     if (exif?.DateTimeOriginal) {
-      const captured = new Date(exif.DateTimeOriginal)
+      let captured = new Date(exif.DateTimeOriginal)
+      const offset: unknown = exif.OffsetTimeOriginal
+      if (typeof offset === 'string') {
+        const m = offset.match(/^([+-])(\d{2}):(\d{2})$/)
+        if (m) {
+          const offsetMin = (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10))
+          // exifr parsed in local time; re-anchor to the recorded offset
+          captured = new Date(captured.getTime() + captured.getTimezoneOffset() * 60000 - offsetMin * 60000)
+        }
+      }
       const deltaSec = (Date.now() - captured.getTime()) / 1000
       if (deltaSec > 900) {
-        freshnessWarning.value = `This photo was taken ${Math.round(deltaSec / 60)} minutes ago. Only photos taken within the last 15 minutes will be accepted.`
+        freshnessWarning.value = `This photo appears to have been taken ${Math.round(deltaSec / 60)} minutes ago. Only photos taken within the last 15 minutes will be accepted.`
         return
       }
     }
@@ -101,16 +117,31 @@ async function processFile(file: File) {
   }
 }
 
+// Process files sequentially: concurrent processFile calls race on the
+// shared uploading/freshnessWarning/uploadError refs (each call resets them).
+async function processFiles(files: File[]) {
+  for (const file of files) {
+    if (!ALLOWED_MIME.includes(file.type)) {
+      uploadError.value = `"${file.name}" is not an accepted type (JPEG, WebP, PNG)`
+      continue
+    }
+    await processFile(file)
+  }
+}
+
 function onFileChange(e: Event) {
-  const files = (e.target as HTMLInputElement).files
+  const input = e.target as HTMLInputElement
+  const files = input.files
   if (!files) return
-  for (const file of Array.from(files)) processFile(file)
-  ;(e.target as HTMLInputElement).value = ''
+  const list = Array.from(files)
+  input.value = ''
+  void processFiles(list)
 }
 
 function onDrop(e: DragEvent) {
   const files = e.dataTransfer?.files
   if (!files) return
-  for (const file of Array.from(files)) processFile(file)
+  // Drag-and-drop bypasses the input's `accept` filter — enforce it here too.
+  void processFiles(Array.from(files))
 }
 </script>

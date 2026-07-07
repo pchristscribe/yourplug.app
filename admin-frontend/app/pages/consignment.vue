@@ -144,6 +144,14 @@
 <script setup lang="ts">
 import { useCsrf } from '~/composables/useCsrf'
 
+// Route protection: every other admin page declares the auth middleware —
+// without it this page renders for unauthenticated visitors (API calls
+// would 401, but the page itself must not be reachable).
+definePageMeta({
+  middleware: ['auth'],
+  layout: 'default',
+})
+
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase as string
 const { token: csrfToken } = useCsrf()
@@ -219,9 +227,11 @@ async function viewLogs(listing: Record<string, unknown>) {
   logsModal.value = true
   logsLoading.value = true
   try {
-    logs.value = await $fetch(`${apiBase}/api/admin/consignment/moderation-logs/${listing.id}`, {
-      credentials: 'include',
-    })
+    const res = await $fetch<{ data: Record<string, unknown>[] }>(
+      `${apiBase}/api/admin/consignment/moderation-logs/${listing.id}`,
+      { credentials: 'include' }
+    )
+    logs.value = res.data
   } finally {
     logsLoading.value = false
   }

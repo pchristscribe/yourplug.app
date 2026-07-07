@@ -4,15 +4,15 @@
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3 mb-6">
-      <select v-model="filters.category" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
+      <select v-model="filters.category" aria-label="Filter by category" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
         <option value="">All categories</option>
-        <option v-for="c in CATEGORIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+        <option v-for="c in CATEGORY_OPTIONS" :key="c.value" :value="c.value">{{ c.label }}</option>
       </select>
-      <select v-model="filters.condition" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
+      <select v-model="filters.condition" aria-label="Filter by condition" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
         <option value="">All conditions</option>
-        <option v-for="c in CONDITIONS" :key="c.value" :value="c.value">{{ c.label }}</option>
+        <option v-for="c in CONDITION_OPTIONS" :key="c.value" :value="c.value">{{ c.label }}</option>
       </select>
-      <select v-model="filters.sortBy" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
+      <select v-model="filters.sortBy" aria-label="Sort listings" @change="search" class="rounded-input border border-gray-200 px-3 py-1.5 text-sm text-ink dark:bg-surface-dark dark:border-gray-600">
         <option value="createdAt">Newest</option>
         <option value="askingPrice">Price</option>
       </select>
@@ -25,39 +25,44 @@
       <ListingCard v-for="item in items" :key="item.id" :listing="item" />
     </div>
 
-    <!-- Pagination -->
-    <div v-if="pagination && pagination.pages > 1" class="mt-8 flex justify-center gap-2">
-      <button
-        v-for="p in pagination.pages" :key="p"
-        @click="goToPage(p)"
-        :class="['px-3 py-1.5 text-sm rounded-input', p === pagination.page ? 'bg-brand text-white' : 'bg-surface border border-gray-200 text-ink-muted hover:text-ink']"
-      >
-        {{ p }}
-      </button>
-    </div>
+    <!-- Pagination (windowed: first, last, current ±1) -->
+    <nav v-if="pagination && pagination.pages > 1" aria-label="Pagination" class="mt-8 flex justify-center items-center gap-2">
+      <template v-for="(p, i) in pageWindow" :key="`${p}-${i}`">
+        <span v-if="p === '…'" class="px-2 text-sm text-ink-subtle">…</span>
+        <button
+          v-else
+          @click="goToPage(p as number)"
+          :aria-current="p === pagination.page ? 'page' : undefined"
+          :class="['px-3 py-1.5 text-sm rounded-input', p === pagination.page ? 'bg-brand text-white' : 'bg-surface border border-gray-200 text-ink-muted hover:text-ink']"
+        >
+          {{ p }}
+        </button>
+      </template>
+    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { ListingFilters } from '~/types/listings'
-
-const CATEGORIES = [
-  { value: 'APPAREL', label: 'Apparel' },
-  { value: 'ACCESSORIES', label: 'Accessories' },
-  { value: 'UNDERWEAR', label: 'Underwear' },
-  { value: 'HARNESS', label: 'Harness' },
-  { value: 'TOY', label: 'Toy' },
-  { value: 'OTHER', label: 'Other' },
-]
-
-const CONDITIONS = [
-  { value: 'NEW', label: 'New' },
-  { value: 'LIKE_NEW', label: 'Like New' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'FAIR', label: 'Fair' },
-]
+import { CATEGORY_OPTIONS, CONDITION_OPTIONS } from '~/utils/listingLabels'
 
 const { items, pagination, loading, error, getListings } = useListings()
+
+// First page, last page, and current ±1 — with ellipsis gaps.
+const pageWindow = computed<(number | '…')[]>(() => {
+  if (!pagination.value) return []
+  const { page, pages } = pagination.value
+  const shown = new Set([1, pages, page - 1, page, page + 1].filter(p => p >= 1 && p <= pages))
+  const sorted = [...shown].sort((a, b) => a - b)
+  const out: (number | '…')[] = []
+  let prev = 0
+  for (const p of sorted) {
+    if (prev && p - prev > 1) out.push('…')
+    out.push(p)
+    prev = p
+  }
+  return out
+})
 
 const filters = ref<ListingFilters>({ sortBy: 'createdAt', order: 'desc', page: 1 })
 

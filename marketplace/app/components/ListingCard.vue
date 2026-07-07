@@ -30,25 +30,13 @@
 </template>
 
 <script setup lang="ts">
+// Explicit import (rather than Nuxt auto-import) so the component also
+// works under plain vitest/SSR test environments
+import { computed } from 'vue'
 import type { ListingSummary } from '~/types/listings'
+import { CONDITION_LABELS, CATEGORY_LABELS } from '~/utils/listingLabels'
 
 const props = defineProps<{ listing: ListingSummary }>()
-
-const CONDITION_LABELS: Record<string, string> = {
-  NEW: 'New',
-  LIKE_NEW: 'Like New',
-  GOOD: 'Good',
-  FAIR: 'Fair',
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  APPAREL: 'Apparel',
-  ACCESSORIES: 'Accessories',
-  UNDERWEAR: 'Underwear',
-  HARNESS: 'Harness',
-  TOY: 'Toy',
-  OTHER: 'Other',
-}
 
 const conditionLabel = computed(() => CONDITION_LABELS[props.listing.condition] ?? props.listing.condition)
 const categoryLabel = computed(() => CATEGORY_LABELS[props.listing.category] ?? props.listing.category)

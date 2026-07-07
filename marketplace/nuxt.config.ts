@@ -53,11 +53,13 @@ export default defineNuxtConfig({
           'http-equiv': 'Content-Security-Policy',
           content: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",
+            // No 'unsafe-inline' for scripts — it would defeat CSP's XSS protection
+            "script-src 'self'",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "img-src 'self' https: data:",
             "font-src 'self' data: https://fonts.gstatic.com",
-            "connect-src 'self' http://localhost:* https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://js.stripe.com",
+            // localhost is dev-only; production must not widen connect-src
+            `connect-src 'self' ${process.env.NODE_ENV !== 'production' ? 'http://localhost:* ' : ''}https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://js.stripe.com`,
             "base-uri 'self'",
             "form-action 'self' https://js.stripe.com",
           ].join('; '),

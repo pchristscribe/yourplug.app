@@ -47,8 +47,13 @@ const submitError = ref('')
 
 async function removeImage(imageId: string) {
   const headers = await getAuthHeaders()
-  await $fetch(`${apiBase}/api/consignment/seller/images/${imageId}`, { method: 'DELETE', headers })
-  uploaded.value = uploaded.value.filter(img => img.id !== imageId)
+  try {
+    await $fetch(`${apiBase}/api/consignment/seller/images/${imageId}`, { method: 'DELETE', headers })
+    // Only drop it from the grid after the server confirms the delete
+    uploaded.value = uploaded.value.filter(img => img.id !== imageId)
+  } catch (err: unknown) {
+    submitError.value = (err as { data?: { error?: string } })?.data?.error ?? 'Failed to remove image'
+  }
 }
 
 async function submitListing() {

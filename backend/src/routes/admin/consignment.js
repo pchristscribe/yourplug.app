@@ -1,5 +1,5 @@
 import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
-import { UUID_RE } from '../../utils/constants.js'
+import { adminListListingsSchema, uuidParamsSchema, rejectListingSchema } from '../../schemas/consignment.js'
 
 export default async function adminConsignmentRoutes(fastify) {
   const { sql } = fastify
@@ -7,15 +7,11 @@ export default async function adminConsignmentRoutes(fastify) {
   fastify.addHook('onRequest', adminAuth)
   fastify.addHook('onRequest', csrfProtection)
 
-  fastify.get('/listings', async (request) => {
-    const {
-      moderationStatus,
-      page = 1,
-      limit = 20,
-    } = request.query
+  fastify.get('/listings', { schema: adminListListingsSchema }, async (request) => {
+    const { moderationStatus, page, limit } = request.query
 
-    const safeLimit = Math.min(parseInt(limit, 10) || 20, 100)
-    const safePage = Math.max(1, parseInt(page, 10) || 1)
+    const safeLimit = limit
+    const safePage = page
     const skip = (safePage - 1) * safeLimit
 
     const conditions = []
@@ -58,40 +54,37 @@ export default async function adminConsignmentRoutes(fastify) {
     }
   })
 
-  fastify.patch('/listings/:id/approve', async (request, reply) => {
+  // Approve/reject only apply to listings actually awaiting a decision.
+  // Guarding the transition in SQL prevents e.g. re-approving a REJECTED
+  // listing or racing a second moderator on an already-decided one.
+  fastify.patch('/listings/:id/approve', { schema: uuidParamsSchema }, async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) {
-      reply.code(400)
-      return { error: 'Invalid listing ID' }
-    }
 
     const [listing] = await sql`
       update consignment_listings
       set moderation_status = 'APPROVED'::moderation_decision,
           status = 'APPROVED'::listing_status,
+          moderation_reason = null,
           moderation_at = now()
       where id = ${id}
+        and moderation_status in ('PENDING_MODERATION', 'FLAGGED')
       returning *
     `
     if (!listing) {
-      reply.code(404)
-      return { error: 'Listing not found' }
+      const [exists] = await sql`select moderation_status from consignment_listings where id = ${id}`
+      if (!exists) {
+        reply.code(404)
+        return { error: 'Listing not found' }
+      }
+      reply.code(409)
+      return { error: `Listing is ${exists.moderationStatus}; only pending or flagged listings can be approved` }
     }
     return listing
   })
 
-  fastify.patch('/listings/:id/reject', async (request, reply) => {
+  fastify.patch('/listings/:id/reject', { schema: rejectListingSchema }, async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) {
-      reply.code(400)
-      return { error: 'Invalid listing ID' }
-    }
-
-    const { reason } = request.body || {}
-    if (!reason?.trim()) {
-      reply.code(400)
-      return { error: 'Rejection reason is required' }
-    }
+    const { reason } = request.body
 
     const [listing] = await sql`
       update consignment_listings
@@ -100,21 +93,23 @@ export default async function adminConsignmentRoutes(fastify) {
           moderation_reason = ${reason},
           moderation_at = now()
       where id = ${id}
+        and moderation_status in ('PENDING_MODERATION', 'FLAGGED')
       returning *
     `
     if (!listing) {
-      reply.code(404)
-      return { error: 'Listing not found' }
+      const [exists] = await sql`select moderation_status from consignment_listings where id = ${id}`
+      if (!exists) {
+        reply.code(404)
+        return { error: 'Listing not found' }
+      }
+      reply.code(409)
+      return { error: `Listing is ${exists.moderationStatus}; only pending or flagged listings can be rejected` }
     }
     return listing
   })
 
-  fastify.get('/moderation-logs/:id', async (request, reply) => {
+  fastify.get('/moderation-logs/:id', { schema: uuidParamsSchema }, async (request) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) {
-      reply.code(400)
-      return { error: 'Invalid listing ID' }
-    }
 
     const logs = await sql`
       select
@@ -125,6 +120,8 @@ export default async function adminConsignmentRoutes(fastify) {
       where ml.listing_id = ${id}
       order by ml.created_at asc
     `
-    return logs
+    // Wrap in an object to match the list-response contract used by every
+    // other list endpoint (and to keep the shape extensible).
+    return { data: logs }
   })
 }

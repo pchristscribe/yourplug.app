@@ -137,6 +137,30 @@ Respond with a JSON object only, no other text:
 }
 
 export async function runFullModeration(sql, listingId) {
+  try {
+    return await runFullModerationInner(sql, listingId)
+  } catch (err) {
+    // A moderation failure must not leave the listing silently stuck in
+    // PENDING_MODERATION with no operator-visible signal. Flag it so the
+    // admin queue surfaces it for human review, and record the error.
+    try {
+      await sql`
+        update consignment_listings
+        set
+          moderation_status = 'FLAGGED'::moderation_decision,
+          moderation_reason = ${`Moderation error: ${err.message}`},
+          moderation_at = now()
+        where id = ${listingId}
+      `
+    } catch {
+      // If even the recovery write fails, fall through to the rethrow —
+      // the caller's error handling/logging is the last line of defense.
+    }
+    throw err
+  }
+}
+
+async function runFullModerationInner(sql, listingId) {
   const [listing] = await sql`
     select id, title, description, category, condition, asking_price as "askingPrice"
     from consignment_listings

@@ -87,7 +87,7 @@ describe('moderateListingText', () => {
     expect(result.decision).toBe('FLAGGED')
   })
 
-  it('handles malformed JSON response by returning FLAGGED', async () => {
+  it('handles malformed JSON response by returning FLAGGED with parse-error reason and empty flags', async () => {
     mockCreate.mockResolvedValue({
       content: [{ text: 'not valid json at all' }],
       usage: { input_tokens: 10, output_tokens: 5 },
@@ -105,5 +105,56 @@ describe('moderateListingText', () => {
     })
 
     expect(result.decision).toBe('FLAGGED')
+    expect(result.reason).toBe('Moderation response parse error')
+    expect(result.flags).toEqual([])
+  })
+
+  it('propagates Anthropic API failures (network/API error) to the caller', async () => {
+    mockCreate.mockRejectedValue(new Error('529 overloaded'))
+
+    const sql = mockSql()
+    const { moderateListingText } = await import('../src/lib/moderation.js')
+    await expect(moderateListingText(sql, {
+      id: 'listing-5',
+      title: 'Test',
+      description: '',
+      category: 'OTHER',
+      condition: 'NEW',
+      askingPrice: 1,
+    })).rejects.toThrow('529 overloaded')
+
+    // Nothing should be logged to the moderation ledger on transport failure
+    expect(sql).not.toHaveBeenCalled()
+  })
+})
+
+describe('runFullModeration failure recovery', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    mockCreate.mockReset()
+  })
+
+  it('flags the listing for human review when moderation throws', async () => {
+    mockCreate.mockRejectedValue(new Error('API down'))
+
+    const calls = []
+    // Tagged-template mock: first call returns the listing, second the images,
+    // subsequent calls (the recovery update) are recorded.
+    let call = 0
+    const sql = vi.fn((strings, ...values) => {
+      calls.push({ text: Array.isArray(strings) ? strings.join('?') : String(strings), values })
+      call += 1
+      if (call === 1) return Promise.resolve([{ id: 'l1', title: 't', description: '', category: 'OTHER', condition: 'NEW', askingPrice: 1 }])
+      if (call === 2) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    sql.json = vi.fn(v => v)
+
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    await expect(runFullModeration(sql, 'l1')).rejects.toThrow('API down')
+
+    // The recovery write must set FLAGGED with a Moderation error reason
+    const recovery = calls.find(c => c.text.includes('moderation_status') && c.values.some(v => typeof v === 'string' && v.startsWith('Moderation error:')))
+    expect(recovery).toBeTruthy()
   })
 })

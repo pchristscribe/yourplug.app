@@ -24,7 +24,7 @@ create table seller_profiles (
 
 create table consignment_listings (
   id                uuid primary key default gen_random_uuid(),
-  seller_id         uuid not null references auth.users(id),
+  seller_id         uuid not null references auth.users(id) on delete cascade,
   title             text not null,
   description       text not null default '',
   condition         consignment_condition not null,
@@ -56,8 +56,8 @@ create table consignment_images (
 
 create table consignment_offers (
   id         uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references consignment_listings(id),
-  buyer_id   uuid not null references auth.users(id),
+  listing_id uuid not null references consignment_listings(id) on delete cascade,
+  buyer_id   uuid not null references auth.users(id) on delete cascade,
   amount     numeric(10, 2) not null check (amount > 0),
   status     offer_status not null default 'PENDING',
   message    text,
@@ -68,10 +68,13 @@ create table consignment_offers (
 
 create table consignment_transactions (
   id                    uuid primary key default gen_random_uuid(),
-  listing_id            uuid references consignment_listings(id),
-  offer_id              uuid references consignment_offers(id),
-  seller_id             uuid references auth.users(id),
-  buyer_id              uuid references auth.users(id),
+  -- Transactions are financial records: they must survive user/listing
+  -- deletion, so SET NULL anonymizes instead of blocking or cascading.
+  -- offer_id is UNIQUE: one transaction per accepted offer (idempotency anchor).
+  listing_id            uuid references consignment_listings(id) on delete set null,
+  offer_id              uuid unique references consignment_offers(id) on delete set null,
+  seller_id             uuid references auth.users(id) on delete set null,
+  buyer_id              uuid references auth.users(id) on delete set null,
   sale_price            numeric(10, 2) not null,
   platform_fee          numeric(10, 2) not null,
   seller_payout         numeric(10, 2) not null,
@@ -86,8 +89,8 @@ create table consignment_transactions (
 
 create table consignment_moderation_logs (
   id            uuid primary key default gen_random_uuid(),
-  listing_id    uuid not null references consignment_listings(id),
-  image_id      uuid references consignment_images(id),
+  listing_id    uuid not null references consignment_listings(id) on delete cascade,
+  image_id      uuid references consignment_images(id) on delete set null,
   check_type    text not null,
   model_used    text not null,
   input_tokens  int,

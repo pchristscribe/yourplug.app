@@ -80,9 +80,18 @@ export default async function consignmentListingRoutes(fastify) {
       return { error: 'Invalid listing ID' }
     }
 
+    // Explicit column allowlist — l.* would leak internal fields
+    // (moderation_reason, platform_fee_pct, seller_id, …) to unauthenticated clients.
     const [listing] = await sql`
       select
-        l.*,
+        l.id,
+        l.title,
+        l.description,
+        l.category,
+        l.condition,
+        l.asking_price,
+        l.status,
+        l.created_at,
         sp.display_name as seller_display_name,
         sp.total_sales as seller_total_sales
       from consignment_listings l

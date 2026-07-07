@@ -1,23 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
+import { getSupabase } from './supabase.js'
 
 const BUCKET = 'consignment-images'
+
+// The consignment-images bucket is private (supabase/config.toml), so
+// getPublicUrl() would produce URLs that 400. We store a long-lived
+// signed URL instead; moderation and the frontends read it directly.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365 // 1 year
 
 const MIME_TO_EXT = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'image/png': 'png',
-}
-
-let _supabase = null
-function getSupabase() {
-  if (!_supabase) {
-    _supabase = createClient(
-      process.env.NUXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SECRET_KEY
-    )
-  }
-  return _supabase
 }
 
 export async function uploadImage(buffer, mimeType, listingId) {
@@ -31,8 +25,13 @@ export async function uploadImage(buffer, mimeType, listingId) {
 
   if (error) throw new Error(`Storage upload failed: ${error.message}`)
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath)
-  return { storagePath, publicUrl: data.publicUrl }
+  const { data, error: signError } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS)
+
+  if (signError) throw new Error(`Signed URL creation failed: ${signError.message}`)
+
+  return { storagePath, publicUrl: data.signedUrl }
 }
 
 export async function deleteImage(storagePath) {

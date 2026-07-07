@@ -1,27 +1,13 @@
-import { pipeline } from 'node:stream/promises'
-import { read as readExif } from 'exif-reader'
 import { userAuth } from '../../middleware/userAuth.js'
 import { uploadImage, deleteImage } from '../../lib/imageStorage.js'
 import { createConnectedAccount, createOnboardingLink } from '../../lib/stripe.js'
 import { moderateImage, runFullModeration } from '../../lib/moderation.js'
+import { extractExifDate, checkFreshness } from '../../lib/imageFreshness.js'
 import { createListingSchema, updateListingSchema } from '../../schemas/consignment.js'
 import { UUID_RE } from '../../utils/constants.js'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-const FRESHNESS_LIMIT_SEC = 900
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/webp', 'image/png'])
-
-function extractExifDate(buffer) {
-  try {
-    const exif = readExif(buffer)
-    const raw = exif?.Image?.DateTimeOriginal ?? exif?.Photo?.DateTimeOriginal
-    if (!raw) return null
-    const d = raw instanceof Date ? raw : new Date(String(raw).replace(':', '-').replace(':', '-'))
-    return isNaN(d.getTime()) ? null : d
-  } catch {
-    return null
-  }
-}
 
 export default async function consignmentSellerRoutes(fastify) {
   const { sql } = fastify
@@ -154,9 +140,15 @@ export default async function consignmentSellerRoutes(fastify) {
       return { error: 'At least one image is required before submitting' }
     }
 
+    // Clear stale moderation metadata immediately — the owner read returns
+    // these fields, so a resubmitted listing must not show the old rejection
+    // reason while the async moderation job runs.
     await sql`
       update consignment_listings
-      set status = 'PENDING_MODERATION', moderation_status = 'PENDING'
+      set status = 'PENDING_MODERATION',
+          moderation_status = 'PENDING',
+          moderation_reason = null,
+          moderation_at = null
       where id = ${id}
     `
 
@@ -210,16 +202,10 @@ export default async function consignmentSellerRoutes(fastify) {
     const buffer = Buffer.concat(chunks)
 
     const capturedAt = extractExifDate(buffer)
-    let freshnessOk = null
-    let freshnessDeltaSec = null
-
-    if (capturedAt) {
-      freshnessDeltaSec = Math.round((Date.now() - capturedAt.getTime()) / 1000)
-      if (freshnessDeltaSec > FRESHNESS_LIMIT_SEC) {
-        reply.code(422)
-        return { error: 'IMAGE_TOO_OLD', message: 'Photo must be taken within 15 minutes of upload' }
-      }
-      freshnessOk = true
+    const { freshnessOk, freshnessDeltaSec, tooOld } = checkFreshness(capturedAt)
+    if (tooOld) {
+      reply.code(422)
+      return { error: 'IMAGE_TOO_OLD', message: 'Photo must be taken within 15 minutes of upload' }
     }
 
     const { storagePath, publicUrl } = await uploadImage(buffer, mimeType, id)
@@ -251,7 +237,7 @@ export default async function consignmentSellerRoutes(fastify) {
     }
 
     const [image] = await sql`
-      select ci.id, ci.storage_path, ci.listing_id, l.seller_id
+      select ci.id, ci.storage_path, ci.listing_id, ci.is_primary, l.seller_id
       from consignment_images ci
       join consignment_listings l on l.id = ci.listing_id
       where ci.id = ${imageId}
@@ -264,18 +250,21 @@ export default async function consignmentSellerRoutes(fastify) {
     await deleteImage(image.storagePath).catch(() => {})
     await sql`delete from consignment_images where id = ${imageId}`
 
-    // Promote next image to primary if we deleted the primary
-    await sql`
-      update consignment_images
-      set is_primary = true
-      where listing_id = ${image.listingId}
-        and id = (
-          select id from consignment_images
-          where listing_id = ${image.listingId}
-          order by sort_order asc, created_at asc
-          limit 1
-        )
-    `
+    // Promote the next image to primary ONLY if the deleted one was primary —
+    // unconditional promotion could leave two rows with is_primary = true.
+    if (image.isPrimary) {
+      await sql`
+        update consignment_images
+        set is_primary = true
+        where listing_id = ${image.listingId}
+          and id = (
+            select id from consignment_images
+            where listing_id = ${image.listingId}
+            order by sort_order asc, created_at asc
+            limit 1
+          )
+      `
+    }
 
     reply.code(204)
   })

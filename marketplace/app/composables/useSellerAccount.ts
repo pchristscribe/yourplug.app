@@ -1,20 +1,16 @@
 export function useSellerAccount() {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase
-  const supabase = useSupabaseClient()
+  const { getAuthHeaders } = useAuthHeaders()
 
   const onboarded = ref(false)
   const hasAccount = ref(false)
   const loading = ref(false)
-
-  async function getAuthHeaders(): Promise<Record<string, string>> {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
+  const error = ref<string | null>(null)
 
   async function fetchStripeStatus() {
     loading.value = true
+    error.value = null
     try {
       const headers = await getAuthHeaders()
       const status = await $fetch<{ onboarded: boolean; hasAccount: boolean }>(
@@ -23,9 +19,10 @@ export function useSellerAccount() {
       )
       onboarded.value = status.onboarded
       hasAccount.value = status.hasAccount
-    } catch {
-      onboarded.value = false
-      hasAccount.value = false
+    } catch (err) {
+      // A failed status check is NOT the same as "not onboarded" — surface it
+      // so the UI can distinguish an outage from a seller who needs onboarding.
+      error.value = err instanceof Error ? err.message : 'Failed to load Stripe status'
     } finally {
       loading.value = false
     }
@@ -39,5 +36,5 @@ export function useSellerAccount() {
     })
   }
 
-  return { onboarded, hasAccount, loading, fetchStripeStatus, startOnboarding, getAuthHeaders }
+  return { onboarded, hasAccount, loading, error, fetchStripeStatus, startOnboarding, getAuthHeaders }
 }

@@ -1,5 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildApp } from '../src/app.js'
+
+// Mock the shared Supabase client so authenticated paths can be exercised:
+// a Bearer token of "valid-token" resolves to SELLER_UUID, anything else 401s.
+const mockGetUser = vi.fn(async (token) => {
+  if (token === 'valid-token') {
+    return { data: { user: { id: '00000000-0000-0000-0000-000000000002' } }, error: null }
+  }
+  return { data: { user: null }, error: new Error('invalid token') }
+})
+vi.mock('../src/lib/supabase.js', () => ({
+  getSupabase: () => ({ auth: { getUser: mockGetUser } }),
+}))
+
+const { buildApp } = await import('../src/app.js')
 
 const VALID_UUID = '00000000-0000-0000-0000-000000000001'
 const SELLER_UUID = '00000000-0000-0000-0000-000000000002'
@@ -27,15 +40,22 @@ function makeRedis() {
 }
 
 function makeApp(sqlOverrides = {}) {
+  // sqlOverrides.queryHandler(query, values) may return a result set to
+  // stub specific queries; returning undefined falls through to defaults.
+  const { queryHandler, ...rest } = sqlOverrides
   const sql = Object.assign(
-    vi.fn(async (strings) => {
+    vi.fn(async (strings, ...values) => {
       const query = Array.isArray(strings) ? strings.join('') : String(strings ?? '')
+      if (queryHandler) {
+        const result = await queryHandler(query, values)
+        if (result !== undefined) return result
+      }
       if (query.includes('count(*)')) return [{ count: '0' }]
       return []
     }),
     {
       json: v => v,
-      ...sqlOverrides,
+      ...rest,
     }
   )
 
@@ -104,6 +124,84 @@ describe('PATCH /api/consignment/seller/listings/:id', () => {
       payload: { title: 'Updated' },
     })
     expect(res.statusCode).toBe(401)
+    await app.close()
+  })
+})
+
+describe('authenticated success paths', () => {
+  // Braces intentional: returning the mock from a hook makes vitest call it as teardown
+  beforeEach(() => {
+    mockGetUser.mockClear()
+  })
+
+  it('GET /api/consignment/listings returns mapped rows (queryHandler override)', async () => {
+    const row = {
+      id: VALID_UUID,
+      title: 'Rainbow harness',
+      condition: 'GOOD',
+      category: 'HARNESS',
+      asking_price: '25.00',
+      created_at: '2026-07-01T00:00:00Z',
+      seller_display_name: 'plugdaddy',
+      primary_image_url: 'https://example.test/img.jpg',
+    }
+    const app = await makeApp({
+      queryHandler: (query) => {
+        if (query.includes('count(*)')) return [{ count: '1' }]
+        if (query.includes('from consignment_listings')) return [row]
+        return undefined
+      },
+    })
+    const res = await app.inject({ method: 'GET', url: '/api/consignment/listings' })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.data).toHaveLength(1)
+    expect(body.pagination.total).toBe(1)
+    await app.close()
+  })
+
+  it('POST /api/consignment/seller/listings creates a listing with a valid token', async () => {
+    const created = { id: VALID_UUID, sellerId: SELLER_UUID, title: 'Test', status: 'DRAFT' }
+    const app = await makeApp({
+      queryHandler: (query) => {
+        if (query.includes('insert into consignment_listings')) return [created]
+        return undefined
+      },
+    })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/consignment/seller/listings',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { title: 'Test', condition: 'NEW', category: 'APPAREL', askingPrice: 10 },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(JSON.parse(res.body).id).toBe(VALID_UUID)
+    expect(mockGetUser).toHaveBeenCalledWith('valid-token')
+    await app.close()
+  })
+
+  it('rejects an invalid bearer token with 401', async () => {
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/consignment/seller/listings',
+      headers: { authorization: 'Bearer bogus' },
+      payload: { title: 'Test', condition: 'NEW', category: 'APPAREL', askingPrice: 10 },
+    })
+    expect(res.statusCode).toBe(401)
+    await app.close()
+  })
+})
+
+describe('server error handling', () => {
+  it('GET /api/consignment/listings returns 500 when the database fails', async () => {
+    const app = await makeApp({
+      queryHandler: () => {
+        throw new Error('connection refused')
+      },
+    })
+    const res = await app.inject({ method: 'GET', url: '/api/consignment/listings' })
+    expect(res.statusCode).toBe(500)
     await app.close()
   })
 })

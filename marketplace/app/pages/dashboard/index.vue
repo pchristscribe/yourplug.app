@@ -2,6 +2,10 @@
   <div class="max-w-4xl mx-auto px-4 py-8 space-y-10">
     <StripeOnboardBanner :show="!stripeOnboarded" />
 
+    <div v-if="loadError" class="rounded-input bg-brand-muted border border-brand p-3 text-sm text-brand" role="alert">
+      {{ loadError }}
+    </div>
+
     <section>
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-ink">Your Listings</h2>
@@ -25,6 +29,9 @@
 
     <section>
       <h2 class="text-xl font-bold text-ink mb-4">My Offers</h2>
+      <div v-if="checkoutError" class="mb-3 rounded-input bg-brand-muted border border-brand p-3 text-sm text-brand" role="alert">
+        {{ checkoutError }}
+      </div>
       <div v-if="offersLoading" class="text-ink-muted text-sm">Loading…</div>
       <div v-else-if="offers.length === 0" class="text-ink-muted text-sm">No offers yet.</div>
       <div v-else class="space-y-3">
@@ -53,12 +60,32 @@ const { listings, loading: sellerLoading, fetchMyListings } = useSeller()
 const { offers, loading: offersLoading, fetchMyOffers, initiateCheckout } = useOffers()
 const { onboarded: stripeOnboarded, fetchStripeStatus } = useSellerAccount()
 
+const loadError = ref<string | null>(null)
+const checkoutError = ref<string | null>(null)
+
 onMounted(async () => {
-  await Promise.all([fetchMyListings(), fetchMyOffers(), fetchStripeStatus()])
+  // Each fetcher stores its own error state; this catch covers anything that
+  // still rejects so a single failure can't leave the dashboard half-dead
+  // with no explanation.
+  try {
+    await Promise.all([fetchMyListings(), fetchMyOffers(), fetchStripeStatus()])
+  } catch {
+    loadError.value = 'Some dashboard data failed to load. Try refreshing.'
+  }
 })
 
 async function checkout(offerId: string) {
-  const { checkoutUrl } = await initiateCheckout(offerId)
-  navigateTo(checkoutUrl, { external: true })
+  checkoutError.value = null
+  try {
+    const { checkoutUrl } = await initiateCheckout(offerId)
+    if (!checkoutUrl) {
+      checkoutError.value = 'Checkout could not be started. Please try again.'
+      return
+    }
+    await navigateTo(checkoutUrl, { external: true })
+  } catch (err: unknown) {
+    const apiErr = err as { data?: { error?: string } }
+    checkoutError.value = apiErr?.data?.error ?? 'Checkout failed. Please try again.'
+  }
 }
 </script>

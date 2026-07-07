@@ -80,4 +80,20 @@ describe('ListingCard', () => {
     })
     expect(wrapper.text()).toContain('📦')
   })
+
+  it('is SSR-safe: renders via the server renderer without browser globals', async () => {
+    const { createSSRApp } = await import('vue')
+    // vue's exported subpath — '@vue/server-renderer' is a transitive dep
+    // that pnpm's strict node_modules won't resolve directly
+    const { renderToString } = await import('vue/server-renderer')
+
+    // No window/document here — renderToString runs outside the DOM, so any
+    // browser-only API access at setup time would throw.
+    const app = createSSRApp(ListingCard, { listing: SAMPLE })
+    app.component('NuxtLink', { template: '<a><slot /></a>' })
+    const html = await renderToString(app)
+
+    expect(html).toContain('Rainbow Harness')
+    expect(html).toContain('45.00')
+  })
 })
