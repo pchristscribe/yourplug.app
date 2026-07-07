@@ -142,15 +142,22 @@ export default async function consignmentSellerRoutes(fastify) {
 
     // Clear stale moderation metadata immediately — the owner read returns
     // these fields, so a resubmitted listing must not show the old rejection
-    // reason while the async moderation job runs.
-    await sql`
+    // reason while the async moderation job runs. The WHERE clause repeats
+    // the status guard atomically so two concurrent submits can't both pass
+    // and both kick off runFullModeration for the same listing.
+    const [submitted] = await sql`
       update consignment_listings
       set status = 'PENDING_MODERATION',
           moderation_status = 'PENDING',
           moderation_reason = null,
           moderation_at = null
-      where id = ${id}
+      where id = ${id} and status in ('DRAFT', 'REJECTED')
+      returning id
     `
+    if (!submitted) {
+      reply.code(422)
+      return { error: 'Listing cannot be submitted in its current state' }
+    }
 
     runFullModeration(sql, id).catch(err => fastify.log.error({ err, listingId: id }, 'moderation failed'))
 
@@ -210,16 +217,21 @@ export default async function consignmentSellerRoutes(fastify) {
 
     const { storagePath, publicUrl } = await uploadImage(buffer, mimeType, id)
 
-    const existingCount = await sql`select count(*) from consignment_images where listing_id = ${id}`
-    const isPrimary = parseInt(existingCount[0].count, 10) === 0
+    // Lock the listing row so concurrent uploads for the same new listing
+    // can't both observe count === 0 and both insert as primary.
+    const [image] = await sql.begin(async (tx) => {
+      await tx`select id from consignment_listings where id = ${id} for update`
+      const existingCount = await tx`select count(*) from consignment_images where listing_id = ${id}`
+      const isPrimary = parseInt(existingCount[0].count, 10) === 0
 
-    const [image] = await sql`
-      insert into consignment_images
-        (listing_id, storage_path, public_url, is_primary, exif_captured_at, freshness_delta_sec, freshness_ok)
-      values
-        (${id}, ${storagePath}, ${publicUrl}, ${isPrimary}, ${capturedAt}, ${freshnessDeltaSec}, ${freshnessOk})
-      returning *
-    `
+      return tx`
+        insert into consignment_images
+          (listing_id, storage_path, public_url, is_primary, exif_captured_at, freshness_delta_sec, freshness_ok)
+        values
+          (${id}, ${storagePath}, ${publicUrl}, ${isPrimary}, ${capturedAt}, ${freshnessDeltaSec}, ${freshnessOk})
+        returning *
+      `
+    })
 
     moderateImage(sql, { ...image, listingId: id }, listing).catch(err =>
       fastify.log.error({ err, imageId: image.id }, 'image moderation failed')
@@ -280,7 +292,9 @@ export default async function consignmentSellerRoutes(fastify) {
 
     if (!profile) {
       const [user] = await sql`select email from auth.users where id = ${request.userId}`
-      const account = await createConnectedAccount(user?.email || '')
+      // Stable per-user key: two concurrent onboarding requests for the same
+      // seller resolve to the same Stripe account instead of orphaning one.
+      const account = await createConnectedAccount(user?.email || '', `connect-account:${request.userId}`)
       ;[profile] = await sql`
         insert into seller_profiles (id, stripe_account_id)
         values (${request.userId}, ${account.id})

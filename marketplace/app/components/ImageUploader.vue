@@ -80,8 +80,9 @@ async function processFile(file: File) {
         const m = offset.match(/^([+-])(\d{2}):(\d{2})$/)
         if (m) {
           const offsetMin = (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10))
-          // exifr parsed in local time; re-anchor to the recorded offset
-          captured = new Date(captured.getTime() + captured.getTimezoneOffset() * 60000 - offsetMin * 60000)
+          // exifr parsed in local time; cancel out the browser's own offset,
+          // then re-anchor to the recorded EXIF offset
+          captured = new Date(captured.getTime() - captured.getTimezoneOffset() * 60000 - offsetMin * 60000)
         }
       }
       const deltaSec = (Date.now() - captured.getTime()) / 1000

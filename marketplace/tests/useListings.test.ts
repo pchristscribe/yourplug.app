@@ -56,6 +56,24 @@ describe('useListings — getListings', () => {
     expect(pagination.value?.total).toBe(1)
   })
 
+  it('serializes every supported filter field into the query string', async () => {
+    fetchMock.mockResolvedValue({ data: [], pagination: { page: 2, limit: 10, total: 0, pages: 0 } })
+    const { getListings } = useListings()
+    await getListings({
+      category: 'APPAREL',
+      condition: 'NEW',
+      minPrice: 5,
+      maxPrice: 100,
+      sortBy: 'askingPrice',
+      order: 'asc',
+      page: 2,
+      limit: 10,
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3001/api/consignment/listings?category=APPAREL&condition=NEW&minPrice=5&maxPrice=100&sortBy=askingPrice&order=asc&page=2&limit=10'
+    )
+  })
+
   it('captures API failures in the error ref and resets loading', async () => {
     // Lazy rejection: an eagerly-created rejected promise trips vitest's
     // unhandled-rejection detection before the composable can await it
@@ -105,10 +123,36 @@ describe('useListings — getListing', () => {
     expect(detail?.images[0]).toMatchObject({ id: 'img1', publicUrl: 'https://x/img.jpg', isPrimary: true })
   })
 
-  it('returns null only for 404', async () => {
+  it('returns null only for 404 (via statusCode)', async () => {
     fetchMock.mockImplementation(() => Promise.reject(Object.assign(new Error('Not found'), { statusCode: 404 })))
     const { getListing } = useListings()
     await expect(getListing('missing')).resolves.toBeNull()
+  })
+
+  it('returns null for 404 reported via the status field', async () => {
+    fetchMock.mockImplementation(() => Promise.reject(Object.assign(new Error('Not found'), { status: 404 })))
+    const { getListing } = useListings()
+    await expect(getListing('missing')).resolves.toBeNull()
+  })
+
+  it('maps camelCase image fields when the API returns them unconverted', async () => {
+    fetchMock.mockResolvedValue({
+      id: 'abc',
+      title: 'Test',
+      condition: 'NEW',
+      category: 'APPAREL',
+      askingPrice: 10,
+      createdAt: '2026-01-01',
+      description: 'desc',
+      status: 'APPROVED',
+      moderationStatus: 'APPROVED',
+      images: [
+        { id: 'img1', listingId: 'abc', publicUrl: 'https://x/img.jpg', isPrimary: false, sortOrder: 2, createdAt: '2026-01-01' },
+      ],
+    })
+    const { getListing } = useListings()
+    const detail = await getListing('abc')
+    expect(detail?.images[0]).toMatchObject({ listingId: 'abc', publicUrl: 'https://x/img.jpg', isPrimary: false, sortOrder: 2 })
   })
 
   it('propagates non-404 failures', async () => {

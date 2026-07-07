@@ -81,6 +81,36 @@ describe('ListingCard', () => {
     expect(wrapper.text()).toContain('📦')
   })
 
+  it('renders the image when a primaryImageUrl is present', () => {
+    const wrapper = mount(ListingCard, {
+      props: { listing: { ...SAMPLE, primaryImageUrl: 'https://x/img.jpg' } },
+      global: {
+        stubs: { NuxtLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    expect(wrapper.find('img').attributes('src')).toBe('https://x/img.jpg')
+  })
+
+  it('omits the seller line when sellerDisplayName is absent', () => {
+    const wrapper = mount(ListingCard, {
+      props: { listing: { ...SAMPLE, sellerDisplayName: undefined } },
+      global: {
+        stubs: { NuxtLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    expect(wrapper.text()).not.toContain('by ')
+  })
+
+  it('falls back to the raw enum value for an unrecognized condition/category', () => {
+    const wrapper = mount(ListingCard, {
+      props: { listing: { ...SAMPLE, condition: 'MYSTERY' as ListingSummary['condition'], category: 'MYSTERY' as ListingSummary['category'] } },
+      global: {
+        stubs: { NuxtLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    expect(wrapper.text()).toContain('MYSTERY')
+  })
+
   it('is SSR-safe: renders via the server renderer without browser globals', async () => {
     const { createSSRApp } = await import('vue')
     // vue's exported subpath — '@vue/server-renderer' is a transitive dep

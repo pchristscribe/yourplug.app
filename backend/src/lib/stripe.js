@@ -9,8 +9,11 @@ function getStripe() {
   return _stripe
 }
 
-export async function createConnectedAccount(email) {
-  return getStripe().accounts.create({ type: 'express', email })
+export async function createConnectedAccount(email, idempotencyKey) {
+  return getStripe().accounts.create(
+    { type: 'express', email },
+    idempotencyKey ? { idempotencyKey } : undefined
+  )
 }
 
 export async function createOnboardingLink(accountId, returnUrl, refreshUrl) {

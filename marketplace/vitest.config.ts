@@ -15,6 +15,10 @@ export default defineConfig({
       // an app-wide 80% gate today would just be permanently red.
       include: [
         'app/composables/useListings.ts',
+        'app/composables/useAuthHeaders.ts',
+        'app/composables/useOffers.ts',
+        'app/composables/useSeller.ts',
+        'app/composables/useSellerAccount.ts',
         'app/components/ListingCard.vue',
         'app/utils/listingLabels.ts',
       ],

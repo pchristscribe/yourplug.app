@@ -13,13 +13,17 @@
 // wait for the user to actually materialize before leaving this page.
 const user = useSupabaseUser()
 const timedOut = ref(false)
+let timer: ReturnType<typeof setTimeout> | undefined
 
 watch(user, (u) => {
-  if (u) navigateTo('/')
+  if (u) {
+    if (timer) clearTimeout(timer)
+    navigateTo('/')
+  }
 }, { immediate: true })
 
 onMounted(() => {
-  setTimeout(() => {
+  timer = setTimeout(() => {
     if (!user.value) timedOut.value = true
   }, 10000)
 })

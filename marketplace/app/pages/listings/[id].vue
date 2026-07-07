@@ -81,7 +81,10 @@ async function load(id: string) {
   error.value = null
   activeImage.value = null
   try {
-    listing.value = await getListing(id)
+    const result = await getListing(id)
+    // Discard if the route has since moved on to a different listing.
+    if (route.params.id !== id) return
+    listing.value = result
     if (!listing.value) {
       error.value = 'Listing not found'
     } else {
@@ -89,9 +92,10 @@ async function load(id: string) {
       activeImage.value = primary?.publicUrl ?? null
     }
   } catch (err) {
+    if (route.params.id !== id) return
     error.value = err instanceof Error ? err.message : 'Failed to load listing'
   } finally {
-    loading.value = false
+    if (route.params.id === id) loading.value = false
   }
 }
 

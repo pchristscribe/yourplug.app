@@ -23,30 +23,57 @@ export function useOffers() {
   }
 
   async function submitOffer(listingId: string, payload: { amount: number; message?: string }): Promise<ConsignmentOffer> {
-    const headers = await getAuthHeaders()
-    return $fetch(`${apiBase}/api/consignment/offers/listings/${listingId}/offers`, {
-      method: 'POST',
-      headers,
-      body: payload,
-    })
+    loading.value = true
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      return await $fetch(`${apiBase}/api/consignment/offers/listings/${listingId}/offers`, {
+        method: 'POST',
+        headers,
+        body: payload,
+      })
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to submit offer'
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   async function withdrawOffer(offerId: string): Promise<void> {
-    const headers = await getAuthHeaders()
-    await $fetch(`${apiBase}/api/consignment/offers/${offerId}`, {
-      method: 'DELETE',
-      headers,
-    })
-    offers.value = offers.value.filter(o => o.id !== offerId)
+    loading.value = true
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      await $fetch(`${apiBase}/api/consignment/offers/${offerId}`, {
+        method: 'DELETE',
+        headers,
+      })
+      offers.value = offers.value.filter(o => o.id !== offerId)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to withdraw offer'
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   async function initiateCheckout(offerId: string): Promise<{ checkoutUrl: string }> {
-    const headers = await getAuthHeaders()
-    return $fetch(`${apiBase}/api/consignment/offers/transactions`, {
-      method: 'POST',
-      headers,
-      body: { offerId },
-    })
+    loading.value = true
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      return await $fetch(`${apiBase}/api/consignment/offers/transactions`, {
+        method: 'POST',
+        headers,
+        body: { offerId },
+      })
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to start checkout'
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   return { offers, loading, error, fetchMyOffers, submitOffer, withdrawOffer, initiateCheckout }

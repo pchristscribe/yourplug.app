@@ -1,4 +1,6 @@
-import { read as readExif } from 'exif-reader'
+// exif-reader is CommonJS with `module.exports = function(buffer) {...}` —
+// there is no named `read` export, only the default callable.
+import readExif from 'exif-reader'
 
 export const FRESHNESS_LIMIT_SEC = 900 // 15 minutes
 
@@ -45,15 +47,15 @@ export function extractExifDate(buffer) {
     let d = raw instanceof Date ? raw : new Date(String(raw).replace(':', '-').replace(':', '-'))
     if (isNaN(d.getTime())) return null
 
-    // EXIF DateTimeOriginal carries no timezone; exif-reader interprets it
-    // in server-local time. If the camera recorded OffsetTimeOriginal
-    // (e.g. "-05:00"), correct the parse to that offset.
+    // EXIF DateTimeOriginal carries no timezone; the string above ("YYYY-MM-DD
+    // HH:MM:SS", no offset) is parsed as server-local time, which is UTC in
+    // production containers. If the camera recorded OffsetTimeOriginal (e.g.
+    // "-05:00"), re-anchor the wall-clock value to that offset.
     const offset = exif?.Photo?.OffsetTimeOriginal
     if (typeof offset === 'string') {
       const m = offset.match(/^([+-])(\d{2}):(\d{2})$/)
       if (m) {
         const offsetMin = (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10))
-        // exif-reader parsed as UTC wall-clock; re-anchor to the stated offset
         d = new Date(d.getTime() - offsetMin * 60 * 1000)
       }
     }

@@ -78,9 +78,97 @@ describe('extractExifSegment', () => {
   })
 })
 
+// Builds a minimal little-endian TIFF/EXIF blob (the payload exif-reader
+// expects, i.e. what extractExifSegment hands it) with an ExifIFD containing
+// DateTimeOriginal and, optionally, OffsetTimeOriginal — both as ASCII tags.
+function buildExifSegment({ dateTimeOriginal, offsetTimeOriginal }) {
+  const IFD0_OFFSET = 8
+  const IFD0_ENTRY_COUNT = 1
+  const EXIF_IFD_OFFSET = IFD0_OFFSET + 2 + IFD0_ENTRY_COUNT * 12 + 4
+  const exifEntryCount = offsetTimeOriginal ? 2 : 1
+  let dataOffset = EXIF_IFD_OFFSET + 2 + exifEntryCount * 12 + 4
+
+  const dateTimeStr = `${dateTimeOriginal}\0`
+  const dateTimeOffset = dataOffset
+  dataOffset += dateTimeStr.length
+
+  let offsetStr, offsetOffset
+  if (offsetTimeOriginal) {
+    offsetStr = `${offsetTimeOriginal}\0`
+    offsetOffset = dataOffset
+    dataOffset += offsetStr.length
+  }
+
+  const buf = Buffer.alloc(dataOffset)
+  buf.write('II', 0, 'latin1')
+  buf.writeUInt16LE(42, 2)
+  buf.writeUInt32LE(IFD0_OFFSET, 4)
+
+  // IFD0: single entry pointing at the Exif SubIFD (tag 0x8769, type LONG)
+  let p = IFD0_OFFSET
+  buf.writeUInt16LE(IFD0_ENTRY_COUNT, p); p += 2
+  buf.writeUInt16LE(0x8769, p); p += 2
+  buf.writeUInt16LE(4, p); p += 2
+  buf.writeUInt32LE(1, p); p += 4
+  buf.writeUInt32LE(EXIF_IFD_OFFSET, p); p += 4
+  buf.writeUInt32LE(0, p); p += 4 // no next IFD
+
+  // Exif SubIFD entries (type 2 = ASCII)
+  p = EXIF_IFD_OFFSET
+  buf.writeUInt16LE(exifEntryCount, p); p += 2
+
+  buf.writeUInt16LE(0x9003, p); p += 2 // DateTimeOriginal
+  buf.writeUInt16LE(2, p); p += 2
+  buf.writeUInt32LE(dateTimeStr.length, p); p += 4
+  buf.writeUInt32LE(dateTimeOffset, p); p += 4
+
+  if (offsetTimeOriginal) {
+    buf.writeUInt16LE(0x9011, p); p += 2 // OffsetTimeOriginal
+    buf.writeUInt16LE(2, p); p += 2
+    buf.writeUInt32LE(offsetStr.length, p); p += 4
+    buf.writeUInt32LE(offsetOffset, p); p += 4
+  }
+  buf.writeUInt32LE(0, p); p += 4 // no next IFD
+
+  buf.write(dateTimeStr, dateTimeOffset, 'latin1')
+  if (offsetTimeOriginal) buf.write(offsetStr, offsetOffset, 'latin1')
+
+  return Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), buf])
+}
+
+function wrapInJpeg(exifSegment) {
+  const lengthBuf = Buffer.alloc(2)
+  lengthBuf.writeUInt16BE(exifSegment.length + 2)
+  const app1 = Buffer.concat([Buffer.from([0xFF, 0xE1]), lengthBuf, exifSegment])
+  return Buffer.concat([Buffer.from([0xFF, 0xD8]), app1, Buffer.from([0xFF, 0xDA, 0x00, 0x02])])
+}
+
 describe('extractExifDate', () => {
   it('returns null for buffers without EXIF', () => {
     expect(extractExifDate(Buffer.from('garbage'))).toBeNull()
     expect(extractExifDate(null)).toBeNull()
+  })
+
+  it('parses DateTimeOriginal with no offset as server-local wall-clock time', () => {
+    const jpeg = wrapInJpeg(buildExifSegment({ dateTimeOriginal: '2026:01:01 12:00:00' }))
+    const result = extractExifDate(jpeg)
+    expect(result).not.toBeNull()
+    expect(result.getFullYear()).toBe(2026)
+    expect(result.getMonth()).toBe(0)
+    expect(result.getDate()).toBe(1)
+  })
+
+  it('re-anchors DateTimeOriginal to the recorded OffsetTimeOriginal', () => {
+    // No offset: parsed as local wall-clock 12:00:00.
+    const noOffset = extractExifDate(wrapInJpeg(buildExifSegment({ dateTimeOriginal: '2026:01:01 12:00:00' })))
+    // Same wall-clock time, but with a "-05:00" offset recorded — re-anchoring
+    // shifts the resulting instant by exactly 5 hours relative to the no-offset parse.
+    const withOffset = extractExifDate(
+      wrapInJpeg(buildExifSegment({ dateTimeOriginal: '2026:01:01 12:00:00', offsetTimeOriginal: '-05:00' }))
+    )
+    expect(withOffset).not.toBeNull()
+    // "-05:00" means the recorded local time is 5h behind UTC, so the
+    // re-anchored instant is 5h *later* than the naive same-wall-clock parse.
+    expect(withOffset.getTime() - noOffset.getTime()).toBe(5 * 60 * 60 * 1000)
   })
 })

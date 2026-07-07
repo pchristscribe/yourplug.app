@@ -19,6 +19,9 @@
       <p v-if="route.query.onboard === 'refresh'" class="rounded-input bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
         Onboarding incomplete. Please try again.
       </p>
+      <p v-if="setupError" class="rounded-input bg-brand-muted border border-brand p-3 text-sm text-brand" role="alert">
+        {{ setupError }}
+      </p>
       <button
         @click="startSetup"
         :disabled="startingSetup"
@@ -34,18 +37,17 @@
 definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
-const { onboarded, loading, fetchStripeStatus, startOnboarding } = useSellerAccount()
+const { onboarded, loading, fetchStripeStatus, goToOnboarding } = useSellerAccount()
 const startingSetup = ref(false)
+const setupError = ref<string | null>(null)
 
 onMounted(fetchStripeStatus)
 
 async function startSetup() {
   startingSetup.value = true
-  try {
-    const result = await startOnboarding()
-    if (result.url) navigateTo(result.url, { external: true })
-  } finally {
-    startingSetup.value = false
-  }
+  setupError.value = null
+  const result = await goToOnboarding()
+  if (!result.success) setupError.value = result.error ?? 'Could not start Stripe onboarding. Try again.'
+  startingSetup.value = false
 }
 </script>

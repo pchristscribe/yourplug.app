@@ -36,5 +36,23 @@ export function useSellerAccount() {
     })
   }
 
-  return { onboarded, hasAccount, loading, error, fetchStripeStatus, startOnboarding, getAuthHeaders }
+  // Shared onboarding + redirect flow — used by both StripeOnboardBanner.vue
+  // and account/stripe.vue so error handling isn't duplicated between them.
+  async function goToOnboarding(): Promise<{ success: boolean; alreadyOnboarded?: boolean; error?: string }> {
+    try {
+      const result = await startOnboarding()
+      if (result.url) {
+        await navigateTo(result.url, { external: true })
+        return { success: true }
+      }
+      if (result.alreadyOnboarded) {
+        return { success: true, alreadyOnboarded: true }
+      }
+      return { success: false, error: 'Could not start Stripe onboarding. Try again.' }
+    } catch {
+      return { success: false, error: 'Could not start Stripe onboarding. Try again.' }
+    }
+  }
+
+  return { onboarded, hasAccount, loading, error, fetchStripeStatus, startOnboarding, goToOnboarding, getAuthHeaders }
 }

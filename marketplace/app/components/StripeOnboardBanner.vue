@@ -18,24 +18,15 @@
 
 <script setup lang="ts">
 const props = defineProps<{ show: boolean }>()
-const { startOnboarding } = useSellerAccount()
+const { goToOnboarding } = useSellerAccount()
 const loading = ref(false)
 const errorMessage = ref<string | null>(null)
 
 async function onboard() {
   loading.value = true
   errorMessage.value = null
-  try {
-    const result = await startOnboarding()
-    if (result.url) {
-      await navigateTo(result.url, { external: true })
-    } else if (!result.alreadyOnboarded) {
-      errorMessage.value = 'Could not start Stripe onboarding. Try again.'
-    }
-  } catch {
-    errorMessage.value = 'Could not start Stripe onboarding. Try again.'
-  } finally {
-    loading.value = false
-  }
+  const result = await goToOnboarding()
+  if (!result.success) errorMessage.value = result.error ?? 'Could not start Stripe onboarding. Try again.'
+  loading.value = false
 }
 </script>
