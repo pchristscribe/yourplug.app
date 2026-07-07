@@ -69,11 +69,12 @@ watch(() => route.query, (newQuery) => {
 <template>
   <div class="space-y-6">
     <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-white shadow-lg">
-      <h1 class="text-4xl font-bold mb-2">
+    <div class="relative overflow-hidden bg-gradient-to-r from-brand to-brand-active rounded-card p-8 shadow-raised">
+      <div class="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-accent/20 to-transparent pointer-events-none" aria-hidden="true" />
+      <h1 class="text-4xl font-bold mb-2 text-ink-inverse">
         Curated Products for Gay Men
       </h1>
-      <p class="text-lg opacity-90">
+      <p class="text-lg text-ink-inverse/90">
         Discover quality products from DHgate, AliExpress, Amazon, and Wish
       </p>
     </div>
@@ -90,17 +91,17 @@ watch(() => route.query, (newQuery) => {
       <!-- Main Content -->
       <main class="lg:col-span-3 space-y-6">
         <!-- Toolbar -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-4">
+        <div class="bg-surface dark:bg-surface-raised rounded-card shadow-card border border-gray-100 dark:border-gray-700 px-6 py-4 transition-colors duration-slow">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <!-- Results Count -->
-            <div class="text-sm text-gray-600">
+            <div class="text-sm text-ink-muted dark:text-ink-subtle">
               <template v-if="!productStore.loading">
                 Showing
-                <span class="font-medium text-gray-900">
+                <span class="font-medium text-ink dark:text-ink-inverse">
                   {{ productStore.filteredProducts.length }}
                 </span>
                 of
-                <span class="font-medium text-gray-900">
+                <span class="font-medium text-ink dark:text-ink-inverse">
                   {{ productStore.totalProducts }}
                 </span>
                 products
