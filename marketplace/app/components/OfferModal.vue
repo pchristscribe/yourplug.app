@@ -20,8 +20,9 @@
 
             <form @submit.prevent="submit" class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-ink-muted mb-1">Your offer (USD)</label>
+                <label for="offer-amount" class="block text-sm font-medium text-ink-muted mb-1">Your offer (USD)</label>
                 <input
+                  id="offer-amount"
                   v-model.number="amount"
                   type="number"
                   min="0.01"
@@ -32,8 +33,9 @@
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-ink-muted mb-1">Message (optional)</label>
+                <label for="offer-message" class="block text-sm font-medium text-ink-muted mb-1">Message (optional)</label>
                 <textarea
+                  id="offer-message"
                   v-model="message"
                   rows="3"
                   maxlength="500"

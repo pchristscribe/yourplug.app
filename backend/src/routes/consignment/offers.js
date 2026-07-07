@@ -1,6 +1,6 @@
 import { userAuth } from '../../middleware/userAuth.js'
 import { createCheckoutSession } from '../../lib/stripe.js'
-import { createOfferSchema } from '../../schemas/consignment.js'
+import { createOfferSchema, createTransactionSchema } from '../../schemas/consignment.js'
 import { UUID_RE } from '../../utils/constants.js'
 
 export default async function consignmentOfferRoutes(fastify) {
@@ -25,7 +25,7 @@ export default async function consignmentOfferRoutes(fastify) {
       where o.buyer_id = ${request.userId}
       order by o.created_at desc
     `
-    return offers
+    return { data: offers }
   })
 
   fastify.post('/listings/:id/offers', { schema: createOfferSchema }, async (request, reply) => {
@@ -90,12 +90,8 @@ export default async function consignmentOfferRoutes(fastify) {
     reply.code(204)
   })
 
-  fastify.post('/transactions', async (request, reply) => {
-    const { offerId } = request.body || {}
-    if (!offerId || !UUID_RE.test(offerId)) {
-      reply.code(400)
-      return { error: 'Invalid offer ID' }
-    }
+  fastify.post('/transactions', { schema: createTransactionSchema }, async (request, reply) => {
+    const { offerId } = request.body
 
     const [offer] = await sql`
       select o.*, l.title, l.platform_fee_pct, l.id as listing_id

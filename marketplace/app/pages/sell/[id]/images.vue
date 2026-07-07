@@ -40,7 +40,8 @@ const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
 const supabase = useSupabaseClient()
 
-const { submitListing: doSubmit, getAuthHeaders } = useSeller()
+const { submitListing: doSubmit } = useSeller()
+const { getAuthHeaders } = useAuthHeaders()
 const uploaded = ref<{ id: string; publicUrl: string; storagePath: string }[]>([])
 const submitting = ref(false)
 const submitError = ref('')
@@ -61,7 +62,7 @@ async function submitListing() {
   submitError.value = ''
   try {
     await doSubmit(listingId)
-    navigateTo('/dashboard')
+    await navigateTo('/dashboard')
   } catch (err: unknown) {
     submitError.value = (err as { data?: { error?: string } })?.data?.error ?? 'Submission failed'
   } finally {

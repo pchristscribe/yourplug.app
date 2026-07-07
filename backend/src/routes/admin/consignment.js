@@ -67,7 +67,7 @@ export default async function adminConsignmentRoutes(fastify) {
           moderation_reason = null,
           moderation_at = now()
       where id = ${id}
-        and moderation_status in ('PENDING_MODERATION', 'FLAGGED')
+        and moderation_status in ('PENDING', 'FLAGGED')
       returning *
     `
     if (!listing) {
@@ -93,7 +93,7 @@ export default async function adminConsignmentRoutes(fastify) {
           moderation_reason = ${reason},
           moderation_at = now()
       where id = ${id}
-        and moderation_status in ('PENDING_MODERATION', 'FLAGGED')
+        and moderation_status in ('PENDING', 'FLAGGED')
       returning *
     `
     if (!listing) {

@@ -29,33 +29,51 @@ export function useSeller() {
     category: string
     askingPrice: number
   }): Promise<SellerListing> {
-    const headers = await getAuthHeaders()
-    const listing = await $fetch<SellerListing>(`${apiBase}/api/consignment/seller/listings`, {
-      method: 'POST',
-      headers,
-      body: payload,
-    })
-    listings.value.unshift(listing)
-    return listing
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      const listing = await $fetch<SellerListing>(`${apiBase}/api/consignment/seller/listings`, {
+        method: 'POST',
+        headers,
+        body: payload,
+      })
+      listings.value.unshift(listing)
+      return listing
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to create listing'
+      throw err
+    }
   }
 
   async function submitListing(id: string) {
-    const headers = await getAuthHeaders()
-    await $fetch(`${apiBase}/api/consignment/seller/listings/${id}/submit`, {
-      method: 'POST',
-      headers,
-    })
-    await fetchMyListings()
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      await $fetch(`${apiBase}/api/consignment/seller/listings/${id}/submit`, {
+        method: 'POST',
+        headers,
+      })
+      await fetchMyListings()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to submit listing'
+      throw err
+    }
   }
 
   async function deleteListing(id: string) {
-    const headers = await getAuthHeaders()
-    await $fetch(`${apiBase}/api/consignment/seller/listings/${id}`, {
-      method: 'DELETE',
-      headers,
-    })
-    listings.value = listings.value.filter(l => l.id !== id)
+    error.value = null
+    try {
+      const headers = await getAuthHeaders()
+      await $fetch(`${apiBase}/api/consignment/seller/listings/${id}`, {
+        method: 'DELETE',
+        headers,
+      })
+      listings.value = listings.value.filter(l => l.id !== id)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to delete listing'
+      throw err
+    }
   }
 
-  return { listings, loading, error, fetchMyListings, createListing, submitListing, deleteListing, getAuthHeaders }
+  return { listings, loading, error, fetchMyListings, createListing, submitListing, deleteListing }
 }

@@ -55,7 +55,7 @@
               </div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ listing.category }}</td>
-            <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${{ listing.askingPrice?.toFixed(2) }}</td>
+            <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">${{ Number(listing.askingPrice ?? 0).toFixed(2) }}</td>
             <td class="px-4 py-3">
               <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', statusClass(listing.moderationStatus)]">
                 {{ listing.moderationStatus }}

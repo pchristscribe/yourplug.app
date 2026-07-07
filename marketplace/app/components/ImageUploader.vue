@@ -26,6 +26,7 @@
         <img :src="img.publicUrl" class="h-full w-full object-cover" :alt="img.storagePath" />
         <button
           @click="$emit('remove', img.id)"
+          aria-label="Remove photo"
           class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/70"
         >✕</button>
       </div>

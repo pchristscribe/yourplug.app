@@ -54,5 +54,5 @@ export function useSellerAccount() {
     }
   }
 
-  return { onboarded, hasAccount, loading, error, fetchStripeStatus, startOnboarding, goToOnboarding, getAuthHeaders }
+  return { onboarded, hasAccount, loading, error, fetchStripeStatus, startOnboarding, goToOnboarding }
 }

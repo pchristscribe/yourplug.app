@@ -86,7 +86,7 @@ async function submit() {
       category: form.value.category,
       askingPrice: form.value.askingPrice,
     })
-    navigateTo(`/sell/${listing.id}/images`)
+    await navigateTo(`/sell/${listing.id}/images`)
   } catch (err: unknown) {
     error.value = (err as { data?: { error?: string } })?.data?.error ?? 'Failed to create listing'
   } finally {

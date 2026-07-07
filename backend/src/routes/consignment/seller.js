@@ -3,7 +3,7 @@ import { uploadImage, deleteImage } from '../../lib/imageStorage.js'
 import { createConnectedAccount, createOnboardingLink } from '../../lib/stripe.js'
 import { moderateImage, runFullModeration } from '../../lib/moderation.js'
 import { extractExifDate, checkFreshness } from '../../lib/imageFreshness.js'
-import { createListingSchema, updateListingSchema } from '../../schemas/consignment.js'
+import { createListingSchema, updateListingSchema, offerActionSchema } from '../../schemas/consignment.js'
 import { UUID_RE } from '../../utils/constants.js'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -331,21 +331,12 @@ export default async function consignmentSellerRoutes(fastify) {
 
   // ── Offer management (seller perspective) ────────────────────────────────
 
-  fastify.patch('/offers/:id', async (request, reply) => {
+  fastify.patch('/offers/:id', { schema: offerActionSchema }, async (request, reply) => {
     const { id } = request.params
-    if (!UUID_RE.test(id)) {
-      reply.code(400)
-      return { error: 'Invalid offer ID' }
-    }
-
-    const { action } = request.body || {}
-    if (!['ACCEPTED', 'REJECTED'].includes(action)) {
-      reply.code(400)
-      return { error: 'action must be ACCEPTED or REJECTED' }
-    }
+    const { action } = request.body
 
     const [offer] = await sql`
-      select o.id, o.status, o.listing_id, l.seller_id
+      select o.id, o.status, o.listing_id, o.expires_at, l.seller_id
       from consignment_offers o
       join consignment_listings l on l.id = o.listing_id
       where o.id = ${id}
@@ -358,21 +349,30 @@ export default async function consignmentSellerRoutes(fastify) {
       reply.code(422)
       return { error: 'Only PENDING offers can be accepted or rejected' }
     }
-
-    const [updated] = await sql`
-      update consignment_offers
-      set status = ${action}::offer_status
-      where id = ${id}
-      returning *
-    `
-
-    if (action === 'ACCEPTED') {
-      await sql`
-        update consignment_offers
-        set status = 'REJECTED'::offer_status
-        where listing_id = ${offer.listingId} and id != ${id} and status = 'PENDING'
-      `
+    if (action === 'ACCEPTED' && new Date(offer.expiresAt) <= new Date()) {
+      reply.code(422)
+      return { error: 'This offer has expired' }
     }
+
+    // Both updates must succeed or fail together — otherwise a failure after
+    // the accept but before the sibling-rejection could leave two offers
+    // acceptable on the same listing (double sale).
+    const [updated] = await sql.begin(async (tx) => {
+      const [row] = await tx`
+        update consignment_offers
+        set status = ${action}::offer_status
+        where id = ${id}
+        returning *
+      `
+      if (action === 'ACCEPTED') {
+        await tx`
+          update consignment_offers
+          set status = 'REJECTED'::offer_status
+          where listing_id = ${offer.listingId} and id != ${id} and status = 'PENDING'
+        `
+      }
+      return [row]
+    })
 
     return updated
   })

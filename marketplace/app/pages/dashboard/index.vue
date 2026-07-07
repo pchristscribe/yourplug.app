@@ -20,7 +20,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="font-medium text-ink truncate">{{ l.title }}</p>
-            <p class="text-sm text-ink-muted">${{ l.askingPrice.toFixed(2) }} · {{ l.status }}</p>
+            <p class="text-sm text-ink-muted">${{ Number(l.askingPrice).toFixed(2) }} · {{ l.status }}</p>
           </div>
           <ModerationBadge :status="l.moderationStatus" />
         </div>
@@ -38,7 +38,7 @@
         <div v-for="o in offers" :key="o.id" class="flex items-center gap-4 rounded-card bg-surface p-4 shadow-card">
           <div class="flex-1 min-w-0">
             <p class="font-medium text-ink truncate">{{ o.listingTitle }}</p>
-            <p class="text-sm text-ink-muted">Your offer: ${{ o.amount.toFixed(2) }} · {{ o.status }}</p>
+            <p class="text-sm text-ink-muted">Your offer: ${{ Number(o.amount).toFixed(2) }} · {{ o.status }}</p>
           </div>
           <button
             v-if="o.status === 'ACCEPTED'"

@@ -7,7 +7,10 @@ export default async function stripeWebhookRoutes(fastify) {
     done(null, body)
   })
 
-  fastify.post('/stripe', async (request, reply) => {
+  // Stripe delivers from a small pool of source IPs — exempt this route from
+  // the global per-IP rate limit so a burst of events can't trip 429s and
+  // delay payment/onboarding state updates.
+  fastify.post('/stripe', { config: { rateLimit: false } }, async (request, reply) => {
     const sig = request.headers['stripe-signature']
     const secret = process.env.STRIPE_WEBHOOK_SECRET
 
