@@ -1,0 +1,64 @@
+name: Dependabot auto-merge
+
+# Auto-merges dependabot PRs that are patch/minor bumps outside the
+# security-sensitive webauthn/sentry groups. Relies on branch protection's
+# required status checks (configured on main: unit/build/security-audit jobs)
+# so GitHub's native auto-merge queue waits on real CI and ignores advisory
+# checks (claude-review, GitGuardian) that aren't in the required set.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Evaluate and auto-merge
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Decide eligibility
+        id: eligibility
+        env:
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          DEP_GROUP: ${{ steps.metadata.outputs.dependency-group-name }}
+        run: |
+          set -euo pipefail
+          eligible=true
+
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor) ;;
+            *) eligible=false ;;
+          esac
+
+          case "$DEP_GROUP" in
+            webauthn|sentry) eligible=false ;;
+          esac
+
+          echo "Update type: $UPDATE_TYPE"
+          echo "Dependency group: $DEP_GROUP"
+          echo "Eligible for auto-merge: $eligible"
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+
+      - name: Approve PR
+        if: steps.eligibility.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr review --approve "$PR_URL"
+
+      - name: Enable auto-merge
+        if: steps.eligibility.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
