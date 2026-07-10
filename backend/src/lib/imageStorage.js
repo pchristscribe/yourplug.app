@@ -3,10 +3,9 @@ import { getSupabase } from './supabase.js'
 
 const BUCKET = 'consignment-images'
 
-// The consignment-images bucket is private (supabase/config.toml), so
-// getPublicUrl() would produce URLs that 400. We store a long-lived
-// signed URL instead; moderation and the frontends read it directly.
-const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365 // 1 year
+// Short-lived signed URL TTL. The bucket is private so getPublicUrl() would
+// 400; callers use getSignedUrl() at read time so tokens stay fresh.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 // 1 hour
 
 const MIME_TO_EXT = {
   'image/jpeg': 'jpg',
@@ -25,13 +24,16 @@ export async function uploadImage(buffer, mimeType, listingId) {
 
   if (error) throw new Error(`Storage upload failed: ${error.message}`)
 
-  const { data, error: signError } = await supabase.storage
+  return { storagePath }
+}
+
+export async function getSignedUrl(storagePath, ttlSeconds = SIGNED_URL_TTL_SECONDS) {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS)
-
-  if (signError) throw new Error(`Signed URL creation failed: ${signError.message}`)
-
-  return { storagePath, publicUrl: data.signedUrl }
+    .createSignedUrl(storagePath, ttlSeconds)
+  if (error) throw new Error(`Signed URL creation failed: ${error.message}`)
+  return data.signedUrl
 }
 
 export async function deleteImage(storagePath) {

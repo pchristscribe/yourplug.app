@@ -1,5 +1,6 @@
 import { userAuth } from '../../middleware/userAuth.js'
 import { createCheckoutSession } from '../../lib/stripe.js'
+import { getSignedUrl } from '../../lib/imageStorage.js'
 import { createOfferSchema, createTransactionSchema } from '../../schemas/consignment.js'
 import { UUID_RE } from '../../utils/constants.js'
 
@@ -15,7 +16,7 @@ export default async function consignmentOfferRoutes(fastify) {
         l.title as listing_title,
         l.asking_price as listing_asking_price,
         (
-          select ci.public_url
+          select ci.storage_path
           from consignment_images ci
           where ci.listing_id = l.id and ci.is_primary = true
           limit 1
@@ -25,7 +26,15 @@ export default async function consignmentOfferRoutes(fastify) {
       where o.buyer_id = ${request.userId}
       order by o.created_at desc
     `
-    return { data: offers }
+    const signed = await Promise.all(
+      offers.map(async (offer) => ({
+        ...offer,
+        listingPrimaryImage: offer.listingPrimaryImage
+          ? await getSignedUrl(offer.listingPrimaryImage)
+          : null,
+      }))
+    )
+    return { data: signed }
   })
 
   fastify.post('/listings/:id/offers', { schema: createOfferSchema }, async (request, reply) => {

@@ -67,11 +67,14 @@ export function extractExifDate(buffer) {
 
 /**
  * Freshness policy used by the seller image-upload route.
- * @returns {{ freshnessOk: boolean|null, freshnessDeltaSec: number|null, tooOld: boolean }}
+ * Images without a parseable EXIF timestamp (PNG, WebP, EXIF-less JPEG) are
+ * treated as too old — returning tooOld: false would let sellers bypass the
+ * 15-minute anti-reuse gate by uploading in a format without a capture time.
+ * @returns {{ freshnessOk: boolean, freshnessDeltaSec: number|null, tooOld: boolean }}
  */
 export function checkFreshness(capturedAt, now = Date.now()) {
   if (!capturedAt) {
-    return { freshnessOk: null, freshnessDeltaSec: null, tooOld: false }
+    return { freshnessOk: false, freshnessDeltaSec: null, tooOld: true }
   }
   const freshnessDeltaSec = Math.round((now - capturedAt.getTime()) / 1000)
   const tooOld = freshnessDeltaSec > FRESHNESS_LIMIT_SEC

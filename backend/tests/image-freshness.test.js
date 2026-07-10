@@ -25,11 +25,11 @@ describe('checkFreshness', () => {
     expect(result.freshnessDeltaSec).toBeGreaterThan(FRESHNESS_LIMIT_SEC)
   })
 
-  it('treats missing EXIF as null freshness and proceeds', () => {
+  it('rejects images without a parseable timestamp (PNG/WebP bypass prevention)', () => {
     const result = checkFreshness(null)
-    expect(result.freshnessOk).toBeNull()
+    expect(result.freshnessOk).toBe(false)
     expect(result.freshnessDeltaSec).toBeNull()
-    expect(result.tooOld).toBe(false)
+    expect(result.tooOld).toBe(true)
   })
 
   it('accepts an image taken exactly at the boundary (900s)', () => {

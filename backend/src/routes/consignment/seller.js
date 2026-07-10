@@ -1,5 +1,5 @@
 import { userAuth } from '../../middleware/userAuth.js'
-import { uploadImage, deleteImage } from '../../lib/imageStorage.js'
+import { uploadImage, deleteImage, getSignedUrl } from '../../lib/imageStorage.js'
 import { createConnectedAccount, createOnboardingLink } from '../../lib/stripe.js'
 import { moderateImage, runFullModeration } from '../../lib/moderation.js'
 import { extractExifDate, checkFreshness } from '../../lib/imageFreshness.js'
@@ -30,7 +30,17 @@ export default async function consignmentSellerRoutes(fastify) {
       group by l.id
       order by l.created_at desc
     `
-    return listings
+    return Promise.all(
+      listings.map(async (listing) => ({
+        ...listing,
+        images: await Promise.all(
+          (listing.images || []).map(async (img) => ({
+            ...img,
+            publicUrl: img.storagePath ? await getSignedUrl(img.storagePath) : null,
+          }))
+        ),
+      }))
+    )
   })
 
   fastify.post('/listings', { schema: createListingSchema }, async (request, reply) => {
@@ -215,7 +225,8 @@ export default async function consignmentSellerRoutes(fastify) {
       return { error: 'IMAGE_TOO_OLD', message: 'Photo must be taken within 15 minutes of upload' }
     }
 
-    const { storagePath, publicUrl } = await uploadImage(buffer, mimeType, id)
+    const { storagePath } = await uploadImage(buffer, mimeType, id)
+    const publicUrl = await getSignedUrl(storagePath)
 
     // Lock the listing row so concurrent uploads for the same new listing
     // can't both observe count === 0 and both insert as primary.

@@ -1,4 +1,5 @@
 import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
+import { getSignedUrl } from '../../lib/imageStorage.js'
 import { adminListListingsSchema, uuidParamsSchema, rejectListingSchema } from '../../schemas/consignment.js'
 
 export default async function adminConsignmentRoutes(fastify) {
@@ -29,7 +30,7 @@ export default async function adminConsignmentRoutes(fastify) {
           l.*,
           sp.display_name as seller_display_name,
           (
-            select json_build_object('publicUrl', ci.public_url, 'id', ci.id)
+            select json_build_object('storagePath', ci.storage_path, 'id', ci.id)
             from consignment_images ci
             where ci.listing_id = l.id and ci.is_primary = true
             limit 1
@@ -43,8 +44,17 @@ export default async function adminConsignmentRoutes(fastify) {
       sql`select count(*) from consignment_listings l where ${whereClause}`,
     ])
 
+    const signedListings = await Promise.all(
+      listings.map(async (l) => ({
+        ...l,
+        primaryImage: l.primaryImage?.storagePath
+          ? { ...l.primaryImage, publicUrl: await getSignedUrl(l.primaryImage.storagePath) }
+          : l.primaryImage,
+      }))
+    )
+
     return {
-      data: listings,
+      data: signedListings,
       pagination: {
         page: safePage,
         limit: safeLimit,
@@ -114,14 +124,20 @@ export default async function adminConsignmentRoutes(fastify) {
     const logs = await sql`
       select
         ml.*,
-        ci.public_url as image_url
+        ci.storage_path as image_path
       from consignment_moderation_logs ml
       left join consignment_images ci on ci.id = ml.image_id
       where ml.listing_id = ${id}
       order by ml.created_at asc
     `
+    const signedLogs = await Promise.all(
+      logs.map(async (log) => ({
+        ...log,
+        imageUrl: log.imagePath ? await getSignedUrl(log.imagePath) : null,
+      }))
+    )
     // Wrap in an object to match the list-response contract used by every
     // other list endpoint (and to keep the shape extensible).
-    return { data: logs }
+    return { data: signedLogs }
   })
 }
