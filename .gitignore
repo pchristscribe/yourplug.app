@@ -77,10 +77,13 @@ out/
 *.pid.lock
 .eslintcache
 
-# Bun lock files (not used by this project — npm is the package manager)
+# Bun lock files (not used by this project)
 /index.ts
 /tsconfig.json
 bun.lock
+
+# npm lockfiles (project uses pnpm; npm install in sub-directories should not be committed)
+marketplace/package-lock.json
 
 # AI developer scratchpad notes
 .specs/
