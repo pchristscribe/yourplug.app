@@ -39,7 +39,7 @@ pnpm test:coverage     # coverage report (v8)
 
 ## Project Structure
 
-```
+```text
 frontend/
 ├── app/
 │   ├── components/

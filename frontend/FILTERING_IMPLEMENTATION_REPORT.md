@@ -128,7 +128,7 @@ const RATING_OPTIONS = [
 
 **Bi-directional sync**: URL ↔ Filter Store ↔ UI
 
-```
+```text
 ┌─────────────┐
 │   URL Bar   │
 └──────┬──────┘
@@ -146,7 +146,7 @@ const RATING_OPTIONS = [
 
 ### URL Format
 
-```
+```text
 # No filters (clean)
 http://localhost:3000/
 

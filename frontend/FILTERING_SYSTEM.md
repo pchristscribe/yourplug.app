@@ -81,7 +81,7 @@ The system uses Vue Router's query params to maintain filter state in the URL:
 
 ### Example URLs
 
-```
+```text
 # No filters (clean URL)
 http://localhost:3000/
 
@@ -97,7 +97,7 @@ http://localhost:3000/?category=electronics&platform=AMAZON&minPrice=50&maxPrice
 
 ### URL Sync Flow
 
-```
+```text
 User changes filter
     ↓
 Filter store updated
@@ -113,7 +113,7 @@ Browser history updated
 
 ### Back/Forward Navigation
 
-```
+```text
 User clicks back/forward
     ↓
 URL changes
@@ -272,7 +272,7 @@ All filters use AND logic - products must match ALL active filters:
 - Shows pages around current (delta of 2)
 
 **Algorithm**:
-```
+```text
 Page: 15 of 50
 Display: 1 ... 13 14 [15] 16 17 ... 50
 ```
@@ -358,7 +358,7 @@ watch(() => route.query, (newQuery) => {
 
 ### Layout Structure
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │ Hero Section                            │
 └─────────────────────────────────────────┘

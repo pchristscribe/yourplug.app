@@ -44,6 +44,12 @@ export default defineConfig([
     }
   },
   {
+    files: ["app/components/Pagination.vue"],
+    rules: {
+      "vue/multi-word-component-names": ["error", { ignores: ["Pagination"] }]
+    }
+  },
+  {
     files: ["package.json"],
     ...json.configs.recommended[0]
   },

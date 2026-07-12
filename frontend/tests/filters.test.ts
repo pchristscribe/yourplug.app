@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useFilterStore } from '~/app/stores/filters'
-import { DEFAULT_FILTER_STATE } from '~/app/types/filters'
 
 describe('Filter Store', () => {
   beforeEach(() => {
