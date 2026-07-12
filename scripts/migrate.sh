@@ -9,8 +9,8 @@ fi
 
 PROJECT_REF="${SUPABASE_PROJECT_REF:?Error: SUPABASE_PROJECT_REF is not set. See .env.example.}"
 
-echo "Linking to Supabase project $PROJECT_REF..."
-npx supabase link --project-ref "$PROJECT_REF"
+echo "Linking to Supabase project $SUPABASE_PROJECT_REF..."
+npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
 echo "Pushing migrations..."
 npx supabase db push

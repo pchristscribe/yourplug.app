@@ -2,6 +2,7 @@ packages:
   - 'frontend'
   - 'admin-frontend'
   - 'backend'
+  - 'marketplace'
   - 'mcp-dhgate'
 
 # allowBuilds controls which packages may run postinstall/install scripts.

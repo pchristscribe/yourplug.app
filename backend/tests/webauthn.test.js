@@ -487,7 +487,7 @@ describe('WebAuthn Credentials Management Endpoints', () => {
 
       expect(response.statusCode).toBe(401)
       const body = JSON.parse(response.body)
-      expect(body).toHaveProperty('error', 'Not authenticated')
+      expect(body).toHaveProperty('error', 'Unauthorized')
     })
   })
 
@@ -500,7 +500,7 @@ describe('WebAuthn Credentials Management Endpoints', () => {
 
       expect(response.statusCode).toBe(401)
       const body = JSON.parse(response.body)
-      expect(body).toHaveProperty('error', 'Not authenticated')
+      expect(body).toHaveProperty('error', 'Unauthorized')
     })
   })
 })
