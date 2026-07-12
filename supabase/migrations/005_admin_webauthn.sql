@@ -8,6 +8,14 @@
 --   • admins: password_hash, is_active, last_login_at, current_challenge,
 --     challenge_expires_at  (the last two back the registration/auth flow)
 --   • webauthn_credentials: per-admin registered authenticators
+--
+-- NOTE: this duplicates 002_alter_admins_and_credentials.sql's schema
+-- changes (same columns, same table). That's intentional, known redundancy
+-- from this project's migration history, not an oversight — see the note
+-- at the top of 002 for why neither file should be edited to "deduplicate."
+-- The `if not exists` guards and the DO-block below (needed because
+-- CREATE POLICY has no IF NOT EXISTS) are what let 002 and 005 both apply
+-- cleanly in numbered order.
 
 -- ── admins: extra columns ────────────────────────────────────────────────
 
