@@ -8,7 +8,7 @@ This project is in active development. Security fixes are applied to the current
 |-----------|-----------|
 | admin-frontend (current) | ✅ |
 | frontend (current) | ✅ |
-| backend (external service) | ✅ |
+| backend (`backend/`, deployable via Railway) | ✅ |
 
 ## Security Architecture
 
@@ -25,13 +25,9 @@ See [SECURITY_GUIDE.md](./SECURITY_GUIDE.md) for the full defense-in-depth archi
 
 ## Known Vulnerabilities
 
-**52 backend validation vulnerabilities** have been identified by the test suite and documented in [VALIDATION_BUGS_FOUND.md](./VALIDATION_BUGS_FOUND.md). These are backend issues (external service) currently pending fixes:
-- Type coercion crashes (non-string inputs → 500 instead of 400)
-- Missing email format validation
-- Whitespace-only inputs accepted
-- Missing JSON schema validation on endpoints
+None currently open. An automated test sweep on 2025-12-09 surfaced 52 candidate failures in backend WebAuthn validation (type coercion crashes, missing email format validation, whitespace-only inputs accepted, missing JSON schema validation); triage narrowed these to 7 distinct bugs, all fixed as of 2025-12-12 — see [VALIDATION_BUGS_FOUND.md](./VALIDATION_BUGS_FOUND.md) for the resolution report.
 
-Frontend security (both admin and user frontends) is production-ready with all identified vulnerabilities resolved.
+Frontend and backend security are both production-ready with all identified vulnerabilities resolved.
 
 ## Reporting a Vulnerability
 

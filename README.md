@@ -16,6 +16,9 @@ cd admin-frontend && pnpm install && pnpm dev
 
 # 4. Start user frontend (Port 3000)
 cd frontend && pnpm install && pnpm dev
+
+# 5. Start marketplace (Port 3003)
+cd marketplace && pnpm install && pnpm dev
 ```
 
 ## Project Structure
@@ -44,6 +47,7 @@ yourplug-fullstack/
 │   │   └── types/             # index.ts, filters.ts, database.types.ts, supabase.ts
 │   └── tests/                 # 10 test files covering components, stores, composables
 │
+├── marketplace/                # Consignment marketplace storefront — deployable via Railway (Port 3003)
 ├── backend/                   # Fastify API — deployable via Railway (Port 3001)
 ├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
 ├── mcp-dhgate/                # DHgate MCP server for product scraping
