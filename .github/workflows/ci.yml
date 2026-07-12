@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        workspace: [frontend, admin-frontend, marketplace]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        workspace: [frontend, admin-frontend, marketplace]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -169,7 +169,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend]
+        workspace: [frontend, admin-frontend, marketplace]
     steps:
       - uses: actions/checkout@v7
         with:
