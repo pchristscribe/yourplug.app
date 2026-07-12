@@ -252,6 +252,7 @@
 
 <script setup lang="ts">
 import { getSafeImageUrl, isValidHttpUrl } from '~/utils/security'
+import { useAdminCrudList } from '~/composables/useAdminCrudList'
 
 definePageMeta({
   middleware: ['auth'],
@@ -259,16 +260,9 @@ definePageMeta({
 })
 
 const config = useRuntimeConfig()
-const loading = ref(true)
 const saving = ref(false)
-const categories = ref<any[]>([])
-const pagination = ref<any>(null)
 const searchQuery = ref('')
 const selectedIds = ref<string[]>([])
-const showModal = ref(false)
-const showDeleteConfirm = ref(false)
-const editingCategory = ref<any>(null)
-const deletingCategory = ref<any>(null)
 const formData = ref({
   name: '',
   slug: '',
@@ -276,26 +270,30 @@ const formData = ref({
   imageUrl: ''
 })
 
-const loadCategories = async (page = 1) => {
-  loading.value = true
-  try {
-    const data = await $fetch(`${config.public.apiBase}/api/admin/categories`, {
-      credentials: 'include',
-      query: {
-        page,
-        limit: 50,
-        search: searchQuery.value || undefined
-      }
-    })
-    categories.value = data.categories
-    pagination.value = data.pagination
-  } catch (err) {
-    console.error('Failed to load categories:', err)
-    alert('Failed to load categories. Please try again.')
-  } finally {
-    loading.value = false
-  }
-}
+const crud = useAdminCrudList<any>('categories')
+const {
+  loading,
+  items: categories,
+  pagination,
+  showModal,
+  editingItem: editingCategory,
+  closeModal,
+  showDeleteConfirm,
+  deletingItem: deletingCategory,
+  cancelDelete,
+} = crud
+
+const loadCategories = (page = 1) => crud.load(async (p) => {
+  const data = await $fetch(`${config.public.apiBase}/api/admin/categories`, {
+    credentials: 'include',
+    query: {
+      page: p,
+      limit: 50,
+      search: searchQuery.value || undefined
+    }
+  })
+  return { items: data.categories, pagination: data.pagination }
+}, page)
 
 const debouncedSearch = (() => {
   let timeout: NodeJS.Timeout
@@ -323,30 +321,23 @@ const toggleAll = () => {
 }
 
 const openCreateModal = () => {
-  editingCategory.value = null
+  crud.openCreateModal()
   formData.value = {
     name: '',
     slug: '',
     description: '',
     imageUrl: ''
   }
-  showModal.value = true
 }
 
 const editCategory = (category: any) => {
-  editingCategory.value = category
+  crud.openEditModal(category)
   formData.value = {
     name: category.name,
     slug: category.slug,
     description: category.description || '',
     imageUrl: category.imageUrl || ''
   }
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  editingCategory.value = null
 }
 
 const saveCategory = async () => {
@@ -394,8 +385,7 @@ const saveCategory = async () => {
 }
 
 const deleteCategory = (category: any) => {
-  deletingCategory.value = category
-  showDeleteConfirm.value = true
+  crud.requestDelete(category)
 }
 
 const confirmDelete = async () => {
@@ -405,19 +395,13 @@ const confirmDelete = async () => {
       credentials: 'include'
     })
 
-    showDeleteConfirm.value = false
-    deletingCategory.value = null
+    cancelDelete()
     await loadCategories(pagination.value?.page || 1)
   } catch (err: any) {
     console.error('Failed to delete category:', err)
     const errorMessage = err.data?.message || err.data?.error || 'Failed to delete category'
     alert(errorMessage)
   }
-}
-
-const cancelDelete = () => {
-  showDeleteConfirm.value = false
-  deletingCategory.value = null
 }
 
 const bulkDelete = async () => {
