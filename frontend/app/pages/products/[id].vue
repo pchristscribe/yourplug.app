@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AffiliateDisclosure from '~/components/AffiliateDisclosure.vue'
+
 const route = useRoute()
 const productStore = useProductStore()
 const { public: { siteUrl } } = useRuntimeConfig()
@@ -211,10 +213,8 @@ const handleAffiliateClick = (url: string) => {
               </div>
 
               <!-- FTC Disclosure -->
-              <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p class="text-xs text-gray-600">
-                  <strong>Disclosure:</strong> This is an affiliate link. We may earn a commission when you make a purchase through this link at no additional cost to you.
-                </p>
+              <div class="mt-4">
+                <AffiliateDisclosure variant="inline" />
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@
 
 `marketplace/` is a fully built, tested, Railway-deployed Nuxt app with no `pnpm-lock.yaml`, while every sibling workspace (`admin-frontend`, `frontend`, `backend`, `mcp-dhgate`) carries its own. Its `railway.json` still runs `pnpm install --frozen-lockfile`, which will fail outright on the next deploy. It's also absent from `ci.yml`/`test.yml`/`eslint.yml` matrices and from `README.md`'s project structure, so it ships with no automated regression protection at all.
 
-**Fix:** Generate and commit `marketplace/pnpm-lock.yaml`; add `marketplace` to the CI test/lint matrices; document it in `README.md`.
+**Fixed:** `marketplace/pnpm-lock.yaml` generated and verified against `--frozen-lockfile`; added to `ci.yml`'s security-audit/test/build matrices and `test.yml`'s test jobs; documented in `README.md`/`CLAUDE.md`. **Not done:** `marketplace/` has no ESLint config or `eslint` dependency at all (unlike `frontend`/`admin-frontend`), so it isn't in `eslint.yml` — wiring it in means building a lint config from scratch and fixing whatever it finds, deliberately left as a separate follow-up rather than rushed in.
 
 ---
 
@@ -24,7 +24,7 @@
 
 `backend/src/routes/stripe-webhooks.js` and `backend/src/routes/consignment/offers.js` (idempotency-keyed Stripe checkout session creation) have no corresponding tests in `backend/tests/`. This is the only revenue-adjacent code path in the backend with no safety net.
 
-**Fix:** Add integration tests covering webhook signature verification, idempotency-key handling, and offer/checkout-session creation error paths.
+**Fixed:** Added 24 tests covering webhook signature/secret validation, per-event-type DB writes, unhandled-event/handler-failure paths, offer auth/ownership/duplicate validation, and the checkout-session idempotency guard. Verified against the real docker-compose Postgres+Redis stack (all 295 backend tests pass), not just the mocked DI path.
 
 ---
 
@@ -42,7 +42,7 @@
 **Category:** Docs · **Priority:** 35 / 24
 
 - `SECURITY.md` claimed "52 backend validation vulnerabilities... currently pending fixes," while its own linked evidence (`VALIDATION_BUGS_FOUND.md`) shows those 52 candidate failures were triaged to 7 distinct bugs, all fixed as of 2025-12-12. **Fixed in this pass.**
-- `CLAUDE.md` — the primary onboarding/agent-guidance doc — has zero mentions of the `marketplace/` workspace, `stripe-webhooks.js`, `consignment/offers.js`, `blog-posts.js`, `admin/product-variants.js`, the `workers/` directory, or the Anthropic SDK moderation integration, despite these being live feature areas, some money-handling. **Fix in progress** — see remediation item below.
+- `CLAUDE.md` — the primary onboarding/agent-guidance doc — has zero mentions of the `marketplace/` workspace, `stripe-webhooks.js`, `consignment/offers.js`, `blog-posts.js`, `admin/product-variants.js`, the `workers/` directory, or the Anthropic SDK moderation integration, despite these being live feature areas, some money-handling. **Fixed in this pass.**
 
 ---
 
@@ -51,7 +51,7 @@
 
 Disclosure text is hardcoded independently in the site footer, product detail page, and a `ProductCard` tooltip. No single source of truth means a new page rendering affiliate links has nothing forcing it to include the disclosure — CLAUDE.md states this is a hard legal requirement. Unclear whether `marketplace/` carries equivalent disclosure at all.
 
-**Fix:** Extract a shared `<AffiliateDisclosure>` component/composable; audit `marketplace/` for parity.
+**Fixed:** Extracted `frontend/app/components/AffiliateDisclosure.vue` (badge/inline/footer variants), replaced all 3 hardcoded copies, added direct component tests. Verified live in the browser (footer variant) and via the existing/new Vue Test Utils assertions (badge/inline variants — no local Supabase instance was available to render the live product catalog, so those two variants rely on test-level verification, which exercises the exact same markup). **`marketplace/` audited and confirmed out of scope**: it's a peer-to-peer consignment marketplace (Stripe Connect direct sales), not a third-party-affiliate-link catalog, so FTC affiliate disclosure doesn't apply there — it already discloses its actual obligation (15% platform fee) to sellers in `marketplace/app/pages/account/stripe.vue`.
 
 ---
 
@@ -69,7 +69,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 
 `supabase/migrations/002_alter_admins_and_credentials.sql` and `005_admin_webauthn.sql` both add the same `admins` columns and both `create table if not exists webauthn_credentials` with the same indexes/RLS policy. Only safe because of `if not exists` guards and numbered execution order.
 
-**Fix:** Add an explicit comment noting the intentional redundancy, or consolidate in a future migration.
+**Fixed:** Added comments on both files explaining the redundancy is intentional/historical and why neither should be edited to "deduplicate" (both may already be applied to production/team databases — Supabase tracks migrations by filename, so editing history would desync already-migrated environments). No SQL semantics changed; migrations re-applied cleanly in a fresh local Postgres to confirm.
 
 ---
 
@@ -113,15 +113,15 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 - [x] Delete stale `backend/railway.toml`
 - [x] Fix 19 pre-existing ESLint errors in `frontend/`, remove `continue-on-error: true` from `eslint.yml`
 - [x] Correct `SECURITY.md`'s vulnerability count and status
-- [ ] Add `marketplace/` lockfile + CI coverage
-- [ ] Update `CLAUDE.md` with missing feature areas
+- [x] Add `marketplace/` lockfile + CI coverage (test/lint config for `marketplace/` itself deliberately left as a follow-up — see #1)
+- [x] Update `CLAUDE.md` with missing feature areas
 
 ### Phase 2 — next 1–2 sprints, alongside feature work
-- Write integration tests for Stripe webhooks + consignment offers (#2)
-- Extract shared FTC disclosure component, verify `marketplace/` parity (#5)
-- Extract `useAdminCrudList` composable from the three admin CRUD pages (#6)
-- Add Fastify schema validation to `admin/products.js`, unify error envelope, dedupe email regex (#8)
-- Annotate/consolidate migrations 002 and 005 (#7)
+- [x] Write integration tests for Stripe webhooks + consignment offers (#2)
+- [x] Extract shared FTC disclosure component, verify `marketplace/` parity (#5)
+- [x] Annotate migrations 002 and 005 (#7)
+- [ ] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
+- [ ] Add Fastify schema validation to `admin/products.js`, unify error envelope, dedupe email regex (#8)
 
 ### Phase 3 — quality ceiling, opportunistic
 - Reduce `any` usage in `admin-frontend` (#14)
