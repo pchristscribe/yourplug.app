@@ -69,8 +69,8 @@ importers:
         specifier: ^3.4.9
         version: 3.4.9
       stripe:
-        specifier: ^22.3.0
-        version: 22.3.0
+        specifier: ^22.3.1
+        version: 22.3.1
     devDependencies:
       '@eslint/css':
         specifier: ^1.4.0
@@ -1885,8 +1885,8 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stripe@22.3.0:
-    resolution: {integrity: sha512-ypO6xjVrMWs9SmIMeHr8naCx3dAQ0clxMdUTxn7Ejd7hmY9meBGfE+N4pVHkf9sUNebAHp6uJo6mV3GxDIc2cA==}
+  stripe@22.3.1:
+    resolution: {integrity: sha512-6XSLN0KK0IdfXqDHqMg6CDoO3eO62ye9dhzw0fZp55AUOzHR1YRJOqYHTsuCi4QJ4Ni/usEmXtq69c9ghKDmYw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@types/node': '>=18'
@@ -4147,7 +4147,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stripe@22.3.0: {}
+  stripe@22.3.1: {}
 
   supports-color@7.2.0:
     dependencies:
