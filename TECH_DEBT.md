@@ -78,6 +78,8 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 ### 8. Backend route inconsistencies
 **Priority:** 18 — Two unsynced email-validation regexes (`auth.js` strict vs `webauthn.js` loose), no standard error-response envelope across routes, `admin/products.js` POST/PATCH has no Fastify schema validation (unlike `categories.js`/`reviews.js`/`product-variants.js`), duplicated session-lookup SQL between `adminAuth.js` middleware and `auth.js`'s `GET /session`.
 
+**Fixed:** Added `backend/src/schemas/product.js` and wired it into `admin/products.js`'s POST/PATCH/bulk routes (platform/status enums, positive price, image URL pattern, `additionalProperties: false`) — the PATCH schema deliberately omits `minProperties` since the route treats an empty body as a no-op returning the current record, which existing tests lock in as the route's actual (if inconsistent-with-categories) behavior. Deduped the two email regexes into `utils/email.js` (both `auth.js` and `webauthn.js` now import it) and the session-lookup SQL into `utils/adminSession.js`'s `loadActiveAdminById` (used by `adminAuth.js` middleware and `auth.js`'s `GET /session`). Added 5 tests for the new products validation; all 300 backend tests pass. **Not done:** a full error-envelope unification sweep — the existing global error handler in `app.js` already normalizes thrown/validation errors to `{error, message, statusCode}`, and the admin-frontend already falls back through `err.data?.message || err.data?.error`, so a repo-wide rewrite of every route's manual response shape was judged disproportionate to this item's priority.
+
 ### 9. Cross-workspace dependency & CI drift
 **Priority:** 16 — vue-router (`^5` in frontend/marketplace vs `^4` in admin-frontend), pnpm `packageManager` (10.x vs 11.x in backend), TypeScript (`^5` vs `^6`), `mcp-dhgate` still declares `node >=20` vs `>=24` elsewhere. `ci.yml` and `test.yml` are largely duplicate workflows.
 
@@ -121,7 +123,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 - [x] Extract shared FTC disclosure component, verify `marketplace/` parity (#5)
 - [x] Annotate migrations 002 and 005 (#7)
 - [x] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
-- [ ] Add Fastify schema validation to `admin/products.js`, unify error envelope, dedupe email regex (#8)
+- [x] Add Fastify schema validation to `admin/products.js`, dedupe email regex and session-lookup SQL (#8) — error-envelope unification scoped out, see #8 for why
 
 ### Phase 3 — quality ceiling, opportunistic
 - Reduce `any` usage in `admin-frontend` (#14)
