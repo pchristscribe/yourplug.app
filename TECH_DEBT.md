@@ -60,7 +60,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 
 `admin-frontend/app/pages/categories.vue`, `reviews.vue`, and `products/index.vue` each hand-roll ~500 lines of nearly identical pagination/edit/delete-modal state, with inconsistent page-size limits. None of the three have direct test coverage beyond one narrowly-scoped regression test on `reviews.vue`. `useSupabaseAdmin.ts` and `useRateLimit.ts` also have zero test coverage.
 
-**Fixed:** Added characterization tests mounting the real SFCs for all three pages (25 tests total) as a safety net, then extracted `admin-frontend/app/composables/useAdminCrudList.ts` covering the genuinely identical pieces — pagination/loading state and create-edit/delete-confirm modal state — and wired it into all three pages one at a time, verifying the full suite after each. Filters, bulk actions, tag parsing, image-URL validation, and save/delete requests deliberately stayed page-specific since those differ per page; forcing them into the composable would have traded three similar blocks for one over-parameterized one. Page templates are unchanged. **Not done:** tests for `useSupabaseAdmin.ts`/`useRateLimit.ts` (tracked separately as #11).
+**Fixed:** Added characterization tests mounting the real SFCs for all three pages (25 tests total) as a safety net, then extracted `admin-frontend/app/composables/useAdminCrudList.ts` covering the genuinely identical pieces — pagination/loading state and create-edit/delete-confirm modal state — and wired it into all three pages one at a time, verifying the full suite after each. Filters, bulk actions, tag parsing, image-URL validation, and save/delete requests deliberately stayed page-specific since those differ per page; forcing them into the composable would have traded three similar blocks for one over-parameterized one. Page templates are unchanged. Tests for `useSupabaseAdmin.ts`/`useRateLimit.ts` were added separately under #11.
 
 ---
 
@@ -124,6 +124,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 - [x] Annotate migrations 002 and 005 (#7)
 - [x] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
 - [x] Add Fastify schema validation to `admin/products.js`, dedupe email regex and session-lookup SQL (#8) — error-envelope unification scoped out, see #8 for why
+- [x] Add tests for `useSupabaseAdmin.ts`, `useRateLimit.ts`, `login.vue`, `diagnostic.vue`, `consignment.vue` — all previously zero coverage. Found and fixed a real bug along the way: `consignment.vue` destructured a nonexistent `token` property from `useCsrf()` and called `.value` on it, so Approve/Reject on consignment listings threw before the request ever fired — fixed to use `csrfHeaders()` as the composable intends, with a regression test
 
 ### Phase 3 — quality ceiling, opportunistic
 - Reduce `any` usage in `admin-frontend` (#14)
