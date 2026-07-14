@@ -60,7 +60,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 
 `admin-frontend/app/pages/categories.vue`, `reviews.vue`, and `products/index.vue` each hand-roll ~500 lines of nearly identical pagination/edit/delete-modal state, with inconsistent page-size limits. None of the three have direct test coverage beyond one narrowly-scoped regression test on `reviews.vue`. `useSupabaseAdmin.ts` and `useRateLimit.ts` also have zero test coverage.
 
-**Fix:** Extract a shared `useAdminCrudList` composable; add tests for it and for the auth-adjacent composables.
+**Fixed:** Added characterization tests mounting the real SFCs for all three pages (25 tests total) as a safety net, then extracted `admin-frontend/app/composables/useAdminCrudList.ts` covering the genuinely identical pieces — pagination/loading state and create-edit/delete-confirm modal state — and wired it into all three pages one at a time, verifying the full suite after each. Filters, bulk actions, tag parsing, image-URL validation, and save/delete requests deliberately stayed page-specific since those differ per page; forcing them into the composable would have traded three similar blocks for one over-parameterized one. Page templates are unchanged. **Not done:** tests for `useSupabaseAdmin.ts`/`useRateLimit.ts` (tracked separately as #11).
 
 ---
 
@@ -120,7 +120,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 - [x] Write integration tests for Stripe webhooks + consignment offers (#2)
 - [x] Extract shared FTC disclosure component, verify `marketplace/` parity (#5)
 - [x] Annotate migrations 002 and 005 (#7)
-- [ ] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
+- [x] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
 - [ ] Add Fastify schema validation to `admin/products.js`, unify error envelope, dedupe email regex (#8)
 
 ### Phase 3 — quality ceiling, opportunistic
