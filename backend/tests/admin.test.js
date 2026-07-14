@@ -317,6 +317,83 @@ describe('Admin Product Routes', () => {
     if (body.id) testProductId = body.id
   })
 
+  it('POST /api/admin/products rejects an invalid platform', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/products',
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
+      payload: {
+        externalId: `ext-invalid-platform-${Date.now()}`,
+        platform: 'NOT_A_PLATFORM',
+        title: 'Invalid Platform Product',
+        price: 9.99,
+        categoryId: testCategoryId,
+      },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('POST /api/admin/products rejects a negative price', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/products',
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
+      payload: {
+        externalId: `ext-negative-price-${Date.now()}`,
+        platform: 'DHGATE',
+        title: 'Negative Price Product',
+        price: -5,
+        categoryId: testCategoryId,
+      },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('POST /api/admin/products rejects an imageUrl without http(s)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/products',
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
+      payload: {
+        externalId: `ext-bad-image-${Date.now()}`,
+        platform: 'DHGATE',
+        title: 'Bad Image URL Product',
+        imageUrl: 'javascript:alert(1)',
+        price: 9.99,
+        categoryId: testCategoryId,
+      },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('POST /api/admin/products rejects unknown fields', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/products',
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
+      payload: {
+        externalId: `ext-extra-field-${Date.now()}`,
+        platform: 'DHGATE',
+        title: 'Extra Field Product',
+        price: 9.99,
+        categoryId: testCategoryId,
+        notARealField: 'nope',
+      },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('PATCH /api/admin/products/:id rejects an invalid status', async () => {
+    if (!testProductId) return
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/admin/products/${testProductId}`,
+      headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': csrfToken },
+      payload: { status: 'NOT_A_STATUS' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
   it('GET /api/admin/products/:id returns 404 for unknown product', async () => {
     const res = await app.inject({
       method: 'GET',

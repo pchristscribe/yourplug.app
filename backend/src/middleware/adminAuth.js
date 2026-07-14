@@ -1,4 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { loadActiveAdminById } from '../utils/adminSession.js'
 
 /**
  * Admin authentication middleware
@@ -11,12 +12,7 @@ export async function adminAuth(request, reply) {
   }
 
   const { sql } = request.server
-  // is_active → isActive via the global camelCase transform in sql.js
-  const [admin] = await sql`
-    select id, email, name, role, is_active
-    from admins
-    where id = ${request.session.adminId}
-  `
+  const admin = await loadActiveAdminById(sql, request.session.adminId)
 
   if (!admin || !admin.isActive) {
     await request.session.destroy()

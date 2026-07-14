@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { generateCsrfToken, csrfProtection, adminAuth } from '../../middleware/adminAuth.js'
-
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+import { EMAIL_REGEX } from '../../utils/email.js'
+import { loadActiveAdminById } from '../../utils/adminSession.js'
 
 const loginSchema = {
   body: {
@@ -125,11 +125,7 @@ export default async function adminAuthRoutes(fastify, options) {
       }
     }
 
-    const [admin] = await sql`
-      select id, email, name, role, is_active, last_login_at
-      from admins
-      where id = ${request.session.adminId}
-    `
+    const admin = await loadActiveAdminById(sql, request.session.adminId)
 
     if (!admin || !admin.isActive) {
       await request.session.destroy()
