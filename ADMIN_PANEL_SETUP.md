@@ -19,13 +19,13 @@ WebAuthn (Web Authentication API) is a W3C web standard for secure, phishing-res
 - **Auth library**: `@simplewebauthn/browser@^13`
 - **State**: Pinia (`stores/auth.ts`)
 - **Security utilities**: `utils/security.ts`
-- **Composables**: `useCsrf` (CSRF token), `useDarkMode`, `useSupabaseAdmin`
+- **Composables**: `useCsrf` (CSRF token), `useDarkMode`, `useRateLimit`, `useSupabaseAdmin`, `useAdminCrudList`
 - **CSP**: Configured in `nuxt.config.ts` — blocks XSS, clickjacking, and form hijacking
 - **Supabase**: `@nuxtjs/supabase` for data layer
 
-### Backend API (External Service)
-- **Framework**: Fastify
-- **Database**: PostgreSQL with Prisma ORM
+### Backend API (`backend/`)
+- **Framework**: Fastify 5
+- **Database**: PostgreSQL via `postgres-js` (direct SQL queries against Supabase Postgres — no ORM; schema lives in `supabase/migrations/`)
 - **Sessions**: Redis-backed
 - **Auth library**: `@simplewebauthn/server`
 - **Default URL**: `http://localhost:3001`
@@ -125,8 +125,10 @@ admin-frontend/
 │   ├── components/
 │   │   └── DarkModeToggle.vue
 │   ├── composables/
+│   │   ├── useAdminCrudList.ts    # Shared pagination/modal state for the CRUD pages
 │   │   ├── useCsrf.ts             # CSRF token management
 │   │   ├── useDarkMode.ts         # Dark/light mode toggle
+│   │   ├── useRateLimit.ts        # Client-side rate limiter (5/min, 5-min lockout)
 │   │   └── useSupabaseAdmin.ts    # Supabase admin utilities
 │   ├── layouts/
 │   │   └── default.vue            # Shared layout with sidebar nav
@@ -134,11 +136,12 @@ admin-frontend/
 │   │   └── auth.ts                # Route guard — redirects to /login if not authenticated
 │   ├── pages/
 │   │   ├── index.vue              # Dashboard
-│   │   ├── login.vue              # WebAuthn login + registration
+│   │   ├── login.vue              # WebAuthn / password login + registration
 │   │   ├── products/index.vue     # Product management CRUD
 │   │   ├── categories.vue         # Category management CRUD
 │   │   ├── reviews.vue            # Review moderation
-│   │   ├── diagnostic.vue         # System diagnostics
+│   │   ├── consignment.vue        # Consignment listing moderation queue
+│   │   ├── diagnostic.vue         # WebAuthn/browser diagnostics
 │   │   └── test-webauthn.vue      # WebAuthn flow testing
 │   ├── stores/
 │   │   └── auth.ts                # Pinia auth store (session, register, login, logout)
@@ -147,10 +150,7 @@ admin-frontend/
 │   │   └── supabase.ts            # Supabase client types
 │   └── utils/
 │       └── security.ts            # isValidHttpUrl, getSafeImageUrl, sanitizeText
-├── tests/
-│   ├── auth.test.ts               # WebAuthn store tests (30+ tests)
-│   ├── darkMode.test.ts           # Dark mode composable tests
-│   └── security.test.ts           # Security utility tests (70 tests)
+├── tests/                         # 13 files, ~290 tests — see TEST_COVERAGE_SUMMARY.md
 ├── nuxt.config.ts                 # Nuxt config (CSP headers, Supabase, runtime config)
 ├── tailwind.config.js             # Tailwind with brand design system
 ├── vitest.config.ts               # Vitest (happy-dom, v8 coverage)
@@ -231,33 +231,10 @@ Full CRUD interface for the product catalog:
 
 ## Database Schema
 
-```prisma
-model Admin {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  name                String
-  role                String               @default("admin")
-  isActive            Boolean              @default(true)
-  lastLoginAt         DateTime?
-  currentChallenge    String?              // Active WebAuthn challenge (5-min TTL in Redis)
-  webauthnCredentials WebAuthnCredential[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-}
+The backend uses raw SQL migrations via `postgres-js` (no ORM/Prisma — see `CLAUDE.md`). Schema source of truth: `supabase/migrations/002_alter_admins_and_credentials.sql` and `005_admin_webauthn.sql`.
 
-model WebAuthnCredential {
-  id           String    @id @default(cuid())
-  adminId      String
-  admin        Admin     @relation(fields: [adminId], references: [id])
-  credentialId String    @unique
-  publicKey    String
-  counter      BigInt    // Replay attack prevention
-  deviceName   String?   // User-friendly name (e.g., "MacBook Touch ID")
-  transports   String[]  // usb, nfc, ble, internal
-  lastUsedAt   DateTime?
-  createdAt    DateTime  @default(now())
-}
-```
+- **`admins`** — `id`, `email` (unique), `name`, `role`, `password_hash` (nullable — only set if the password fallback is enrolled), `is_active`, `last_login_at`, `current_challenge` / `challenge_expires_at` (active WebAuthn challenge, 5-min TTL)
+- **`webauthn_credentials`** — `id`, `admin_id` (FK → `admins`), `credential_id` (unique), `public_key`, `counter` (replay protection), `device_name`, `transports` (`usb`/`nfc`/`ble`/`internal`/`hybrid`), `last_used_at`, `created_at`
 
 ## Running Tests
 
@@ -274,10 +251,7 @@ pnpm vitest tests/security.test.ts
 pnpm vitest tests/auth.test.ts
 ```
 
-**Test counts**:
-- `auth.test.ts` — 30+ tests (registration, login, error handling, SSR safety)
-- `security.test.ts` — 70 tests (URL validation, image safety, text sanitization)
-- `darkMode.test.ts` — dark mode toggle tests
+See [TEST_COVERAGE_SUMMARY.md](./TEST_COVERAGE_SUMMARY.md) for the current per-file breakdown and test counts.
 
 ## Production Deployment
 
