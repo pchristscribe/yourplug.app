@@ -59,6 +59,7 @@ export default defineConfig([
   },
   {
     files: ["**/*.css"],
+    ignores: ["app/assets/css/**"],
     ...css.configs.recommended[0]
   },
 ]);
