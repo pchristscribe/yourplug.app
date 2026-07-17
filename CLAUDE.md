@@ -367,7 +367,9 @@ Both frontends share an identical Tailwind config with:
 - `status`: `error`, `warning`, `success`, `info`
 
 ### Typography
-- Font: **Dosis** (variable weight 200–800, loaded via Google Fonts)
+- Headers (`h1`–`h6`, `font-heading`): **Excon**
+- Body (`font-sans`, default): **General Sans**
+- Both loaded via [Fontshare](https://www.fontshare.com/)
 
 ### Dark Mode
 - Implemented via `class` strategy (`dark:` prefix in Tailwind)

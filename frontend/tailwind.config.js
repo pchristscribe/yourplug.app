@@ -56,7 +56,8 @@ export default {
 
       // ─── Typography ─────────────────────────────────────────────────
       fontFamily: {
-        sans: ['Dosis', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['General Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['Excon', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
 
