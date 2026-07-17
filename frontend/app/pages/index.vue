@@ -82,7 +82,7 @@ watch(() => route.query, (newQuery) => {
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <!-- Sidebar Filters -->
       <aside class="lg:col-span-1">
-        <ProductFilters
+        <FiltersProductFilters
           :categories="productStore.categories"
           @apply="applyFilters"
         />
@@ -109,7 +109,7 @@ watch(() => route.query, (newQuery) => {
             </div>
 
             <!-- Sorting Controls -->
-            <SortingControls @update="handleSortingChange" />
+            <FiltersSortingControls @update="handleSortingChange" />
           </div>
         </div>
 

@@ -83,7 +83,7 @@
     <DarkModeToggle />
 
     <!-- Global toast notification stack -->
-    <AppFeedbackToastContainer />
+    <FeedbackAppToastContainer />
 
     <!-- GDPR/CCPA cookie consent banner -->
     <CookieConsent />
