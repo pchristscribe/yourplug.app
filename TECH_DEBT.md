@@ -83,14 +83,22 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 ### 9. Cross-workspace dependency & CI drift
 **Priority:** 16 — vue-router (`^5` in frontend/marketplace vs `^4` in admin-frontend), pnpm `packageManager` (10.x vs 11.x in backend), TypeScript (`^5` vs `^6`), `mcp-dhgate` still declares `node >=20` vs `>=24` elsewhere. `ci.yml` and `test.yml` are largely duplicate workflows.
 
+**Fixed:** `admin-frontend` bumped to `vue-router ^5.1.0` (no direct vue-router imports anywhere — Nuxt manages routing internally — verified via full test suite + a clean production build); `backend` bumped to `pnpm@10.33.0` (lockfile was already `lockfileVersion: 9.0`, same as everywhere else, so no regeneration needed); `mcp-dhgate` bumped to `node >=24`. TypeScript was already unified at `^6.0.3` everywhere by the time this was checked. `ci.yml`/`test.yml` merged into one workflow — see Phase 3 checklist for details.
+
 ### 10. Stale minor docs
 **Priority:** 16 — `frontend/FILTERING_SYSTEM.md` describes a client-side rating filter that's now a no-op (filtering moved server-side); `ADMIN_PANEL_SETUP.md`'s file tree is out of date; `TEST_COVERAGE_SUMMARY.md` cites a nonexistent `frontend/tests/cart.test.ts`; `.env.example` is missing `FRONTEND_URL` (required per `RAILWAY.md`/`CLAUDE.md`).
+
+**Fixed:** all four addressed — see the Phase 3 checklist entry for details. `TEST_COVERAGE_SUMMARY.md` was fully rewritten (it also repeated the already-corrected "52 pending vulnerabilities" claim and covered only 5 of the then-current 15 backend test files).
 
 ### 11. Drifted duplicate test files
 **Priority:** 16 — `frontend/tests/ProductCard.test.ts` and `frontend/tests/components/ProductCard.test.ts` test the same component with different fixtures.
 
+**Fixed:** merged into the root-level `tests/ProductCard.test.ts`, porting over the unique coverage the `components/` version had (category name rendering, rating/review-count display, product-detail link href, `shadow-card`/`hover:shadow-raised` brand tokens) rather than just deleting the duplicate and losing that coverage.
+
 ### 12. `mcp-dhgate` has no tests or CI job
 **Priority:** 15
+
+**Fixed:** added Vitest with 36 tests covering `utils/errors.ts` and `utils/formatters.ts` (the two pure-logic modules), and wired `mcp-dhgate` into `ci.yml`'s security-audit/test/build matrices. Running `pnpm audit` surfaced a real high-severity transitive vulnerability (`hono` <4.12.25 via `@modelcontextprotocol/sdk` → `@hono/node-server`) that would have failed the new audit job immediately — pinned via a `pnpm.overrides` entry, the same pattern `admin-frontend` already uses for `vite`.
 
 ### 13. `docker-compose.yml` hardcoded fallback dev credentials
 **Priority:** 15 — via `${VAR:-default}`; low risk today but a copy-paste into a prod-like compose file would leak a known password pattern.
@@ -104,8 +112,8 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 | 14 | Pervasive `any` types in `admin-frontend` (~38 occurrences) vs `frontend` (~1) | 12 |
 | 15 | Duplicated `useDarkMode.ts` (byte-identical) and Supabase query-building logic across workspaces, no shared package | 12 |
 | 16 | `backend-security-reference/` not in workspace/CI — can silently drift from the real security code it models | 12 |
-| 17 | `connect-redis` dead dependency in `backend/package.json` (unused — hand-rolled `RedisSessionStore` used instead) | 10 |
-| 18 | `ProductCardSimple.vue` confirmed unused outside its own test file | 10 |
+| 17 | ~~`connect-redis` dead dependency in `backend/package.json` (unused — hand-rolled `RedisSessionStore` used instead)~~ **Fixed** | 10 |
+| 18 | ~~`ProductCardSimple.vue` confirmed unused outside its own test file~~ **Fixed** — deleted along with its test file; confirmed no dynamic (`:is=`) references anywhere | 10 |
 
 ---
 
@@ -127,9 +135,11 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 - [x] Add tests for `useSupabaseAdmin.ts`, `useRateLimit.ts`, `login.vue`, `diagnostic.vue`, `consignment.vue` — all previously zero coverage. Found and fixed a real bug along the way: `consignment.vue` destructured a nonexistent `token` property from `useCsrf()` and called `.value` on it, so Approve/Reject on consignment listings threw before the request ever fired — fixed to use `csrfHeaders()` as the composable intends, with a regression test
 
 ### Phase 3 — quality ceiling, opportunistic
-- Reduce `any` usage in `admin-frontend` (#14)
-- Align cross-workspace dependency versions (#9)
-- Add test runner + CI job for `mcp-dhgate` (#12)
-- Refresh remaining stale minor docs (#10)
-- Merge `ci.yml`/`test.yml`; consolidate drifted `ProductCard` test files (#9, #11)
-- Remove `connect-redis`, resolve or remove `ProductCardSimple.vue` (#17, #18)
+- [x] Remove `connect-redis`, resolve or remove `ProductCardSimple.vue` (#17, #18)
+- [x] Consolidate drifted `ProductCard` test files (#11)
+- [x] Refresh remaining stale minor docs (#10)
+- [x] Merge `ci.yml`/`test.yml` (#9)
+- [x] Align cross-workspace dependency versions — vue-router, pnpm packageManager, `mcp-dhgate` node engine (#9)
+- [x] Add test runner + CI job for `mcp-dhgate` (#12)
+- [ ] Reduce `any` usage in `admin-frontend` (#14)
+- [ ] Improve backend test coverage — below the configured 60%/50% stmt/branch thresholds; not part of the original audit, added per explicit request
