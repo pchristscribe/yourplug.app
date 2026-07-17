@@ -151,8 +151,7 @@ Key variables (full list in `.env.example`):
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
-- `ci.yml` — main CI pipeline
-- `test.yml` — test runner
+- `ci.yml` — main CI pipeline (security audit, unit tests, backend tests, build verification, opt-in E2E)
 - `deploy-backend.yml` — backend deployment
 - `claude.yml` — Claude Code integration
 - `claude-code-review.yml` — automated PR review

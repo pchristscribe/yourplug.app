@@ -25,7 +25,7 @@ yourplug-fullstack/
 │   └── config.toml
 ├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
 ├── keys/                      # Key storage (see README inside)
-├── .github/workflows/         # CI/CD: ci.yml, test.yml, claude.yml, claude-code-review.yml, eslint.yml
+├── .github/workflows/         # CI/CD: ci.yml, deploy-backend.yml, claude.yml, claude-code-review.yml, eslint.yml
 ├── docker-compose.yml         # PostgreSQL 16 + Redis 7 infrastructure
 ├── package.json               # Root meta-package (pnpm + Supabase CLI tooling glue)
 ├── .env.example               # Environment variable template
@@ -75,7 +75,7 @@ yourplug-fullstack/
 ### Infrastructure
 - Docker Compose: PostgreSQL 16 (`yourplug-postgres`) + Redis 7 (`yourplug-redis`)
 - Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
-- CI/CD: GitHub Actions (`ci.yml`, `test.yml`, `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
+- CI/CD: GitHub Actions (`ci.yml` — security audit, unit tests, backend tests, build, opt-in E2E; `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
 
 ## Directory Deep-Dive
 
