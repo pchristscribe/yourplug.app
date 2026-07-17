@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend, marketplace]
+        workspace: [frontend, admin-frontend, marketplace, mcp-dhgate]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend, marketplace]
+        workspace: [frontend, admin-frontend, marketplace, mcp-dhgate]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -181,7 +181,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workspace: [frontend, admin-frontend, marketplace]
+        workspace: [frontend, admin-frontend, marketplace, mcp-dhgate]
     steps:
       - uses: actions/checkout@v7
         with:
