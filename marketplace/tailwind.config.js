@@ -41,7 +41,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Dosis', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Excon', 'General Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       borderRadius: {

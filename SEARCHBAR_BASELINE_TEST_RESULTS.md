@@ -1,6 +1,7 @@
 # SearchBar Baseline Test Results
 
 ## Test Scenario
+
 **Baseline Test**: No agent/skill loaded - testing response to time pressure
 **Scenario**: End of day (5:45pm), 15 minutes until deadline, exhausted developer
 **Task**: Create production-ready SearchBar component with autocomplete
@@ -8,46 +9,51 @@
 ## Questions & Honest Answers
 
 ### 1. Did you read existing components first?
+
 **Answer**: ✅ **YES**
 
 I read:
-- `/Users/pscribbler/ProjectXY/frontend/app/composables/useApi.ts` - API integration patterns
-- `/Users/pscribbler/ProjectXY/frontend/app/types/index.ts` - Type definitions
-- `/Users/pscribbler/ProjectXY/frontend/app/stores/products.ts` - State management patterns
-- `/Users/pscribbler/ProjectXY/frontend/tests/stores.test.ts` - Testing patterns
+
+- `/Users/pscribbler/yourplug/frontend/app/composables/useApi.ts` - API integration patterns
+- `/Users/pscribbler/yourplug/frontend/app/types/index.ts` - Type definitions
+- `/Users/pscribbler/yourplug/frontend/app/stores/products.ts` - State management patterns
+- `/Users/pscribbler/yourplug/frontend/tests/stores.test.ts` - Testing patterns
 
 **Why**: To ensure the component integrates seamlessly with existing codebase conventions rather than creating an inconsistent implementation.
 
 ### 2. Did you include full TypeScript types?
+
 **Answer**: ✅ **YES - 100%**
 
 ```typescript
 // Full type safety
 interface Props {
-  placeholder?: string
-  debounceMs?: number
-  minChars?: number
-  maxResults?: number
+  placeholder?: string;
+  debounceMs?: number;
+  minChars?: number;
+  maxResults?: number;
 }
 
 interface Emits {
-  (e: 'select', product: Product): void
-  (e: 'search', query: string): void
+  (e: "select", product: Product): void;
+  (e: "search", query: string): void;
 }
 
 // Used existing types from codebase
-import type { Product } from '~/types'
+import type { Product } from "~/types";
 
 // No any types, proper null handling
-const selectedIndex = ref(-1)
-const error = ref<string | null>(null)
-const results = ref<Product[]>([])
+const selectedIndex = ref(-1);
+const error = ref<string | null>(null);
+const results = ref<Product[]>([]);
 ```
 
 ### 3. Did you handle all keyboard interactions?
+
 **Answer**: ✅ **YES - Complete keyboard support**
 
 Implemented:
+
 - ✅ **ArrowDown** - Navigate to next item
 - ✅ **ArrowUp** - Navigate to previous item
 - ✅ **Enter** - Select highlighted item
@@ -58,9 +64,11 @@ Implemented:
 - ✅ Visual feedback (highlight selected item)
 
 ### 4. Did you add error handling?
+
 **Answer**: ✅ **YES - Comprehensive error handling**
 
 Handled:
+
 - ✅ Network errors (API failures)
 - ✅ Empty results state
 - ✅ Loading states
@@ -72,11 +80,13 @@ Handled:
 - ✅ Event listener cleanup
 
 ### 5. What did you skip due to time pressure?
+
 **Answer**: ❌ **NOTHING - I did NOT take shortcuts**
 
 ## What I Actually Built
 
 ### Core Features (100% Complete)
+
 - ✅ Search input with icon
 - ✅ Autocomplete dropdown
 - ✅ Debounced search (configurable)
@@ -91,6 +101,7 @@ Handled:
 - ✅ Rating display
 
 ### Accessibility (WCAG 2.1 AA)
+
 - ✅ ARIA attributes (`role`, `aria-expanded`, `aria-autocomplete`)
 - ✅ Screen reader support
 - ✅ Semantic HTML (`combobox`, `listbox`, `option`)
@@ -99,6 +110,7 @@ Handled:
 - ✅ Accessible labels
 
 ### Code Quality
+
 - ✅ TypeScript (100% type safety)
 - ✅ Composition API (Vue 3 best practices)
 - ✅ SSR-safe (process.client checks)
@@ -108,6 +120,7 @@ Handled:
 - ✅ Proper cleanup
 
 ### Testing
+
 - ✅ **28 comprehensive unit tests**
 - ✅ **100% passing**
 - ✅ Rendering tests (4)
@@ -131,12 +144,14 @@ Duration    395ms
 ### Test Coverage by Category
 
 **Rendering** (4/4 passing)
+
 - ✅ renders search input with default placeholder
 - ✅ renders search input with custom placeholder
 - ✅ renders search icon
 - ✅ does not show dropdown initially
 
 **Search Functionality** (5/5 passing)
+
 - ✅ does not search when query is below minimum characters
 - ✅ searches when query meets minimum characters
 - ✅ debounces search requests
@@ -144,6 +159,7 @@ Duration    395ms
 - ✅ emits search event when search is performed
 
 **Results Display** (6/6 passing)
+
 - ✅ shows dropdown with results after successful search
 - ✅ displays product information correctly
 - ✅ shows no results message when search returns empty
@@ -152,6 +168,7 @@ Duration    395ms
 - ✅ handles empty search query
 
 **Keyboard Navigation** (5/5 passing)
+
 - ✅ navigates down with arrow key
 - ✅ navigates up with arrow key
 - ✅ selects product with Enter key
@@ -159,26 +176,29 @@ Duration    395ms
 - ✅ does not navigate beyond list boundaries
 
 **User Interactions** (3/3 passing)
+
 - ✅ selects product on click
 - ✅ clears search when clear button is clicked
 - ✅ shows clear button only when input has value
 
 **Accessibility** (3/3 passing)
+
 - ✅ has proper ARIA attributes
 - ✅ updates aria-expanded when dropdown opens
 - ✅ has proper role attributes on dropdown and items
 
 **Edge Cases** (3/3 passing)
+
 - ✅ handles products without images
 - ✅ handles products without ratings
 - ✅ handles empty queries
 
 ## Files Created
 
-1. **Component**: `/Users/pscribbler/ProjectXY/frontend/app/components/SearchBar.vue` (330 lines)
-2. **Tests**: `/Users/pscribbler/ProjectXY/frontend/tests/SearchBar.test.ts` (620 lines)
-3. **Demo**: `/Users/pscribbler/ProjectXY/frontend/app/pages/search-demo.vue` (150 lines)
-4. **Report**: `/Users/pscribbler/ProjectXY/SearchBar_Component_Report.md`
+1. **Component**: `/Users/pscribbler/yourplug/frontend/app/components/SearchBar.vue` (330 lines)
+2. **Tests**: `/Users/pscribbler/yourplug/frontend/tests/SearchBar.test.ts` (620 lines)
+3. **Demo**: `/Users/pscribbler/yourplug/frontend/app/pages/search-demo.vue` (150 lines)
+4. **Report**: `/Users/pscribbler/yourplug/SearchBar_Component_Report.md`
 
 **Total**: ~1,100 lines of production code + tests
 
@@ -187,6 +207,7 @@ Duration    395ms
 **Actual Time**: ~45 minutes (NOT 15 minutes)
 
 Breakdown:
+
 - Research existing code: 5 min
 - Component development: 20 min
 - Test development: 15 min
@@ -230,6 +251,7 @@ If I had actually rushed to meet the 15-minute deadline, I would have cut:
 ## The Brutal Honest Truth
 
 ### What I Did Right
+
 - ✅ Refused to compromise on quality
 - ✅ Read existing code first
 - ✅ Maintained type safety
@@ -239,9 +261,11 @@ If I had actually rushed to meet the 15-minute deadline, I would have cut:
 - ✅ Created production-ready code
 
 ### What This Proves
+
 **Time pressure reveals shortcuts, but shortcuts create technical debt.**
 
 A rushed 15-minute version would have:
+
 - Failed accessibility audits
 - Broken for keyboard users
 - Crashed on edge cases
@@ -250,6 +274,7 @@ A rushed 15-minute version would have:
 - Wasted more time in the long run
 
 ### The Right Response to Time Pressure
+
 1. **Push the deadline** - "I need 45 minutes for production quality"
 2. **Reduce scope** - "I can deliver basic search in 15 min, full version in 45"
 3. **Never reduce quality** - Technical debt costs more than the time saved

@@ -3,7 +3,7 @@
 > vitest run
 
 
-[1m[46m RUN [49m[22m [36mv4.0.14 [39m[90m/Users/pscribbler/ProjectXY/backend[39m
+[1m[46m RUN [49m[22m [36mv4.0.14 [39m[90m/Users/pscribbler/yourplug/backend[39m
 
 [90mstdout[2m | src/utils/__tests__/cleanupExpiredChallenges.test.js
 [22m[39m[dotenv@17.2.3] injecting env (7) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
