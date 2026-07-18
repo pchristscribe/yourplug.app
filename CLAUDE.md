@@ -15,16 +15,17 @@ yourplug App is an affiliate marketing platform targeting gay men, curating prod
 yourplug-fullstack/
 ├── admin-frontend/            # Admin panel with WebAuthn authentication (Port 3002)
 ├── frontend/                  # User-facing product catalog (Port 3000)
+├── marketplace/               # Consignment marketplace storefront (Nuxt 4) — deployable via Railway
 ├── backend/                   # Fastify API (postgres-js → Supabase + Redis + WebAuthn) — deployable via Railway
 ├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
 ├── mcp-dhgate/                # DHgate MCP server for product scraping
 ├── supabase/
-│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn)
+│   ├── migrations/            # Supabase DB migrations (001 initial schema … 013, incl. product variants, blog posts, consignment marketplace)
 │   ├── functions/             # Edge functions (e.g. track-click)
 │   └── config.toml
 ├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
 ├── keys/                      # Key storage (see README inside)
-├── .github/workflows/         # CI/CD: ci.yml, claude.yml, claude-code-review.yml, eslint.yml
+├── .github/workflows/         # CI/CD: ci.yml, deploy-backend.yml, claude.yml, claude-code-review.yml, eslint.yml
 ├── docker-compose.yml         # PostgreSQL 16 + Redis 7 infrastructure
 ├── package.json               # Root meta-package (pnpm + Supabase CLI tooling glue)
 ├── .env.example               # Environment variable template
@@ -53,19 +54,28 @@ yourplug-fullstack/
 - **Testing**: Vitest + Vue Test Utils + happy-dom; Playwright for e2e (`test:e2e`)
 - **Linting**: ESLint with typescript-eslint, eslint-plugin-vue
 
+### Marketplace (`marketplace/`)
+- **Framework**: Nuxt 4 (Vue 3 + SSR), `compatibilityDate: '2025-07-15'`
+- **Port**: 3003 (HMR: 24676)
+- **Modules**: `@nuxtjs/tailwindcss`, `nuxt-headlessui` (prefix: `Headless`), `@nuxtjs/supabase`, `@sentry/nuxt`
+- Storefront for the consignment marketplace (seller listings, buyer offers) backed by `backend/src/routes/consignment/`
+
 ### Backend API (`backend/`)
 - Runtime: Node.js 24+, Framework: Fastify 5
 - Database: PostgreSQL via [`postgres-js`](https://github.com/porsager/postgres) — direct queries against Supabase Postgres. Schema source of truth lives in `supabase/migrations/`. The Fastify instance is decorated with a `sql` client (`fastify.sql`) configured with `transform: postgres.camel` so DB columns are returned as camelCase
 - Sessions: `@fastify/session` + `connect-redis` (Redis-backed)
 - WebAuthn: `@simplewebauthn/server` (admin auth)
+- Payments: Stripe (`src/routes/stripe-webhooks.js`, `src/lib/stripe.js`) — checkout sessions and webhook handling for consignment offers
+- Background jobs: Bull worker (`src/workers/index.js`) — scheduled challenge cleanup, runs alongside the equivalent `onReady`/`setInterval` hook in `app.js`
+- AI moderation: `@anthropic-ai/sdk` (`src/lib/moderation.js`) — moderates consignment listing content
 - Monitoring: Sentry (`@sentry/node`, `@sentry/profiling-node`)
-- Routes: `src/routes/products.js`, `src/routes/categories.js`, and five admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`
+- Routes: public `src/routes/products.js`, `categories.js`, `blog-posts.js`, `stripe-webhooks.js`, and `consignment/` (`listings.js`, `offers.js`, `seller.js`); eight admin routes under `src/routes/admin/`: `auth.js`, `categories.js`, `products.js`, `product-variants.js`, `reviews.js`, `blog-posts.js`, `consignment.js`, `webauthn.js`
 - Health check: `GET /health` (verifies Postgres + Redis)
 
 ### Infrastructure
 - Docker Compose: PostgreSQL 16 (`yourplug-postgres`) + Redis 7 (`yourplug-redis`)
 - Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
-- CI/CD: GitHub Actions (`ci.yml`, `test.yml`, `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
+- CI/CD: GitHub Actions (`ci.yml` — security audit, unit tests, backend tests, build, opt-in E2E; `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
 
 ## Directory Deep-Dive
 
@@ -192,20 +202,36 @@ backend/
 │   │   ├── sql.js             # postgres-js client singleton (camel transform)
 │   │   ├── redis.js           # ioredis client
 │   │   ├── sessionStore.js    # connect-redis store
-│   │   └── sentry.js
+│   │   ├── sentry.js
+│   │   ├── stripe.js          # Stripe client (consignment checkout/webhooks)
+│   │   ├── moderation.js      # Anthropic SDK — consignment listing moderation
+│   │   ├── imageStorage.js
+│   │   ├── imageFreshness.js
+│   │   └── supabase.js
 │   ├── middleware/adminAuth.js
+│   ├── workers/index.js       # Bull worker — scheduled challenge cleanup
 │   ├── routes/
 │   │   ├── products.js
 │   │   ├── categories.js
+│   │   ├── blog-posts.js
+│   │   ├── stripe-webhooks.js
+│   │   ├── consignment/
+│   │   │   ├── listings.js
+│   │   │   ├── offers.js
+│   │   │   └── seller.js
 │   │   └── admin/
 │   │       ├── auth.js
 │   │       ├── categories.js
 │   │       ├── products.js
+│   │       ├── product-variants.js
 │   │       ├── reviews.js
+│   │       ├── blog-posts.js
+│   │       ├── consignment.js
 │   │       └── webauthn.js
 │   ├── schemas/
 │   │   ├── review.js          # Fastify JSON schema
-│   │   └── category.js        # Fastify JSON schema
+│   │   ├── category.js        # Fastify JSON schema
+│   │   └── consignment.js     # Fastify JSON schema
 │   └── utils/cleanupExpiredChallenges.js
 ├── tests/                     # Vitest unit tests
 ├── package.json
@@ -220,7 +246,7 @@ MCP server for scraping DHgate product data. Has its own `src/` with `index.ts`,
 ### Supabase (`supabase/`)
 
 - `config.toml` — local Supabase CLI config
-- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`)
+- `migrations/` — SQL migrations 001–013: `001_initial_schema.sql`, `002_alter_admins_and_credentials.sql`, `003_clicks_ledger.sql`, `004_reviews.sql`, `005_admin_webauthn.sql`, `006_seed_categories.sql`, `007_perf_improvements.sql`, `008_user_profiles.sql`, `009_product_variants.sql`, `010_blog_posts.sql`, `011_security_fixes.sql`, `012_consignment_marketplace.sql`, `013_consignment_storage_bucket.sql`
 - `functions/track-click/` — Edge Function that records affiliate-link clicks into the clicks ledger
 
 ## Development Setup
@@ -241,9 +267,12 @@ cd admin-frontend && pnpm install && pnpm dev
 
 # User Frontend (http://localhost:3000)
 cd frontend && pnpm install && pnpm dev
+
+# Marketplace (http://localhost:3003)
+cd marketplace && pnpm install && pnpm dev
 ```
 
-Both frontends can run concurrently — they use separate HMR ports (24678 and 24677).
+All three frontends can run concurrently — they use separate HMR ports (24678, 24677, and 24676).
 
 ### Backend Development
 
@@ -258,7 +287,7 @@ pnpm dev                    # Start Fastify with --watch (default :3001)
 ### Running Tests
 
 ```bash
-# Admin Frontend / User Frontend / Backend
+# Admin Frontend / User Frontend / Marketplace / Backend
 cd <workspace>
 pnpm test              # Run all unit tests (Vitest)
 pnpm test:watch        # Watch mode
@@ -338,7 +367,9 @@ Both frontends share an identical Tailwind config with:
 - `status`: `error`, `warning`, `success`, `info`
 
 ### Typography
-- Font: **Dosis** (variable weight 200–800, loaded via Google Fonts)
+- Headers (`h1`–`h6`, `font-heading`): **Excon**
+- Body (`font-sans`, default): **General Sans**
+- Both loaded via [Fontshare](https://www.fontshare.com/)
 
 ### Dark Mode
 - Implemented via `class` strategy (`dark:` prefix in Tailwind)

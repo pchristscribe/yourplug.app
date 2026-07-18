@@ -1,5 +1,15 @@
 -- Migration 002: Extend admins table and add WebAuthn credentials
 -- Adds fields required for WebAuthn passwordless auth and challenge management
+--
+-- NOTE: 005_admin_webauthn.sql re-adds this same admins/webauthn_credentials
+-- schema. This is intentional, historical redundancy — do not remove either
+-- migration or "clean up" the duplication. Both are (or may already be)
+-- applied to production/team databases, and Supabase tracks applied
+-- migrations by filename; editing history here would desync other
+-- developers' local DBs and any already-migrated environment. The `if not
+-- exists` guards in both files, plus 005's DO-block wrapper around
+-- `create policy` (which has no IF NOT EXISTS), are what make the two
+-- coexist safely in numbered order. Leave both as-is.
 
 -- ── Extend admins table ───────────────────────────────────────────────────
 

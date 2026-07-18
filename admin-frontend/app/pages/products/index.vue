@@ -335,6 +335,7 @@
 
 <script setup lang="ts">
 import { getSafeImageUrl, isValidHttpUrl } from '~/utils/security'
+import { useAdminCrudList } from '~/composables/useAdminCrudList'
 
 definePageMeta({
   middleware: ['auth'],
@@ -342,16 +343,9 @@ definePageMeta({
 })
 
 const config = useRuntimeConfig()
-const loading = ref(true)
 const saving = ref(false)
-const products = ref<any[]>([])
 const categories = ref<any[]>([])
-const pagination = ref<any>(null)
 const searchQuery = ref('')
-const showModal = ref(false)
-const showDeleteConfirm = ref(false)
-const editingProduct = ref<any>(null)
-const deletingProduct = ref<any>(null)
 const tagsInput = ref('')
 
 const formData = ref({
@@ -369,26 +363,30 @@ const formData = ref({
   tags: [] as string[]
 })
 
-const loadProducts = async (page = 1) => {
-  loading.value = true
-  try {
-    const data = await $fetch(`${config.public.apiBase}/api/admin/products`, {
-      credentials: 'include',
-      query: {
-        page,
-        limit: 20,
-        search: searchQuery.value || undefined
-      }
-    })
-    products.value = data.products
-    pagination.value = data.pagination
-  } catch (err) {
-    console.error('Failed to load products:', err)
-    alert('Failed to load products. Please try again.')
-  } finally {
-    loading.value = false
-  }
-}
+const crud = useAdminCrudList<any>('products')
+const {
+  loading,
+  items: products,
+  pagination,
+  showModal,
+  editingItem: editingProduct,
+  closeModal,
+  showDeleteConfirm,
+  deletingItem: deletingProduct,
+  cancelDelete,
+} = crud
+
+const loadProducts = (page = 1) => crud.load(async (p) => {
+  const data = await $fetch(`${config.public.apiBase}/api/admin/products`, {
+    credentials: 'include',
+    query: {
+      page: p,
+      limit: 20,
+      search: searchQuery.value || undefined
+    }
+  })
+  return { items: data.products, pagination: data.pagination }
+}, page)
 
 const loadCategories = async () => {
   try {
@@ -411,7 +409,7 @@ const debouncedSearch = (() => {
 })()
 
 const openCreateModal = () => {
-  editingProduct.value = null
+  crud.openCreateModal()
   formData.value = {
     title: '',
     platform: '',
@@ -427,11 +425,10 @@ const openCreateModal = () => {
     tags: []
   }
   tagsInput.value = ''
-  showModal.value = true
 }
 
 const editProduct = (product: any) => {
-  editingProduct.value = product
+  crud.openEditModal(product)
   formData.value = {
     title: product.title,
     platform: product.platform,
@@ -447,12 +444,6 @@ const editProduct = (product: any) => {
     tags: product.tags || []
   }
   tagsInput.value = (product.tags || []).join(', ')
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  editingProduct.value = null
 }
 
 const saveProduct = async () => {
@@ -517,8 +508,7 @@ const saveProduct = async () => {
 }
 
 const deleteProduct = (product: any) => {
-  deletingProduct.value = product
-  showDeleteConfirm.value = true
+  crud.requestDelete(product)
 }
 
 const confirmDelete = async () => {
@@ -528,19 +518,13 @@ const confirmDelete = async () => {
       credentials: 'include'
     })
 
-    showDeleteConfirm.value = false
-    deletingProduct.value = null
+    cancelDelete()
     await loadProducts(pagination.value?.page || 1)
   } catch (err: any) {
     console.error('Failed to delete product:', err)
     const errorMessage = err.data?.message || err.data?.error || 'Failed to delete product'
     alert(errorMessage)
   }
-}
-
-const cancelDelete = () => {
-  showDeleteConfirm.value = false
-  deletingProduct.value = null
 }
 
 onMounted(async () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Product } from '~/types'
+import AffiliateDisclosure from './AffiliateDisclosure.vue'
 
 interface Props {
   product: Product & { originalPrice?: number }
@@ -61,14 +62,8 @@ const showDiscountBadge = computed(() =>
           </div>
 
           <!-- Affiliate badge — full variant only -->
-          <div
-            v-if="variant === 'full'"
-            class="absolute top-2 left-2 bg-accent text-ink text-xs font-semibold px-2 py-1 rounded-pill shadow-card"
-            title="This is an affiliate link. We may earn a commission from purchases."
-            role="note"
-            aria-label="Affiliate product"
-          >
-            Affiliate
+          <div v-if="variant === 'full'" class="absolute top-2 left-2">
+            <AffiliateDisclosure variant="badge" />
           </div>
       </div>
 

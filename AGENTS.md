@@ -24,7 +24,7 @@ yourplug-fullstack/
 │   └── config.toml
 ├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
 ├── keys/                      # Key storage (see README inside)
-├── .github/workflows/         # CI/CD: ci.yml, test.yml, deploy-backend.yml, claude.yml, claude-code-review.yml, eslint.yml
+├── .github/workflows/         # CI/CD: ci.yml, deploy-backend.yml, claude.yml, claude-code-review.yml, eslint.yml
 ├── docker-compose.yml         # PostgreSQL 16 + Redis 7 infrastructure
 ├── package.json               # Root meta-package (pnpm + Supabase CLI tooling glue)
 ├── .env.example               # Environment variable template

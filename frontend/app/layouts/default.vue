@@ -63,11 +63,7 @@
     <footer class="bg-surface dark:bg-surface-raised border-t border-gray-100 dark:border-gray-700 mt-16 transition-colors duration-slow">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="text-sm text-ink-muted dark:text-ink-subtle text-center">
-          <p class="mb-2">
-            <strong class="text-ink dark:text-ink-inverse">FTC Disclosure:</strong> yourplug participates in affiliate marketing programs.
-            When you click on links and make purchases through our site, we may receive monetary compensation.
-            This helps support our work in curating quality products for our community.
-          </p>
+          <AffiliateDisclosure variant="footer" />
           <p class="text-ink-subtle">
             © {{ new Date().getFullYear() }} yourplug. All rights reserved.
           </p>
@@ -87,7 +83,7 @@
     <DarkModeToggle />
 
     <!-- Global toast notification stack -->
-    <AppFeedbackToastContainer />
+    <FeedbackAppToastContainer />
 
     <!-- GDPR/CCPA cookie consent banner -->
     <CookieConsent />
@@ -97,6 +93,7 @@
 <script setup lang="ts">
 import type { Product } from '~/types'
 import { getCurrentSeason } from '~/utils/seasons'
+import AffiliateDisclosure from '~/components/AffiliateDisclosure.vue'
 
 const { init } = useDarkMode()
 const { user, signOut } = useAuth()

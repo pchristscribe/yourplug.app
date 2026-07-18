@@ -1,6 +1,12 @@
 import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
 import { attachRelations } from '../../utils/relations.js'
 import { UUID_RE, ADMIN_SORTABLE, VALID_PLATFORMS, VALID_STATUSES } from '../../utils/constants.js'
+import {
+  createProductSchema,
+  updateProductSchema,
+  bulkStatusProductsSchema,
+  bulkDeleteProductsSchema
+} from '../../schemas/product.js'
 
 // ioredis del does not accept globs — use cursor scan to avoid blocking O(N) KEYS
 async function delPattern(redis, pattern) {
@@ -144,7 +150,7 @@ export default async function adminProductRoutes(fastify, options) {
   })
 
   // Create product
-  fastify.post('/', async (request, reply) => {
+  fastify.post('/', { schema: createProductSchema }, async (request, reply) => {
     const data = request.body
     const insertObj = Object.fromEntries(
       PRODUCT_FIELDS
@@ -187,7 +193,7 @@ export default async function adminProductRoutes(fastify, options) {
   })
 
   // Update product
-  fastify.patch('/:id', async (request, reply) => {
+  fastify.patch('/:id', { schema: updateProductSchema }, async (request, reply) => {
     const { id } = request.params
     if (!UUID_RE.test(id)) {
       reply.code(404)
@@ -280,22 +286,12 @@ export default async function adminProductRoutes(fastify, options) {
   })
 
   // Bulk update status
-  fastify.post('/bulk/status', async (request, reply) => {
+  fastify.post('/bulk/status', { schema: bulkStatusProductsSchema }, async (request, reply) => {
     const { productIds, status } = request.body
-
-    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-      reply.code(400)
-      return { error: 'productIds array is required' }
-    }
 
     if (productIds.some(id => !UUID_RE.test(id))) {
       reply.code(400)
       return { error: 'Invalid product ID format' }
-    }
-
-    if (!['ACTIVE', 'INACTIVE', 'OUT_OF_STOCK'].includes(status)) {
-      reply.code(400)
-      return { error: 'Invalid status value' }
     }
 
     const result = await sql`
@@ -318,13 +314,8 @@ export default async function adminProductRoutes(fastify, options) {
   })
 
   // Bulk delete
-  fastify.post('/bulk/delete', async (request, reply) => {
+  fastify.post('/bulk/delete', { schema: bulkDeleteProductsSchema }, async (request, reply) => {
     const { productIds } = request.body
-
-    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-      reply.code(400)
-      return { error: 'productIds array is required' }
-    }
 
     if (productIds.some(id => !UUID_RE.test(id))) {
       reply.code(400)

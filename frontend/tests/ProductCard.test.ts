@@ -32,6 +32,17 @@ const mockProductWithDiscount: Product = {
   originalPrice: 19.99,
 }
 
+const mockProductWithCategory: Product = {
+  ...mockProduct,
+  category: {
+    id: 'cat-1',
+    name: 'Electronics',
+    slug: 'electronics',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+}
+
 describe('ProductCard Component', () => {
   describe('Rendering', () => {
     it('renders product image with correct src and alt', () => {
@@ -92,6 +103,34 @@ describe('ProductCard Component', () => {
       const discount = wrapper.find('[aria-label$="% discount"]')
       expect(discount.exists()).toBe(true)
       expect(discount.text()).toBe('50% OFF')
+    })
+
+    it('renders the category name when the product has a category', () => {
+      const wrapper = mount(ProductCard, { props: { product: mockProductWithCategory }, global })
+      expect(wrapper.text()).toContain('Electronics')
+    })
+
+    it('links to the product detail page', () => {
+      const wrapper = mount(ProductCard, { props: { product: mockProduct }, global })
+      expect(wrapper.find('a').attributes('href')).toBe(`/products/${mockProduct.id}`)
+    })
+  })
+
+  // ─── Rating display ───────────────────────────────────────────────────────
+
+  describe('Rating display', () => {
+    it('shows the rating and review count when both are present', () => {
+      const wrapper = mount(ProductCard, { props: { product: mockProduct }, global })
+      expect(wrapper.text()).toContain('4.5')
+      expect(wrapper.text()).toContain(`(${mockProduct.reviewCount})`)
+    })
+
+    it('does not show a rating when reviewCount is 0', () => {
+      const wrapper = mount(ProductCard, {
+        props: { product: { ...mockProduct, rating: undefined, reviewCount: 0 } },
+        global,
+      })
+      expect(wrapper.find('.sr-only').exists()).toBe(false)
     })
   })
 
@@ -287,6 +326,14 @@ describe('ProductCard Component', () => {
     it('article uses rounded-card token', () => {
       const wrapper = mount(ProductCard, { props: { product: mockProduct }, global })
       expect(wrapper.find('article').classes()).toContain('rounded-card')
+    })
+
+    it('article uses shadow-card and hover:shadow-raised tokens, not the old defaults', () => {
+      const wrapper = mount(ProductCard, { props: { product: mockProduct }, global })
+      const classes = wrapper.find('article').classes()
+      expect(classes).toContain('shadow-card')
+      expect(classes).toContain('hover:shadow-raised')
+      expect(classes).not.toContain('rounded-lg')
     })
 
     it('Add to Cart button uses bg-brand', () => {

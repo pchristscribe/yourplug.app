@@ -81,7 +81,7 @@ The system uses Vue Router's query params to maintain filter state in the URL:
 
 ### Example URLs
 
-```
+```text
 # No filters (clean URL)
 http://localhost:3000/
 
@@ -97,7 +97,7 @@ http://localhost:3000/?category=electronics&platform=AMAZON&minPrice=50&maxPrice
 
 ### URL Sync Flow
 
-```
+```text
 User changes filter
     ↓
 Filter store updated
@@ -113,7 +113,7 @@ Browser history updated
 
 ### Back/Forward Navigation
 
-```
+```text
 User clicks back/forward
     ↓
 URL changes
@@ -142,14 +142,7 @@ All filters use AND logic - products must match ALL active filters:
 
 ### Filter Application
 
-1. **Server-side filters** (via API):
-   - Category
-   - Platform
-   - Price range (min/max)
-   - Sorting
-
-2. **Client-side filters** (in store getter):
-   - Rating (applied after API fetch)
+All filters — category, platform, price range, rating, and sorting — are applied server-side via the Supabase query in `useSupabaseProducts.ts` (rating uses `.gte('rating', filters.minRating)`). The `filteredProducts` store getter is now a plain passthrough (`state.products`) — filtering no longer happens client-side; see [Why Server-Side Filtering](#why-server-side-filtering) below.
 
 ## Components Deep Dive
 
@@ -272,7 +265,7 @@ All filters use AND logic - products must match ALL active filters:
 - Shows pages around current (delta of 2)
 
 **Algorithm**:
-```
+```text
 Page: 15 of 50
 Display: 1 ... 13 14 [15] 16 17 ... 50
 ```
@@ -307,27 +300,14 @@ Display: 1 ... 13 14 [15] 16 17 ... 50
 
 ### Product Store (`stores/products.ts`)
 
-**Added Getter**:
+<a id="why-server-side-filtering"></a>
+**`filteredProducts` getter** — a plain passthrough, since rating filtering (like every other filter) is now applied server-side by `useSupabaseProducts.ts`'s query before the products ever reach the store:
+
 ```typescript
-filteredProducts: (state) => {
-  let filtered = [...state.products]
-
-  // Client-side rating filter
-  if (state.filters.minRating && state.filters.minRating > 0) {
-    filtered = filtered.filter((p) => {
-      return p.rating && p.rating >= (state.filters.minRating ?? 0)
-    })
-  }
-
-  return filtered
-}
+filteredProducts: (state) => state.products,
 ```
 
-**Why Client-Side Rating Filter?**
-- API may not support rating filtering
-- Allows immediate UI feedback
-- Reduces API calls
-- Can be moved to server-side later if needed
+Rating filtering was originally client-side (filtering the already-fetched page in the store getter) but was moved server-side into the Supabase query — `.gte('rating', filters.minRating)` — once the API/query layer supported it, for the usual reasons: correct pagination totals, and no wasted bandwidth fetching rows that get filtered out anyway.
 
 ## Page Implementation (index.vue)
 
@@ -358,7 +338,7 @@ watch(() => route.query, (newQuery) => {
 
 ### Layout Structure
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │ Hero Section                            │
 └─────────────────────────────────────────┘
@@ -429,7 +409,7 @@ watch(() => route.query, (newQuery) => {
 
 1. **Debounced Slider**: Price range slider updates are debounced
 2. **Lazy Loading**: Products loaded only when filters change
-3. **Client-side Rating**: Reduces API calls for rating filter
+3. **Server-side Rating**: Rating filtering happens in the Supabase query, so only matching rows are ever fetched
 4. **Computed Properties**: Filter conversions are cached
 5. **Smart Pagination**: Only visible page numbers rendered
 
@@ -513,11 +493,10 @@ watch(() => route.query, (newQuery) => {
 
 ### Technical Improvements
 
-1. **Server-side Rating**: Move rating filter to API
-2. **Filter Validation**: Add min/max constraints
-3. **Deep Linking**: Support filter presets in URL
-4. **Filter State Persistence**: Save to localStorage
-5. **A/B Testing**: Test different filter UIs
+1. **Filter Validation**: Add min/max constraints
+2. **Deep Linking**: Support filter presets in URL
+3. **Filter State Persistence**: Save to localStorage
+4. **A/B Testing**: Test different filter UIs
 
 ## Conclusion
 

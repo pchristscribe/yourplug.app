@@ -154,7 +154,7 @@ definePageMeta({
 
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase as string
-const { token: csrfToken } = useCsrf()
+const { csrfHeaders } = useCsrf()
 
 const listings = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
@@ -200,7 +200,7 @@ async function approve(id: string) {
   await $fetch(`${apiBase}/api/admin/consignment/listings/${id}/approve`, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'x-csrf-token': csrfToken.value ?? '' },
+    headers: csrfHeaders(),
   })
   await load(page.value)
 }
@@ -216,7 +216,7 @@ async function confirmReject() {
   await $fetch(`${apiBase}/api/admin/consignment/listings/${rejectTarget.value}/reject`, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'x-csrf-token': csrfToken.value ?? '' },
+    headers: csrfHeaders(),
     body: { reason: rejectReason.value },
   })
   rejectModal.value = false

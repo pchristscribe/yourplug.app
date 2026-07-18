@@ -7,6 +7,7 @@ import {
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { isValidChallenge } from '../../utils/cleanupExpiredChallenges.js'
 import { UUID_RE } from '../../utils/constants.js'
+import { validateEmail } from '../../utils/email.js'
 import { adminAuth, csrfProtection } from '../../middleware/adminAuth.js'
 
 const RP_NAME = 'yourplug Admin'
@@ -16,31 +17,6 @@ const RP_ID = process.env.NODE_ENV === 'production'
 const ORIGIN = process.env.NODE_ENV === 'production'
   ? process.env.ADMIN_URL || 'https://admin.yourplug.app'
   : 'http://localhost:3002'
-
-// Email validation regex - RFC 5322 simplified
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function validateEmail(email) {
-  if (typeof email !== 'string') {
-    return { valid: false, error: 'Email must be a string' }
-  }
-
-  const trimmed = email.trim()
-
-  if (trimmed.length === 0) {
-    return { valid: false, error: 'Email is required' }
-  }
-
-  if (trimmed.length > 254) {
-    return { valid: false, error: 'Email is too long' }
-  }
-
-  if (!EMAIL_REGEX.test(trimmed)) {
-    return { valid: false, error: 'Invalid email format' }
-  }
-
-  return { valid: true, email: trimmed.toLowerCase() }
-}
 
 const registerOptionsSchema = {
   body: {

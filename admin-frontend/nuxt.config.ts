@@ -17,6 +17,8 @@ export default defineNuxtConfig({
     '@sentry/nuxt/module',
   ],
 
+  css: ['~/assets/css/main.css'],
+
   supabase: {
     url: process.env.NUXT_PUBLIC_SUPABASE_URL,
     key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
@@ -47,9 +49,9 @@ export default defineNuxtConfig({
           content: [
             "default-src 'self'",
             `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : ''}`,
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://api.fontshare.com",
             "img-src 'self' https: data:",
-            "font-src 'self' data: https://fonts.gstatic.com",
+            "font-src 'self' data: https://cdn.fontshare.com",
             "connect-src 'self' http://localhost:* https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
             "base-uri 'self'",
             "form-action 'self'",
@@ -57,12 +59,12 @@ export default defineNuxtConfig({
         }
       ],
       link: [
-        // Dosis variable font (weights 200–800) via Google Fonts
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        // Excon (headers) + General Sans (body) via Fontshare
+        { rel: 'preconnect', href: 'https://api.fontshare.com' },
+        { rel: 'preconnect', href: 'https://cdn.fontshare.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Dosis:wght@200..800&display=swap',
+          href: 'https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=excon@400,500,700&display=swap',
         },
       ],
     }

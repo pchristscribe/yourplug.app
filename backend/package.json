@@ -13,7 +13,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage"
   },
-  "packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=24"
   },
@@ -39,7 +39,6 @@
     "@simplewebauthn/server": "^13.3.2",
     "@supabase/supabase-js": "^2.110.0",
     "bcryptjs": "^3.0.3",
-    "connect-redis": "^9.0.0",
     "dotenv": "^17.4.2",
     "exif-reader": "^2.0.3",
     "fastify": "^5.9.0",

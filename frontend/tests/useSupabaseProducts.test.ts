@@ -4,9 +4,13 @@ import { useSupabaseProducts } from '../app/composables/useSupabaseProducts'
 // Flexible chainable mock — resolvedData is set per-test before awaiting
 let resolvedData: { data?: unknown; error?: unknown; count?: number } = { data: [], error: null, count: 0 }
 
+type ChainMethod = 'select' | 'eq' | 'or' | 'order' | 'range' | 'gte' | 'lte' | 'contains' | 'single'
+
 // Make the chain thenable so `await chain.order(...)` works for queries like
 // getCategories() that don't call .range() or .single() at the end.
-const mockChain: any = {
+const mockChain: Record<ChainMethod, ReturnType<typeof vi.fn>> & {
+  then: (resolve: (value: unknown) => void, reject: (reason?: unknown) => void) => Promise<unknown>
+} = {
   select: vi.fn(),
   eq: vi.fn(),
   or: vi.fn(),
@@ -16,14 +20,14 @@ const mockChain: any = {
   lte: vi.fn(),
   contains: vi.fn(),
   single: vi.fn(),
-  then: (resolve: Function, reject: Function) =>
+  then: (resolve, reject) =>
     Promise.resolve({
       data: resolvedData.data ?? null,
       error: resolvedData.error ?? null,
       count: resolvedData.count ?? 0,
-    }).then(resolve as any, reject as any),
+    }).then(resolve, reject),
 }
-const chainMethods = ['select', 'eq', 'or', 'order', 'range', 'gte', 'lte', 'contains', 'single']
+const chainMethods: ChainMethod[] = ['select', 'eq', 'or', 'order', 'range', 'gte', 'lte', 'contains', 'single']
 for (const m of chainMethods) {
   mockChain[m].mockReturnValue(mockChain)
 }
@@ -310,7 +314,7 @@ describe('getCategories', () => {
     const result = await getCategories()
     expect(result).toHaveLength(1)
     expect(result[0].name).toBe('Swords')
-    expect((result[0] as any)._count.products).toBe(7)
+    expect(result[0]._count!.products).toBe(7)
   })
 
   it('returns 0 product count when products array is empty', async () => {
@@ -319,7 +323,7 @@ describe('getCategories', () => {
     resetChain()
     const { getCategories } = useSupabaseProducts()
     const result = await getCategories()
-    expect((result[0] as any)._count.products).toBe(0)
+    expect(result[0]._count!.products).toBe(0)
   })
 
   it('maps optional description and imageUrl to undefined when null', async () => {

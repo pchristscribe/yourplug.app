@@ -1,326 +1,145 @@
 # Tech Debt Audit — yourplug App
 
-**Audit date:** 2026-05-10
-**Scope:** Full codebase (admin-frontend, frontend, backend, infra)
-**Focus categories:** Dependencies & security · Test coverage · Code quality
+**Audit date:** 2026-07-12
+**Scope:** Full codebase (admin-frontend, frontend, marketplace, backend, mcp-dhgate, infra/CI, docs)
 **Scoring:** Priority = (Impact + Risk) × (6 − Effort) — higher is worse/more urgent
 
----
-
-## Critical findings (fix before next deploy)
-
-### 1. Redis cache invalidation is silently broken — backend
-**Category:** Code quality
-**Impact:** 5 | **Risk:** 5 | **Effort:** 2 | **Priority score:** 40
-
-`redis.del('products:list:*')` appears in `admin/products.js` after every create, update, and delete. Redis `DEL` takes exact keys — it does not accept glob patterns. The wildcard is treated as a literal key name, so the list cache is never actually cleared. Admins can update a product and the public site will serve stale data indefinitely (1-hour TTL for product detail, 5-minute for lists).
-
-**Fix:** Replace with `SCAN` + `DEL`, or switch the cache key strategy to a prefix you can invalidate with `redis.keys()` + `redis.del(...keys)`. Example:
-
-```js
-const keys = await redis.keys('products:list:*')
-if (keys.length) await redis.del(...keys)
-```
+**Supersedes:** the 2026-05-10 audit previously in this file. That audit's top findings (Redis wildcard `DEL`, unvalidated Prisma body, `useRateLimit` at module scope, backend excluded from CI, Node version mismatch, search filter injection, missing dependabot config, console.log leaking auth internals) were verified fixed as of this audit — the backend has since fully migrated from Prisma to `postgres-js`. See git history (`git log --oneline --all | grep -i prisma`) for that migration.
 
 ---
 
-### 2. Unvalidated body passed directly to Prisma create/update — backend
-**Category:** Code quality / security
-**Impact:** 5 | **Risk:** 5 | **Effort:** 2 | **Priority score:** 40
+## Critical findings (fix this sprint)
 
-In `admin/products.js`, `POST /` does `prisma.product.create({ data: request.body })` and `PATCH /:id` does `prisma.product.update({ data: request.body })`. Any field in the Prisma schema — including `id`, `createdAt`, `updatedAt`, `platform`, `affiliateLinks` relations — can be set or overwritten by an authenticated admin. It also means a future schema field is auto-writable without a deliberate decision to expose it.
+### 1. `marketplace/` workspace has no lockfile and zero CI coverage
+**Category:** Infra/Dependencies · **Impact:** 5 · **Risk:** 5 · **Effort:** 2 · **Priority:** 40
 
-This is behind `adminAuth`, so the blast radius is limited to authenticated admins, but the pattern is fragile and will burn you if the auth layer ever has a bug.
+`marketplace/` is a fully built, tested, Railway-deployed Nuxt app with no `pnpm-lock.yaml`, while every sibling workspace (`admin-frontend`, `frontend`, `backend`, `mcp-dhgate`) carries its own. Its `railway.json` still runs `pnpm install --frozen-lockfile`, which will fail outright on the next deploy. It's also absent from `ci.yml`/`test.yml`/`eslint.yml` matrices and from `README.md`'s project structure, so it ships with no automated regression protection at all.
 
-**Fix:** Destructure an explicit allowlist from `request.body` before passing to Prisma:1
-
-```js
-const { title, description, imageUrl, price, currency, categoryId, platform, externalId, status, rating, tags, metadata } = request.body
-await prisma.product.create({ data: { title, description, ... } })
-```
-
-Adding Fastify JSON Schema validation to the POST/PATCH bodies would also catch type errors before they reach the ORM.
+**Fixed:** `marketplace/pnpm-lock.yaml` generated and verified against `--frozen-lockfile`; added to `ci.yml`'s security-audit/test/build matrices and `test.yml`'s test jobs; documented in `README.md`/`CLAUDE.md`. **Not done:** `marketplace/` has no ESLint config or `eslint` dependency at all (unlike `frontend`/`admin-frontend`), so it isn't in `eslint.yml` — wiring it in means building a lint config from scratch and fixing whatever it finds, deliberately left as a separate follow-up rather than rushed in.
 
 ---
 
-### 3. `useRateLimit` called at module scope — admin-frontend
-**Category:** Code quality / SSR safety
-**Impact:** 4 | **Risk:** 5 | **Effort:** 1 | **Priority score:** 45
+### 2. Zero test coverage on payment-critical backend routes
+**Category:** Test · **Impact:** 5 · **Risk:** 5 · **Effort:** 3 · **Priority:** 30
 
-In `admin-frontend/app/stores/auth.ts`, line 6:
+`backend/src/routes/stripe-webhooks.js` and `backend/src/routes/consignment/offers.js` (idempotency-keyed Stripe checkout session creation) have no corresponding tests in `backend/tests/`. This is the only revenue-adjacent code path in the backend with no safety net.
 
-```ts
-const rateLimit = useRateLimit()
-```
-
-This is at the top level of the module, outside any Vue composable or setup context. Nuxt auto-imports composables like `useRateLimit` and they rely on Vue's current instance or the Nuxt app context. Calling them at module scope during SSR can produce cross-request state leakage — the rate limiter state from one user's request bleeds into another's. The error in your project instructions (the Pinia `app:rendered` hook error) is likely related to this exact pattern — composables that hold reactive state being initialized outside the request lifecycle.
-
-**Fix:** Move the `useRateLimit()` call inside each action that uses it, or inside `setup()` / `onMounted`:
-
-```ts
-actions: {
-  async loginWithSecurityKey(email: unknown) {
-    const rateLimit = useRateLimit()  // inside the action
-    ...
-  }
-}
-```
+**Fixed:** Added 24 tests covering webhook signature/secret validation, per-event-type DB writes, unhandled-event/handler-failure paths, offer auth/ownership/duplicate validation, and the checkout-session idempotency guard. Verified against the real docker-compose Postgres+Redis stack (all 295 backend tests pass), not just the mocked DI path.
 
 ---
 
-## High priority (address within 2 sprints)
+## High priority (address within 1–2 sprints)
 
-### 4. Backend excluded from CI test matrix
-**Category:** Test coverage
-**Impact:** 4 | **Risk:** 4 | **Effort:** 2 | **Priority score:** 32
+### 3. ESLint doesn't gate CI, `backend/railway.toml` conflicts with `railway.json`
+**Category:** Infra · **Priority:** 35 each
 
-`ci.yml` runs unit tests for `frontend` and `admin-frontend` only. The `backend` workspace is absent from the matrix. Backend tests exist (`tests/products.test.js`, `tests/webauthn.test.js`, etc.) but never run in CI. A broken Fastify route, Prisma query, or auth middleware change can ship without any automated gate.
-
-The backend tests also require a live Postgres + Redis, which is why they were probably excluded — but that's fixable with a `services:` block in the CI job.
-
-**Fix:** Add a `backend-test` job to `ci.yml` with Postgres 16 and Redis 7 service containers:
-
-```yaml
-backend-test:
-  runs-on: ubuntu-latest
-  services:
-    postgres:
-      image: postgres:16
-      env:
-        POSTGRES_PASSWORD: test
-        POSTGRES_DB: yourplug_test
-    redis:
-      image: redis:7
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '24'
-    - run: pnpm install --frozen-lockfile
-      working-directory: backend
-    - run: SUPABASE_ACCESS_TOKEN=${{ secrets.SUPABASE_ACCESS_TOKEN }} SUPABASE_PROJECT_REF=${{ secrets.SUPABASE_PROJECT_REF }} ./scripts/migrate.sh
-      working-directory: backend
-      env:
-        DATABASE_URL: postgresql://postgres:test@localhost/yourplug_test
-    - run: pnpm test
-      working-directory: backend
-```
+- `.github/workflows/eslint.yml` had `continue-on-error: true` on the lint step — failures never blocked merges. **Fixed in this pass**: flag removed, the 19 pre-existing lint errors in `frontend/` (missing markdown code-block languages, a single-word component name, unused test imports, `any`/`Function` types in a test mock) were fixed first so the gate doesn't go red immediately.
+- `backend/railway.toml` (`buildCommand = "npm ci"`) directly contradicted the active `backend/railway.json` (`pnpm install --frozen-lockfile`) — there's no npm lockfile in `backend/`, so this was dead/stale config. **Fixed in this pass**: `railway.toml` deleted; no other workspace has a `.toml` alongside its `.json`.
 
 ---
 
-### 5. CI uses Node 22, engines requires Node ≥24
-**Category:** Dependencies
-**Impact:** 3 | **Risk:** 4 | **Effort:** 1 | **Priority score:** 21
+### 4. Documentation drift: SECURITY.md, CLAUDE.md
+**Category:** Docs · **Priority:** 35 / 24
 
-All three `package.json` files declare `"engines": { "node": ">=24" }`, but `ci.yml` installs Node 22 via `actions/setup-node`. This means CI is testing against an unsupported runtime. If any code relies on a Node 24+ API, CI will silently pass while production (presumably Node 24) could fail — or vice versa.
-
-**Fix:** Change `node-version: '22'` to `node-version: '24'` in `ci.yml` (all jobs). Also update `deploy-frontend.yml` and `deploy-backend.yml` if they pin a version.
+- `SECURITY.md` claimed "52 backend validation vulnerabilities... currently pending fixes," while its own linked evidence (`VALIDATION_BUGS_FOUND.md`) shows those 52 candidate failures were triaged to 7 distinct bugs, all fixed as of 2025-12-12. **Fixed in this pass.**
+- `CLAUDE.md` — the primary onboarding/agent-guidance doc — has zero mentions of the `marketplace/` workspace, `stripe-webhooks.js`, `consignment/offers.js`, `blog-posts.js`, `admin/product-variants.js`, the `workers/` directory, or the Anthropic SDK moderation integration, despite these being live feature areas, some money-handling. **Fixed in this pass.**
 
 ---
 
-### 6. `node` listed as a production dependency — backend
-**Category:** Dependencies
-**Impact:** 4 | **Risk:** 3 | **Effort:** 1 | **Priority score:** 21
+### 5. FTC affiliate disclosure enforced ad-hoc, not via a shared component
+**Category:** Architecture/Compliance · **Impact:** 3 · **Risk:** 4 · **Effort:** 2 · **Priority:** 28
 
-`backend/package.json` has `"node": "^25.8.2"` in `dependencies`. Node.js is the runtime — it is not a package you install. This does nothing at best (the registry has a stub `node` package that warns exactly about this), wastes an install step, and can cause confusion if anyone reads the lockfile or a tool tries to resolve it as a peer dep.
+Disclosure text is hardcoded independently in the site footer, product detail page, and a `ProductCard` tooltip. No single source of truth means a new page rendering affiliate links has nothing forcing it to include the disclosure — CLAUDE.md states this is a hard legal requirement. Unclear whether `marketplace/` carries equivalent disclosure at all.
 
-**Fix:** Remove it from `dependencies`.
-
----
-
-### 7. `@prisma/studio-core` pinned to a GitHub source
-**Category:** Dependencies
-**Impact:** 3 | **Risk:** 4 | **Effort:** 1 | **Priority score:** 21
-
-`"@prisma/studio-core": "github:prisma/studio"` is a production dependency pinned to a GitHub repo with no tag or commit hash. It will resolve to whatever is on that repo's default branch at install time — meaning two installs a week apart can pull different code. It also doesn't go through pnpm's integrity checking.
-
-This is almost certainly a development convenience (Prisma Studio is a dev tool) that leaked into production dependencies.
-
-**Fix:** Move to `devDependencies`, and pin a specific tag or commit: `github:prisma/studio#v0.x.y`.
+**Fixed:** Extracted `frontend/app/components/AffiliateDisclosure.vue` (badge/inline/footer variants), replaced all 3 hardcoded copies, added direct component tests. Verified live in the browser (footer variant) and via the existing/new Vue Test Utils assertions (badge/inline variants — no local Supabase instance was available to render the live product catalog, so those two variants rely on test-level verification, which exercises the exact same markup). **`marketplace/` audited and confirmed out of scope**: it's a peer-to-peer consignment marketplace (Stripe Connect direct sales), not a third-party-affiliate-link catalog, so FTC affiliate disclosure doesn't apply there — it already discloses its actual obligation (15% platform fee) to sellers in `marketplace/app/pages/account/stripe.vue`.
 
 ---
 
-### 8. `prettier-plugin-prisma` in production dependencies — backend
-**Category:** Dependencies
-**Impact:** 2 | **Risk:** 2 | **Effort:** 1 | **Priority score:** 12
+### 6. Admin CRUD pages duplicated 3x, with near-zero test coverage
+**Category:** Code/Test · **Impact:** 4 · **Risk:** 3 · **Effort:** 3 · **Priority:** 21
 
-A formatter plugin belongs in `devDependencies`. Currently it inflates the production install.
+`admin-frontend/app/pages/categories.vue`, `reviews.vue`, and `products/index.vue` each hand-roll ~500 lines of nearly identical pagination/edit/delete-modal state, with inconsistent page-size limits. None of the three have direct test coverage beyond one narrowly-scoped regression test on `reviews.vue`. `useSupabaseAdmin.ts` and `useRateLimit.ts` also have zero test coverage.
 
-**Fix:** `pnpm add -D prettier-plugin-prisma` and remove from `dependencies`.
-
----
-
-### 9. Search is vulnerable to PostgREST filter injection — frontend
-**Category:** Code quality / security
-**Impact:** 4 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 28
-
-In `useSupabaseProducts.ts`, `searchProducts` builds its filter with string interpolation:
-
-```ts
-.or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-```
-
-The `query` value comes directly from user input. PostgREST parses this string server-side. A crafted input like `a%,id.eq.some-uuid` could manipulate the filter logic. Supabase's JS client does some encoding, but relying on that is fragile — the safe path is to use the structured filter methods:
-
-```ts
-.or(`title.ilike.%${encodeURIComponent(query)}%,description.ilike.%${encodeURIComponent(query)}%`)
-```
-
-Or better, move full-text search to a Postgres `to_tsvector`/`to_tsquery` approach using a Supabase RPC.
+**Fixed:** Added characterization tests mounting the real SFCs for all three pages (25 tests total) as a safety net, then extracted `admin-frontend/app/composables/useAdminCrudList.ts` covering the genuinely identical pieces — pagination/loading state and create-edit/delete-confirm modal state — and wired it into all three pages one at a time, verifying the full suite after each. Filters, bulk actions, tag parsing, image-URL validation, and save/delete requests deliberately stayed page-specific since those differ per page; forcing them into the composable would have traded three similar blocks for one over-parameterized one. Page templates are unchanged. Tests for `useSupabaseAdmin.ts`/`useRateLimit.ts` were added separately under #11.
 
 ---
 
-### 10. `cleanupExpiredChallenges` runs as `onRequest` middleware on every request
-**Category:** Code quality / architecture
-**Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
+### 7. Duplicate schema in migrations 002 and 005
+**Category:** Architecture · **Impact:** 2 · **Risk:** 3 · **Effort:** 2 · **Priority:** 20
 
-`app.js` registers `cleanupMiddleware` as an `onRequest` hook. This fires a Postgres `updateMany` on every single HTTP request — including static asset requests, health checks, and high-frequency product list polls. It's fire-and-forget (`catch` swallowed), so failures are invisible. Under load this creates unnecessary DB write pressure.
+`supabase/migrations/002_alter_admins_and_credentials.sql` and `005_admin_webauthn.sql` both add the same `admins` columns and both `create table if not exists webauthn_credentials` with the same indexes/RLS policy. Only safe because of `if not exists` guards and numbered execution order.
 
-**Fix:** Move challenge cleanup to a Bull queue job scheduled every 5 minutes. The Bull dependency is already installed and the cleanup logic is already in `cleanupExpiredChallenges.js` — this is a straightforward wiring task.
-
----
-
-### 11. Console.log with emoji left in production auth code — admin-frontend
-**Category:** Code quality
-**Impact:** 2 | **Risk:** 3 | **Effort:** 1 | **Priority score:** 15
-
-`auth.ts` has 15+ `console.log` / `console.error` calls with emoji that print sensitive operational details (API base URL, credential objects, auth state) in production browser consoles. Anyone opening DevTools can read auth flow internals.
-
-**Fix:** Replace with structured logging gated on `import.meta.dev`, or remove entirely. The critical error paths already feed `this.error` for UI display.
+**Fixed:** Added comments on both files explaining the redundancy is intentional/historical and why neither should be edited to "deduplicate" (both may already be applied to production/team databases — Supabase tracks migrations by filename, so editing history would desync already-migrated environments). No SQL semantics changed; migrations re-applied cleanly in a fresh local Postgres to confirm.
 
 ---
 
-### 12. Client-side rating filter conflicts with server-side pagination
-**Category:** Code quality / architecture
-**Impact:** 3 | **Risk:** 3 | **Effort:** 3 | **Priority score:** 18
+## Medium priority
 
-In `products.ts`, the `filteredProducts` getter applies a `minRating` filter in JavaScript on the already-paginated result set from the server. This means: if page 1 has 20 products and 15 fail the rating filter, the user sees 5 products on page 1 — not because there are only 5, but because the server sent 20 and 15 were hidden. The pagination controls will show wrong counts and "next page" behavior will be broken.
+### 8. Backend route inconsistencies
+**Priority:** 18 — Two unsynced email-validation regexes (`auth.js` strict vs `webauthn.js` loose), no standard error-response envelope across routes, `admin/products.js` POST/PATCH has no Fastify schema validation (unlike `categories.js`/`reviews.js`/`product-variants.js`), duplicated session-lookup SQL between `adminAuth.js` middleware and `auth.js`'s `GET /session`.
 
-`useSupabaseProducts.ts` already supports `minRating` as a server-side query parameter (line 77–79). The client-side filter in the getter is redundant and wrong when used with pagination.
+**Fixed:** Added `backend/src/schemas/product.js` and wired it into `admin/products.js`'s POST/PATCH/bulk routes (platform/status enums, positive price, image URL pattern, `additionalProperties: false`) — the PATCH schema deliberately omits `minProperties` since the route treats an empty body as a no-op returning the current record, which existing tests lock in as the route's actual (if inconsistent-with-categories) behavior. Deduped the two email regexes into `utils/email.js` (both `auth.js` and `webauthn.js` now import it) and the session-lookup SQL into `utils/adminSession.js`'s `loadActiveAdminById` (used by `adminAuth.js` middleware and `auth.js`'s `GET /session`). Added 5 tests for the new products validation; all 300 backend tests pass. **Not done:** a full error-envelope unification sweep — the existing global error handler in `app.js` already normalizes thrown/validation errors to `{error, message, statusCode}`, and the admin-frontend already falls back through `err.data?.message || err.data?.error`, so a repo-wide rewrite of every route's manual response shape was judged disproportionate to this item's priority.
 
-**Fix:** Remove the client-side rating filter from the `filteredProducts` getter. Ensure `filters.minRating` is always passed through to `getProducts()`, which already sends it to Supabase.
+### 9. Cross-workspace dependency & CI drift
+**Priority:** 16 — vue-router (`^5` in frontend/marketplace vs `^4` in admin-frontend), pnpm `packageManager` (10.x vs 11.x in backend), TypeScript (`^5` vs `^6`), `mcp-dhgate` still declares `node >=20` vs `>=24` elsewhere. `ci.yml` and `test.yml` are largely duplicate workflows.
 
----
+**Fixed:** `admin-frontend` bumped to `vue-router ^5.1.0` (no direct vue-router imports anywhere — Nuxt manages routing internally — verified via full test suite + a clean production build); `backend` bumped to `pnpm@10.33.0` (lockfile was already `lockfileVersion: 9.0`, same as everywhere else, so no regeneration needed); `mcp-dhgate` bumped to `node >=24`. TypeScript was already unified at `^6.0.3` everywhere by the time this was checked. `ci.yml`/`test.yml` merged into one workflow — see Phase 3 checklist for details.
 
-### 13. ESLint packages in production `dependencies` — frontend
-**Category:** Dependencies
-**Impact:** 2 | **Risk:** 2 | **Effort:** 1 | **Priority score:** 12
+### 10. Stale minor docs
+**Priority:** 16 — `frontend/FILTERING_SYSTEM.md` describes a client-side rating filter that's now a no-op (filtering moved server-side); `ADMIN_PANEL_SETUP.md`'s file tree is out of date; `TEST_COVERAGE_SUMMARY.md` cites a nonexistent `frontend/tests/cart.test.ts`; `.env.example` is missing `FRONTEND_URL` (required per `RAILWAY.md`/`CLAUDE.md`).
 
-`frontend/package.json` has `@eslint/css`, `@eslint/js`, `@eslint/json`, `@eslint/markdown`, `eslint`, `eslint-plugin-vue`, `typescript-eslint`, and `globals` in `dependencies` rather than `devDependencies`. These increase production bundle install time and are never used at runtime.
+**Fixed:** all four addressed — see the Phase 3 checklist entry for details. `TEST_COVERAGE_SUMMARY.md` was fully rewritten (it also repeated the already-corrected "52 pending vulnerabilities" claim and covered only 5 of the then-current 15 backend test files).
 
-**Fix:** Move all `@eslint/*`, `eslint`, `typescript-eslint`, and `globals` to `devDependencies`.
+### 11. Drifted duplicate test files
+**Priority:** 16 — `frontend/tests/ProductCard.test.ts` and `frontend/tests/components/ProductCard.test.ts` test the same component with different fixtures.
 
----
+**Fixed:** merged into the root-level `tests/ProductCard.test.ts`, porting over the unique coverage the `components/` version had (category name rendering, rating/review-count display, product-detail link href, `shadow-card`/`hover:shadow-raised` brand tokens) rather than just deleting the duplicate and losing that coverage.
 
-### 14. No automated dependency update mechanism
-**Category:** Dependencies
-**Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
+### 12. `mcp-dhgate` has no tests or CI job
+**Priority:** 15
 
-There is no Dependabot or Renovate configuration. Security patches to `fastify`, `@simplewebauthn/*`, `@sentry/*`, and Supabase client won't surface automatically. The `pnpm audit` step in CI is a safety net, but it won't propose upgrades — only flag known CVEs.
+**Fixed:** added Vitest with 36 tests covering `utils/errors.ts` and `utils/formatters.ts` (the two pure-logic modules), and wired `mcp-dhgate` into `ci.yml`'s security-audit/test/build matrices. Running `pnpm audit` surfaced a real high-severity transitive vulnerability (`hono` <4.12.25 via `@modelcontextprotocol/sdk` → `@hono/node-server`) that would have failed the new audit job immediately — pinned via a `pnpm.overrides` entry, the same pattern `admin-frontend` already uses for `vite`.
 
-**Fix:** Add `.github/dependabot.yml` with weekly pnpm updates across all three workspaces. Configure automerge for patch-level bumps.
-
----
-
-### 15. `@prisma/client-runtime-utils` and `@prisma/prisma-schema-wasm` as direct user deps
-**Category:** Dependencies
-**Impact:** 2 | **Risk:** 3 | **Effort:** 1 | **Priority score:** 15
-
-These are internal Prisma packages meant to be managed by the Prisma CLI, not listed as direct user dependencies. The `@prisma/prisma-schema-wasm` version even includes a hardcoded git commit hash (`7.8.0-6.3c6e...`). Direct pins like this break when Prisma releases updates and can create version mismatches between the user-declared version and what `prisma generate` expects.
-
-**Fix:** Remove both from `dependencies`. Let the Prisma CLI manage them as peer/transitive deps. Keep only `@prisma/client` and `prisma` (dev).
+### 13. `docker-compose.yml` hardcoded fallback dev credentials
+**Priority:** 15 — via `${VAR:-default}`; low risk today but a copy-paste into a prod-like compose file would leak a known password pattern.
 
 ---
 
-### 16. No coverage enforcement in CI
-**Category:** Test coverage
-**Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
+## Low priority / cleanup
 
-The `test:coverage` script exists in all workspaces but CI runs `pnpm test` (not `pnpm test:coverage`), so no thresholds are enforced. Coverage can drop to 0% without a CI failure. CLAUDE.md claims ">80% coverage required" for new features, but nothing enforces this.
-
-**Fix:** Add a coverage step to the CI test jobs, and set thresholds in `vitest.config.ts`:
-
-```ts
-coverage: {
-  provider: 'v8',
-  thresholds: { lines: 80, functions: 80, branches: 70 }
-}
-```
-
----
-
-### 17. E2E tests silently skipped in CI
-**Category:** Test coverage
-**Impact:** 3 | **Risk:** 3 | **Effort:** 2 | **Priority score:** 24
-
-The E2E job in `ci.yml` has `if: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL != '' }}`. The condition syntax is wrong — GitHub expressions don't evaluate secrets this way; the expression will always be falsy in a fork or a repo that hasn't configured the secret. The E2E tests never run in CI.
-
-**Fix:** Use `if: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL != '' && env.NUXT_PUBLIC_SUPABASE_URL != '' }}` or restructure to use environment-based secrets and document that E2E requires environment setup.
+| # | Item | Priority |
+|---|------|----------|
+| 14 | Pervasive `any` types in `admin-frontend` (~38 occurrences) vs `frontend` (~1) | 12 |
+| 15 | Duplicated `useDarkMode.ts` (byte-identical) and Supabase query-building logic across workspaces, no shared package | 12 |
+| 16 | `backend-security-reference/` not in workspace/CI — can silently drift from the real security code it models | 12 |
+| 17 | ~~`connect-redis` dead dependency in `backend/package.json` (unused — hand-rolled `RedisSessionStore` used instead)~~ **Fixed** | 10 |
+| 18 | ~~`ProductCardSimple.vue` confirmed unused outside its own test file~~ **Fixed** — deleted along with its test file; confirmed no dynamic (`:is=`) references anywhere | 10 |
 
 ---
 
 ## Phased remediation plan
 
-### Phase 1 — Two days, ship-blocking bugs
-These are defects masquerading as tech debt. Do them before any other feature work.
+### Phase 1 — this sprint (~half day)
+- [x] Delete stale `backend/railway.toml`
+- [x] Fix 19 pre-existing ESLint errors in `frontend/`, remove `continue-on-error: true` from `eslint.yml`
+- [x] Correct `SECURITY.md`'s vulnerability count and status
+- [x] Add `marketplace/` lockfile + CI coverage (test/lint config for `marketplace/` itself deliberately left as a follow-up — see #1)
+- [x] Update `CLAUDE.md` with missing feature areas
 
-| # | Item | Est. |
-|---|------|------|
-| 3 | Move `useRateLimit()` into action scope (fix the SSR crash) | 30 min |
-| 1 | Fix Redis wildcard `DEL` → `SCAN + DEL` | 1 hour |
-| 2 | Add explicit field allowlist to `prisma.product.create/update` | 1 hour |
+### Phase 2 — next 1–2 sprints, alongside feature work
+- [x] Write integration tests for Stripe webhooks + consignment offers (#2)
+- [x] Extract shared FTC disclosure component, verify `marketplace/` parity (#5)
+- [x] Annotate migrations 002 and 005 (#7)
+- [x] Extract `useAdminCrudList` composable from the three admin CRUD pages (#6) — characterization tests for the pages come first, since they currently have near-zero coverage and refactoring untested code has no safety net
+- [x] Add Fastify schema validation to `admin/products.js`, dedupe email regex and session-lookup SQL (#8) — error-envelope unification scoped out, see #8 for why
+- [x] Add tests for `useSupabaseAdmin.ts`, `useRateLimit.ts`, `login.vue`, `diagnostic.vue`, `consignment.vue` — all previously zero coverage. Found and fixed a real bug along the way: `consignment.vue` destructured a nonexistent `token` property from `useCsrf()` and called `.value` on it, so Approve/Reject on consignment listings threw before the request ever fired — fixed to use `csrfHeaders()` as the composable intends, with a regression test
 
----
-
-### Phase 2 — One sprint, CI & deps hygiene
-Do alongside normal feature work. Each item is ≤1 hour and unblocks better confidence in the pipeline.
-
-| # | Item | Est. |
-|---|------|------|
-| 5 | Fix CI Node version (22 → 24) | 10 min |
-| 6 | Remove `node` from production deps | 5 min |
-| 8 | Move `prettier-plugin-prisma` to devDeps | 5 min |
-| 13 | Move ESLint packages to devDeps in frontend | 10 min |
-| 15 | Remove internal Prisma packages from user deps | 15 min |
-| 7 | Pin `@prisma/studio-core` to tag and move to devDeps | 15 min |
-| 11 | Strip production `console.log` from `auth.ts` | 30 min |
-| 4 | Add backend to CI test matrix with service containers | 2 hours |
-| 17 | Fix the E2E CI condition so it actually runs | 30 min |
-| 14 | Add `.github/dependabot.yml` for weekly pnpm updates | 20 min |
-
----
-
-### Phase 3 — Two sprints, quality ceiling
-These improve robustness but require more careful thought.
-
-| # | Item | Est. |
-|---|------|------|
-| 12 | Remove client-side rating filter from getter; ensure server-side filter fires | 2 hours |
-| 9 | Replace search string interpolation with encoded params or Postgres FTS RPC | 3 hours |
-| 10 | Move challenge cleanup to Bull scheduled job (every 5 min) | 2 hours |
-| 16 | Add vitest coverage thresholds and run `test:coverage` in CI | 1 hour |
-| — | Write backend integration tests for admin create/update/delete with invalid bodies | 4 hours |
-
----
-
-## Summary table
-
-| # | Finding | Category | Priority |
-|---|---------|----------|---------|
-| 3 | `useRateLimit` at module scope → SSR crash | Code | **45** |
-| 1 | Redis wildcard DEL is no-op → stale cache forever | Code | **40** |
-| 2 | Unvalidated body passed to Prisma → field injection | Code/Security | **40** |
-| 4 | Backend excluded from CI test matrix | Tests | **32** |
-| 9 | Search filter interpolation → PostgREST injection | Code/Security | **28** |
-| 5 | CI uses Node 22, engines requires 24 | Deps | **21** |
-| 6 | `node` as production dependency | Deps | **21** |
-| 7 | Prisma Studio pinned to unpinned GitHub source | Deps | **21** |
-| 10 | Cleanup middleware fires on every request | Code | **24** |
-| 14 | No Dependabot/Renovate | Deps | **24** |
-| 16 | No coverage thresholds enforced | Tests | **24** |
-| 17 | E2E CI condition always false | Tests | **24** |
-| 12 | Client-side rating filter breaks paginated results | Code | **18** |
-| 11 | Production console.logs leak auth internals | Code | **15** |
-| 15 | Internal Prisma packages as direct user deps | Deps | **15** |
-| 8 | Prettier-prisma in prod deps | Deps | **12** |
-| 13 | ESLint in prod deps (frontend) | Deps | **12** |
+### Phase 3 — quality ceiling, opportunistic
+- [x] Remove `connect-redis`, resolve or remove `ProductCardSimple.vue` (#17, #18)
+- [x] Consolidate drifted `ProductCard` test files (#11)
+- [x] Refresh remaining stale minor docs (#10)
+- [x] Merge `ci.yml`/`test.yml` (#9)
+- [x] Align cross-workspace dependency versions — vue-router, pnpm packageManager, `mcp-dhgate` node engine (#9)
+- [x] Add test runner + CI job for `mcp-dhgate` (#12)
+- [ ] Reduce `any` usage in `admin-frontend` (#14)
+- [ ] Improve backend test coverage — below the configured 60%/50% stmt/branch thresholds; not part of the original audit, added per explicit request

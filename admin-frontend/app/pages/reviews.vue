@@ -398,6 +398,7 @@
 
 <script setup lang="ts">
 import { sanitizeText } from '~/utils/security'
+import { useAdminCrudList } from '~/composables/useAdminCrudList'
 
 definePageMeta({
   middleware: ['auth'],
@@ -405,20 +406,13 @@ definePageMeta({
 })
 
 const config = useRuntimeConfig()
-const loading = ref(true)
 const saving = ref(false)
-const reviews = ref<any[]>([])
 const products = ref<any[]>([])
-const pagination = ref<any>(null)
 const searchQuery = ref('')
 const productFilter = ref('')
 const ratingFilter = ref('')
 const featuredFilter = ref('')
 const selectedIds = ref<string[]>([])
-const showModal = ref(false)
-const showDeleteConfirm = ref(false)
-const editingReview = ref<any>(null)
-const deletingReview = ref<any>(null)
 const formData = ref({
   productId: '',
   rating: 5,
@@ -430,31 +424,35 @@ const formData = ref({
   isFeatured: false
 })
 
-const loadReviews = async (page = 1) => {
-  loading.value = true
-  try {
-    const query: any = {
-      page,
-      limit: 20
-    }
-    if (searchQuery.value) query.search = searchQuery.value
-    if (productFilter.value) query.productId = productFilter.value
-    if (ratingFilter.value) query.rating = ratingFilter.value
-    if (featuredFilter.value) query.isFeatured = featuredFilter.value
+const crud = useAdminCrudList<any>('reviews')
+const {
+  loading,
+  items: reviews,
+  pagination,
+  showModal,
+  editingItem: editingReview,
+  closeModal,
+  showDeleteConfirm,
+  deletingItem: deletingReview,
+  cancelDelete,
+} = crud
 
-    const data = await $fetch(`${config.public.apiBase}/api/admin/reviews`, {
-      credentials: 'include',
-      query
-    })
-    reviews.value = data.reviews
-    pagination.value = data.pagination
-  } catch (err) {
-    console.error('Failed to load reviews:', err)
-    alert('Failed to load reviews. Please try again.')
-  } finally {
-    loading.value = false
+const loadReviews = (page = 1) => crud.load(async (p) => {
+  const query: any = {
+    page: p,
+    limit: 20
   }
-}
+  if (searchQuery.value) query.search = searchQuery.value
+  if (productFilter.value) query.productId = productFilter.value
+  if (ratingFilter.value) query.rating = ratingFilter.value
+  if (featuredFilter.value) query.isFeatured = featuredFilter.value
+
+  const data = await $fetch(`${config.public.apiBase}/api/admin/reviews`, {
+    credentials: 'include',
+    query
+  })
+  return { items: data.reviews, pagination: data.pagination }
+}, page)
 
 const loadProducts = async () => {
   try {
@@ -494,7 +492,7 @@ const toggleAll = () => {
 }
 
 const openCreateModal = () => {
-  editingReview.value = null
+  crud.openCreateModal()
   formData.value = {
     productId: '',
     rating: 5,
@@ -505,11 +503,10 @@ const openCreateModal = () => {
     authorName: 'yourplug Team',
     isFeatured: false
   }
-  showModal.value = true
 }
 
 const editReview = (review: any) => {
-  editingReview.value = review
+  crud.openEditModal(review)
   formData.value = {
     productId: review.productId,
     rating: review.rating,
@@ -520,12 +517,6 @@ const editReview = (review: any) => {
     authorName: review.authorName || 'yourplug Team',
     isFeatured: review.isFeatured || false
   }
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  editingReview.value = null
 }
 
 const addPro = () => {
@@ -606,8 +597,7 @@ const saveReview = async () => {
 }
 
 const deleteReview = (review: any) => {
-  deletingReview.value = review
-  showDeleteConfirm.value = true
+  crud.requestDelete(review)
 }
 
 const confirmDelete = async () => {
@@ -617,19 +607,13 @@ const confirmDelete = async () => {
       credentials: 'include'
     })
 
-    showDeleteConfirm.value = false
-    deletingReview.value = null
+    cancelDelete()
     await loadReviews(pagination.value?.page || 1)
   } catch (err: any) {
     console.error('Failed to delete review:', err)
     const errorMessage = err.data?.message || err.data?.error || 'Failed to delete review'
     alert(errorMessage)
   }
-}
-
-const cancelDelete = () => {
-  showDeleteConfirm.value = false
-  deletingReview.value = null
 }
 
 const bulkDelete = async () => {
