@@ -46,11 +46,15 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | `NUXT_PUBLIC_SUPABASE_URL`   | yes      | Supabase project URL                                 |
 | `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
 | `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
-| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
 | `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
-| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Client-side Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
 | `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
 
 ### Admin Frontend (`admin-frontend/`)
 
@@ -60,11 +64,15 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
 | `SUPABASE_SECRET_KEY`        | yes      | Service role key (admin-only, never expose client)   |
 | `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
-| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
 | `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
-| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Client-side Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
 | `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
 
 ### Marketplace (`marketplace/`)
 
@@ -77,11 +85,15 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | `STRIPE_PUBLISHABLE_KEY`     | yes      | Stripe Connect publishable key                        |
 | `STRIPE_WEBHOOK_SECRET`      | yes      | Stripe webhook signing secret                          |
 | `STRIPE_CONNECT_CLIENT_ID`   | yes      | Stripe Connect OAuth client ID                         |
-| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
 | `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
-| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Client-side Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
 | `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
 
 Nuxt's Nitro server binds to `0.0.0.0:$PORT` automatically on Railway.
 
