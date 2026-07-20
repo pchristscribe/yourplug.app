@@ -12,7 +12,7 @@ packages:
 allowBuilds:
   '@parcel/watcher': true
   '@sentry/cli': true
-  '@sentry-internal/node-cpu-profiler': true
+  '@sentry/node-cpu-profiler': true
   esbuild: true
   msgpackr-extract: false
   unrs-resolver: false
