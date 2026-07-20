@@ -25,7 +25,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
+    "@anthropic-ai/sdk": "^0.112.3",
     "@dotenvx/dotenvx": "^2.0.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
