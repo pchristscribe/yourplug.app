@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "nuxt build",
-    "dev": "PORT=3002 VITE_HMR_PORT= nuxt dev",
+    "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
