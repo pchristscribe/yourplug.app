@@ -1,12 +1,13 @@
 # Railway Deployment
 
-This repo is a monorepo containing three deployable services. Each service has its own `railway.json` so Railway's Nixpacks builder can build and run it without extra configuration.
+This repo is a monorepo containing four deployable services. Each service has its own `railway.json` so Railway's Nixpacks builder can build and run it without extra configuration.
 
 | Service          | Directory         | Runtime           | Exposes       |
 | ---------------- | ----------------- | ----------------- | ------------- |
 | Backend API      | `backend/`        | Node 20 + Fastify | HTTP API      |
 | User Frontend    | `frontend/`       | Nuxt 4 SSR        | Public site   |
 | Admin Frontend   | `admin-frontend/` | Nuxt 4 SSR        | Admin panel   |
+| Marketplace      | `marketplace/`    | Nuxt 4 SSR        | Plug Market consignment site |
 
 > The backend service was historically deployed as an external service. The config is included here for parity; skip creating the Railway service if you deploy it elsewhere.
 
@@ -14,7 +15,7 @@ This repo is a monorepo containing three deployable services. Each service has i
 
 1. In the Railway dashboard, create a new project and connect it to this GitHub repo.
 2. For **each** service you want to deploy, add a new service from the same repo and set:
-   - **Root Directory**: `backend`, `frontend`, or `admin-frontend`
+   - **Root Directory**: `backend`, `frontend`, `admin-frontend`, or `marketplace`
    - **Config file path**: `railway.json` (default)
 3. Add a **Postgres** plugin (used by the backend via `DATABASE_URL`) and a **Redis** plugin (used by the backend via `REDIS_URL`) if you are deploying the backend service here instead of using Supabase/an external Redis.
 4. Set the service environment variables described below.
@@ -32,6 +33,7 @@ This repo is a monorepo containing three deployable services. Each service has i
 | `ADMIN_URL`           | yes      | Public URL of the admin frontend (used for CORS)                      |
 | `NODE_ENV`            | yes      | `production`                                                          |
 | `SENTRY_DSN`          | no       | Server-side Sentry DSN                                                |
+| `SENTRY_ENVIRONMENT`  | no       | Overrides the Sentry `environment` tag; falls back to `NODE_ENV`     |
 
 Railway sets `PORT` automatically; the server binds to `0.0.0.0:$PORT`.
 
@@ -44,8 +46,15 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | `NUXT_PUBLIC_SUPABASE_URL`   | yes      | Supabase project URL                                 |
 | `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
 | `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
-| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
+| `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
+| `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
 
 ### Admin Frontend (`admin-frontend/`)
 
@@ -55,8 +64,36 @@ Health check: `GET /health` (returns 200 when Postgres + Redis are reachable).
 | `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
 | `SUPABASE_SECRET_KEY`        | yes      | Service role key (admin-only, never expose client)   |
 | `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
-| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Client-side Sentry DSN                               |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
 | `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
+| `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
+| `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
+
+### Marketplace (`marketplace/`)
+
+| Variable                     | Required | Notes                                                |
+| ---------------------------- | -------- | ---------------------------------------------------- |
+| `NUXT_PUBLIC_SUPABASE_URL`   | yes      | Supabase project URL                                 |
+| `NUXT_PUBLIC_SUPABASE_KEY`   | yes      | Supabase anon key                                    |
+| `NUXT_PUBLIC_API_BASE`       | yes      | Public URL of the backend service                    |
+| `STRIPE_SECRET_KEY`          | yes      | Stripe Connect secret key (seller onboarding)         |
+| `STRIPE_PUBLISHABLE_KEY`     | yes      | Stripe Connect publishable key                        |
+| `STRIPE_WEBHOOK_SECRET`      | yes      | Stripe webhook signing secret                          |
+| `STRIPE_CONNECT_CLIENT_ID`   | yes      | Stripe Connect OAuth client ID                         |
+| `NUXT_PUBLIC_SENTRY_DSN`     | no       | Sentry DSN exposed to Vue components via `useRuntimeConfig().public` |
+| `VITE_SENTRY_DSN`            | **yes*** | Sentry DSN read by `sentry.client.config.ts` via `import.meta.env` — this is the one that actually makes client-side (browser) error capture work; without it, `Sentry.init()` silently runs with no DSN and no client-side events are ever sent |
+| `SENTRY_DSN`                 | no       | SSR Sentry DSN                                       |
+| `SENTRY_ENVIRONMENT`         | no       | SSR Sentry `environment` tag; falls back to `NODE_ENV` |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | no   | Environment tag exposed to Vue components via `useRuntimeConfig().public`; not read by `sentry.client.config.ts` |
+| `VITE_SENTRY_ENVIRONMENT`    | no       | Client-side Sentry `environment` tag actually used by `sentry.client.config.ts`; falls back to `NODE_ENV` |
+| `SENTRY_AUTH_TOKEN`          | no       | Required in production for readable (non-minified) stack traces — enables source-map upload during build |
+
+\* Required for client-side error capture to actually work — see the note on `VITE_SENTRY_DSN` above.
 
 Nuxt's Nitro server binds to `0.0.0.0:$PORT` automatically on Railway.
 
@@ -64,8 +101,8 @@ Nuxt's Nitro server binds to `0.0.0.0:$PORT` automatically on Railway.
 
 Each `railway.json` sets:
 
-- **Backend** — build: `pnpm install --frozen-lockfile`, start: `node src/index.js`
-- **Frontend / Admin Frontend** — build: `pnpm install --frozen-lockfile && pnpm build`, start: `node .output/server/index.mjs`
+- **Backend** — build: `pnpm install --frozen-lockfile`, start: `node --import ./src/instrument.js src/index.js` (the `--import` flag loads Sentry before any other code runs)
+- **Frontend / Admin Frontend / Marketplace** — build: `pnpm install --frozen-lockfile && pnpm build`, start: `node .output/server/index.mjs`
 
 ## Database migrations
 

@@ -103,6 +103,7 @@ export default defineNuxtConfig({
   sentry: {
     org: 'yourplug',
     project: 'marketplace-nuxt',
+    authToken: process.env.SENTRY_AUTH_TOKEN
   },
 
   sourcemap: {
