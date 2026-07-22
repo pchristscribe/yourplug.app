@@ -117,7 +117,7 @@ async function handleSignIn(provider: Provider) {
     await signInWithOAuth(provider)
   }
   catch (err) {
-    error.value = err instanceof Error ? err.message : "That didn't go through. Try again, or pick a different way in."
+    error.value = err instanceof Error ? err.message : 'Sign-in failed. Please try again.'
     loading.value = null
   }
 }

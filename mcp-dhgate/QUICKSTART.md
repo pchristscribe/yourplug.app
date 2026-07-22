@@ -43,7 +43,9 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "dhgate": {
       "command": "node",
-      "args": ["/Users/pscribbler/yourplug/mcp-dhgate/dist/index.js"],
+      "args": [
+        "/Users/pscribbler/ProjectXY/mcp-dhgate/dist/index.js"
+      ],
       "env": {
         "DHGATE_API_TOKEN": "your_token_here"
       }
@@ -65,7 +67,6 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 Try these commands in Claude Desktop:
 
 ### Test 1: Basic Search
-
 ```
 Search DHgate for "wireless headphones" sorted by rating
 ```
@@ -73,7 +74,6 @@ Search DHgate for "wireless headphones" sorted by rating
 Expected: List of wireless headphones with ratings and prices
 
 ### Test 2: With Filters
-
 ```
 Find "smart watch" products with free shipping and high ratings
 ```
@@ -81,7 +81,6 @@ Find "smart watch" products with free shipping and high ratings
 Expected: Filtered list of highly-rated smart watches with free shipping
 
 ### Test 3: Generate Affiliate Link
-
 ```
 Generate an affiliate link for this DHgate product:
 https://www.dhgate.com/product/example/123456.html
@@ -94,16 +93,14 @@ Expected: Tracked affiliate URL with FTC compliance reminder
 ### ❌ Server Not Appearing in Claude
 
 **Check**:
-
 1. Is the path in `claude_desktop_config.json` absolute?
 2. Does `dist/index.js` exist?
 3. Did you restart Claude Desktop?
 
 **Fix**:
-
 ```bash
 # Verify file exists
-ls /Users/pscribbler/yourplug/mcp-dhgate/dist/index.js
+ls /Users/pscribbler/ProjectXY/mcp-dhgate/dist/index.js
 
 # Check for typos in JSON config
 cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
@@ -114,7 +111,6 @@ cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
 **Error**: `API authentication failed`
 
 **Fix**:
-
 1. Verify token in .env file
 2. Verify token in claude_desktop_config.json
 3. Check token is valid at TMAPI console
@@ -125,7 +121,6 @@ cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
 **Error**: `No products found`
 
 **Fix**:
-
 - Try different keywords
 - Remove filters (free_shipping, high_rating)
 - Check DHgate actually has those products
@@ -149,7 +144,6 @@ To generate working affiliate links:
 ### 2. Test with Your yourplug Use Case
 
 Try realistic queries:
-
 - "Find trending men's fashion accessories under $30"
 - "Search for high-rated electronics with free shipping"
 - "Compare wireless earbuds by price and rating"
@@ -173,7 +167,6 @@ The MCP server can be used by any MCP client. To integrate with your Nuxt fronte
 ## Common Workflows
 
 ### Workflow 1: Find Products for Review
-
 ```
 1. Search for products in category
 2. Filter by high rating and free shipping
@@ -183,7 +176,6 @@ The MCP server can be used by any MCP client. To integrate with your Nuxt fronte
 ```
 
 ### Workflow 2: Compare Products
-
 ```
 1. Search for product type
 2. Get details for multiple products
@@ -192,7 +184,6 @@ The MCP server can be used by any MCP client. To integrate with your Nuxt fronte
 ```
 
 ### Workflow 3: Seasonal Recommendations
-
 ```
 1. Search by season keywords ("summer", "winter")
 2. Sort by sales to find trending
@@ -204,7 +195,7 @@ The MCP server can be used by any MCP client. To integrate with your Nuxt fronte
 ## Resources
 
 - **Main Documentation**: README.md
-- **API Documentation**: src/tools/\*.ts (inline comments)
+- **API Documentation**: src/tools/*.ts (inline comments)
 - **Evaluations**: evaluations/README.md
 - **MCP Protocol**: https://modelcontextprotocol.io
 - **TMAPI Docs**: https://tmapi.top/docs

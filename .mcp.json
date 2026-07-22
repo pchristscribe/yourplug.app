@@ -8,5 +8,9 @@
         "vuejs/core"
       ]
     },
-  }	
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=oqkfirmzkdfkfcvzqipo&features=branching%2Cfunctions%2Cdevelopment%2Cdebugging%2Cdatabase%2Cdocs"
+    }
+  }
 }

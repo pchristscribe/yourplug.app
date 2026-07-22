@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-fi
-
 set -euo pipefail
 
 if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
