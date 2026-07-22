@@ -185,7 +185,7 @@ See `.env.example` for the full list. Notable ones beyond the obvious Supabase/D
 - No semicolons, single quotes, no unnecessary curly braces, 2-space indentation
 - Import order: external → internal → types
 - Use `defineNuxtConfig` (not raw Nuxt options); access env vars via `useRuntimeConfig()`
-- Never run browser-only code at module level — SSR will fail; guard with `process.client` or `onMounted` (see `TECH_DEBT.md` #3 for a real regression caused by a composable called at module scope)
+- Never run browser-only code at module level — SSR will fail; guard with `process.client` or `onMounted` (a `useRateLimit`-at-module-scope regression caused exactly this — see the audit-history note at the top of `TECH_DEBT.md`)
 - CSRF tokens required for state-mutating admin-frontend requests
 - FTC disclosure required on all affiliate links and sponsored/marketplace content
 
