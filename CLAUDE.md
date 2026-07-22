@@ -35,7 +35,7 @@ yourplug-fullstack/
 
 `backend-security-reference/` is reference material only — never modify it; backend feature work happens in `backend/`.
 
-Note: `marketplace/` is the newest workspace and is **not yet wired into `ci.yml`/`test.yml`** (those matrices cover `frontend`, `admin-frontend`, and a separate `backend-test` job only). Run its tests manually when touching that workspace.
+Note: `marketplace/` is the newest workspace. It's in `ci.yml`'s security-audit, unit-test, and build matrices, but has **no Playwright e2e job and no lint gate** (`eslint.yml` is frontend-only), so run its e2e/lint manually when touching that workspace.
 
 ## Commands
 
@@ -149,13 +149,12 @@ Migrations run in numeric order and are the schema source of truth (currently 00
 
 ## CI
 
-- `ci.yml` — security audit + unit tests for `frontend`/`admin-frontend`, a separate `backend-test` job (spins up real Postgres 16 + Redis 7 service containers, applies all `supabase/migrations/*.sql` plus stubbed `auth`/`storage` schemas, then runs backend vitest), e2e (Playwright, `frontend`/`admin-frontend`, gated behind repo var `E2E_ENABLED`), and a build-verification job.
-- `test.yml` — separate frontend/admin-frontend/backend test jobs.
+- `ci.yml` — security audit, unit tests, and build verification, each a matrix across `frontend`/`admin-frontend`/`marketplace`/`mcp-dhgate`; a separate `backend-test` job (spins up real Postgres 16 + Redis 7 service containers, applies all `supabase/migrations/*.sql` plus stubbed `auth`/`storage` schemas, then runs backend vitest); and e2e (Playwright, `frontend`/`admin-frontend` only, gated behind repo var `E2E_ENABLED`). This absorbed the old `test.yml`, which no longer exists.
 - `eslint.yml` — SARIF lint scan, currently `frontend` only.
 - `nightly-e2e.yml` — unconditional nightly Playwright run for `frontend`/`admin-frontend`.
 - `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `dependabot-auto-merge.yml`.
 
-`marketplace` is not present in any of the above — no CI test/build/lint gate covers it yet.
+`marketplace` is covered by `ci.yml`'s security-audit, unit-test, and build-verification matrices, but has no Playwright e2e job and isn't included in the `eslint.yml` SARIF scan (frontend-only).
 
 ## Design System
 
