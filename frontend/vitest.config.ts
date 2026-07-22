@@ -20,9 +20,14 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '~': fileURLToPath(new URL('./', import.meta.url)),
-      '@': fileURLToPath(new URL('./', import.meta.url)),
-    },
+    // Nuxt 4 keeps sources in ./app, so '~' and '@' must resolve there.
+    // The '~/app/*' forms are matched first so existing imports of both
+    // shapes keep working. Order matters: vite tries these in sequence.
+    alias: [
+      { find: /^~\/app\//, replacement: fileURLToPath(new URL('./app/', import.meta.url)) },
+      { find: /^@\/app\//, replacement: fileURLToPath(new URL('./app/', import.meta.url)) },
+      { find: /^~\//, replacement: fileURLToPath(new URL('./app/', import.meta.url)) },
+      { find: /^@\//, replacement: fileURLToPath(new URL('./app/', import.meta.url)) },
+    ],
   },
 })
