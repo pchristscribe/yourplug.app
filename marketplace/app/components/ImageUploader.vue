@@ -35,6 +35,9 @@
 </template>
 
 <script setup lang="ts">
+// Explicit vue import (rather than Nuxt auto-import) so the component also
+// works under plain vitest/SSR test environments
+import { ref } from 'vue'
 import { parse as parseExif } from 'exifr'
 
 const props = defineProps<{

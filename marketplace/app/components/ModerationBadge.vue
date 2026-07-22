@@ -5,6 +5,9 @@
 </template>
 
 <script setup lang="ts">
+// Explicit import (rather than Nuxt auto-import) so the component also
+// works under plain vitest/SSR test environments
+import { computed } from 'vue'
 import type { ModerationDecision } from '~/types/listings'
 
 const props = defineProps<{ status: ModerationDecision }>()
