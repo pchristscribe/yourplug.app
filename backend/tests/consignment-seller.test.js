@@ -44,6 +44,15 @@ vi.mock('../src/lib/moderation.js', () => ({
   runFullModeration: (...a) => runFullModeration(...a),
 }))
 
+// Keep the real freshness *policy* (checkFreshness) but control the EXIF
+// timestamp, so the route's handling is tested without hand-rolling a JPEG
+// with a valid APP1/EXIF segment.
+const extractExifDateMock = vi.fn(() => null)
+vi.mock('../src/lib/imageFreshness.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, extractExifDate: (...a) => extractExifDateMock(...a) }
+})
+
 const { buildApp } = await import('../src/app.js')
 
 function makeRedis() {
@@ -112,6 +121,8 @@ beforeEach(() => {
   getSignedUrl.mockImplementation(async (p) => `https://signed/${p}`)
   createConnectedAccount.mockResolvedValue({ id: 'acct_123' })
   createOnboardingLink.mockResolvedValue({ url: 'https://stripe/onboard' })
+  // Default: a freshly captured photo, so upload tests exercise the happy path.
+  extractExifDateMock.mockReturnValue(new Date())
 })
 
 describe('seller routes — authentication', () => {
@@ -498,6 +509,67 @@ describe('POST /api/consignment/seller/listings/:id/images', () => {
     expect(res.statusCode).toBe(201)
     expect(uploadImage).toHaveBeenCalledTimes(1)
     expect(moderateImage).toHaveBeenCalledTimes(1)
+    await app.close()
+  })
+
+  it('rejects an image with no parseable EXIF timestamp', async () => {
+    // Deliberate anti-reuse policy: a missing capture time is treated as too
+    // old, otherwise a seller could bypass the 15-minute gate by stripping EXIF.
+    extractExifDateMock.mockReturnValue(null)
+    const app = await makeApp((q) => {
+      if (q.includes('select id, title, category, seller_id')) return [listingRow()]
+    })
+    const mp = multipart('a.jpg', 'image/jpeg')
+    const res = await app.inject({
+      method: 'POST', url: `/api/consignment/seller/listings/${LISTING_ID}/images`, ...mp,
+    })
+    expect(res.statusCode).toBe(422)
+    expect(JSON.parse(res.body).error).toBe('IMAGE_TOO_OLD')
+    expect(uploadImage).not.toHaveBeenCalled()
+    await app.close()
+  })
+
+  it('rejects a photo captured more than 15 minutes ago', async () => {
+    extractExifDateMock.mockReturnValue(new Date(Date.now() - 16 * 60 * 1000))
+    const app = await makeApp((q) => {
+      if (q.includes('select id, title, category, seller_id')) return [listingRow()]
+    })
+    const mp = multipart('a.jpg', 'image/jpeg')
+    const res = await app.inject({
+      method: 'POST', url: `/api/consignment/seller/listings/${LISTING_ID}/images`, ...mp,
+    })
+    expect(res.statusCode).toBe(422)
+    expect(JSON.parse(res.body).error).toBe('IMAGE_TOO_OLD')
+    await app.close()
+  })
+
+  it('marks the first image of a listing as primary', async () => {
+    const app = await makeApp((q) => {
+      if (q.includes('select id, title, category, seller_id')) return [listingRow()]
+      if (q.includes('count(*)')) return [{ count: '0' }]
+      if (q.includes('insert into consignment_images')) return [{ id: IMAGE_ID, isPrimary: true }]
+    })
+    const mp = multipart('a.jpg', 'image/jpeg')
+    const res = await app.inject({
+      method: 'POST', url: `/api/consignment/seller/listings/${LISTING_ID}/images`, ...mp,
+    })
+    expect(res.statusCode).toBe(201)
+    expect(JSON.parse(res.body).isPrimary).toBe(true)
+    await app.close()
+  })
+
+  it('does not mark a subsequent image as primary', async () => {
+    const app = await makeApp((q) => {
+      if (q.includes('select id, title, category, seller_id')) return [listingRow()]
+      if (q.includes('count(*)')) return [{ count: '3' }]
+      if (q.includes('insert into consignment_images')) return [{ id: IMAGE_ID, isPrimary: false }]
+    })
+    const mp = multipart('a.jpg', 'image/jpeg')
+    const res = await app.inject({
+      method: 'POST', url: `/api/consignment/seller/listings/${LISTING_ID}/images`, ...mp,
+    })
+    expect(res.statusCode).toBe(201)
+    expect(JSON.parse(res.body).isPrimary).toBe(false)
     await app.close()
   })
 
