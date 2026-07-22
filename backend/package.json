@@ -28,14 +28,14 @@
     "@anthropic-ai/sdk": "^0.112.3",
     "@dotenvx/dotenvx": "^2.14.0",
     "@fastify/cookie": "^11.1.2",
-    "@fastify/cors": "^11.3.0"
+    "@fastify/cors": "^11.3.0",
     "@fastify/env": "^7.0.0",
     "@fastify/helmet": "^13.1.0",
     "@fastify/multipart": "^10.1.0",
     "@fastify/rate-limit": "^11.1.0",
     "@fastify/session": "^11.1.2",
     "@sentry/node": "^10.66.0",
-    "@sentry/profiling-node": "^10.66.0"
+    "@sentry/profiling-node": "^10.66.0",
     "@simplewebauthn/server": "^13.3.2",
     "@supabase/supabase-js": "^2.110.7",
     "bcryptjs": "^3.0.3",
