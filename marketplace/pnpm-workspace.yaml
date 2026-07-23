@@ -1,0 +1,13 @@
+packages:
+  - '.'
+
+# Marketplace deploys to Railway independently, so it installs from this
+# directory (cd marketplace && pnpm install). Without its own workspace file
+# pnpm walks up to the repo-root workspace, which silently ignores the
+# pnpm.overrides in this package's package.json ("will not take effect")
+# — leaving its security overrides unapplied. This file makes the install
+# self-contained, matching frontend/admin-frontend/backend/mcp-dhgate.
+allowBuilds:
+  '@parcel/watcher': true
+  '@sentry/cli': true
+  esbuild: true

@@ -9,7 +9,9 @@ on:
 
 jobs:
   e2e:
-    name: E2E tests (${{ matrix.workspace }})
+    # Distinct from ci.yml's "E2E tests (...)" so the two are
+    # distinguishable in the checks list and in branch-protection rules.
+    name: Nightly E2E tests (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
