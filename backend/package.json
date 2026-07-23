@@ -26,7 +26,7 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.3",
-    "@dotenvx/dotenvx": "^2.14.0",
+    "@dotenvx/dotenvx": "^2.17.2",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/env": "^7.0.0",
