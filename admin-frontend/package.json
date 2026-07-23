@@ -22,7 +22,7 @@
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.4",
     "@pinia/nuxt": "^1.0.1",
-    "@sentry/nuxt": "^10.66.0",
+    "@sentry/nuxt": "^10.67.0",
     "@simplewebauthn/browser": "^13.2.2",
     "nuxt": "^4.5.0",
     "pinia": "^4.0.2",
