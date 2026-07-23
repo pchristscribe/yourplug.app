@@ -9,18 +9,20 @@ on:
 
 jobs:
   e2e:
-    name: E2E tests (${{ matrix.workspace }})
+    # Distinct from ci.yml's "E2E tests (...)" so the two are
+    # distinguishable in the checks list and in branch-protection rules.
+    name: Nightly E2E tests (${{ matrix.workspace }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         workspace: [frontend, admin-frontend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm

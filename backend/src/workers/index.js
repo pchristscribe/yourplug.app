@@ -3,7 +3,7 @@ import Queue from 'bull'
 import sql from '../lib/sql.js'
 import redis from '../lib/redis.js'
 import { cleanupExpiredChallenges } from '../utils/cleanupExpiredChallenges.js'
-import { initSentry, captureException, flushSentry } from '../lib/sentry.js'
+import { captureException, flushSentry } from '../lib/sentry.js'
 
 // Re-use the existing Redis connection config
 const redisConfig = {
@@ -70,11 +70,7 @@ const shutdownGracefully = async (signal) => {
 process.on('SIGINT', shutdownGracefully)
 process.on('SIGTERM', shutdownGracefully)
 
-// Bootstrap: initialize Sentry (no fastify instance needed for worker)
-if (process.env.SENTRY_DSN) {
-  const { default: Sentry } = await import('@sentry/node')
-  Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV || 'production' })
-}
+// Sentry is already initialized via --import ./src/instrument.js (see package.json's `worker` script)
 
 await scheduleJobs()
 console.log('Worker ready — processing queues…')

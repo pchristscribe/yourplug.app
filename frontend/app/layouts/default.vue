@@ -91,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import type { Product } from '~/types'
 import { getCurrentSeason } from '~/utils/seasons'
 import AffiliateDisclosure from '~/components/AffiliateDisclosure.vue'

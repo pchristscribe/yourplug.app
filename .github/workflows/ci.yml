@@ -29,7 +29,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm
@@ -53,7 +53,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm
@@ -96,7 +96,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm
@@ -111,7 +111,7 @@ jobs:
           # reference auth.role() (RLS policies) or storage.buckets
           # (013_consignment_storage_bucket.sql) succeed against plain
           # Postgres in CI.
-          psql postgresql://yourplug:test@localhost:5432/yourplug_test \
+          psql -v ON_ERROR_STOP=1 postgresql://yourplug:test@localhost:5432/yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
@@ -119,9 +119,12 @@ jobs:
             -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);" \
             -c "CREATE SCHEMA IF NOT EXISTS storage;" \
             -c "CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);"
+          # ON_ERROR_STOP is essential: psql exits 0 on SQL errors without it,
+          # so a failed migration would silently leave an empty schema and the
+          # test job would still report success.
           find supabase/migrations -name '*.sql' -print0 | sort -zV | \
             xargs -0 cat | \
-            psql postgresql://yourplug:test@localhost:5432/yourplug_test -1
+            psql -v ON_ERROR_STOP=1 postgresql://yourplug:test@localhost:5432/yourplug_test -1
         env:
           PGPASSWORD: test
       - name: Run tests
@@ -148,7 +151,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm
@@ -187,7 +190,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm

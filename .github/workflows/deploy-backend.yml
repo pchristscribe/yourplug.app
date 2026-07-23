@@ -45,7 +45,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: pnpm
@@ -60,15 +60,24 @@ jobs:
           PGPASSWORD: test_password
         run: |
           set -euo pipefail
-          psql -h localhost -U yourplug -d yourplug_test \
+          # Must stay in sync with the identical bootstrap in ci.yml. The
+          # storage stub is required by 013_consignment_storage_bucket.sql,
+          # which inserts into storage.buckets; without it that migration
+          # errors and -1 rolls the whole batch back.
+          psql -v ON_ERROR_STOP=1 -h localhost -U yourplug -d yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid \$\$;" \
             -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
-            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);"
+            -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);" \
+            -c "CREATE SCHEMA IF NOT EXISTS storage;" \
+            -c "CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);"
+          # ON_ERROR_STOP is essential: psql exits 0 on SQL errors without it,
+          # so a failed migration would silently leave an empty schema and the
+          # test job would still report success.
           find supabase/migrations -name '*.sql' -print0 | sort -zV | \
             xargs -0 cat | \
-            psql -h localhost -U yourplug -d yourplug_test -1
+            psql -v ON_ERROR_STOP=1 -h localhost -U yourplug -d yourplug_test -1
 
       - name: Run tests
         working-directory: backend
@@ -88,7 +97,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
