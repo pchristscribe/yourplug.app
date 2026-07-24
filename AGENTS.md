@@ -1,464 +1,209 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to Codex when working with code in this repository. It mirrors `CLAUDE.md` — keep the two in sync when structure changes.
 
 ## Project Overview
 
-yourplug App is an affiliate marketing platform targeting gay men, curating products from DHgate, AliExpress, Amazon, and Wish. Features include:
-- Product reviews and seasonal recommendations
+yourplug App is an affiliate marketing + peer-to-peer consignment platform targeting gay men. It curates products from DHgate, AliExpress, Amazon, and Wish, and (via "Plug Market") lets users list and sell their own secondhand items through a Stripe Connect marketplace.
+
+- Product reviews, seasonal recommendations, blog posts
 - Targeted drop shipping on DHgate for group orders
+- Plug Market: peer-to-peer consignment listings, offers, seller Stripe onboarding, admin moderation
 - FTC-compliant disclosure of affiliate relationships and monetary considerations
 
 ## Repository Structure
 
+This is a pnpm monorepo (`pnpm-workspace.yaml`) with five workspace packages plus Supabase/infra glue:
+
 ```
 yourplug-fullstack/
-├── admin-frontend/            # Admin panel with WebAuthn authentication (Port 3002)
-├── frontend/                  # User-facing product catalog (Port 3000)
-├── backend/                   # Fastify API (postgres-js → Supabase + Redis + WebAuthn) — deployable via Railway
-├── backend-security-reference/ # Security reference implementation (middleware, routes, utils)
-├── mcp-dhgate/                # DHgate MCP server for product scraping
+├── frontend/                   # User-facing product catalog (Nuxt 4, port 3000)
+├── admin-frontend/             # Admin panel, WebAuthn auth (Nuxt 4, port 3002)
+├── marketplace/                # "Plug Market" consignment app (Nuxt 4, port 3003)
+├── backend/                    # Fastify API + background worker (port 3001) — deployable via Railway
+├── mcp-dhgate/                 # DHgate MCP server for product scraping
+├── backend-security-reference/ # Read-only security reference — do not edit
 ├── supabase/
-│   ├── migrations/            # Supabase DB migrations (001 schema, 002 clicks ledger, 003 reviews, 004 admin WebAuthn, 008 user profiles, 009 product variants, 010 blog posts, 011 security fixes)
-│   ├── functions/             # Edge functions (e.g. track-click)
+│   ├── migrations/             # SQL migrations, source of truth for DB schema
+│   ├── functions/              # Edge functions (e.g. track-click)
 │   └── config.toml
-├── scripts/                   # Helper scripts (migrate.sh, backup-db.sh)
-├── keys/                      # Key storage (see README inside)
-├── .github/workflows/         # CI/CD: ci.yml, deploy-backend.yml, claude.yml, claude-code-review.yml, eslint.yml
-├── docker-compose.yml         # PostgreSQL 16 + Redis 7 infrastructure
-├── package.json               # Root meta-package (pnpm + Supabase CLI tooling glue)
-├── .env.example               # Environment variable template
-└── .mcp.json                  # MCP server config (DeepGraph Vue MCP)
+├── scripts/                    # migrate.sh, backup-db.sh
+├── setup                       # One-shot dev bootstrap script (see below)
+├── docker-compose.yml          # PostgreSQL 16 + Redis 7
+└── .mcp.json                   # MCP servers: DeepGraph Vue MCP, Supabase
 ```
 
-**Backend status**: The Fastify backend lives in this repo and has its own `railway.json`. Historically it was deployed externally; either path is supported (see `RAILWAY.md`). When developing backend features, work inside `backend/` — do not touch `backend-security-reference/`, which is read-only reference material.
+`backend-security-reference/` is reference material only — never modify it; backend feature work happens in `backend/`.
 
-## Tech Stack
+Note: `marketplace/` is the newest workspace. It's in `ci.yml`'s security-audit, unit-test, and build matrices, but has **no Playwright e2e job and no lint gate** (`eslint.yml` is frontend-only), so run its e2e/lint manually when touching that workspace.
 
-### Admin Frontend (`admin-frontend/`)
-- **Framework**: Nuxt 4 (Vue 3 + SSR), `compatibilityDate: '2025-11-29'`
-- **Port**: 3002 (HMR: 24678)
-- **Modules**: `@pinia/nuxt`, `@nuxtjs/tailwindcss`, `@nuxtjs/supabase`
-- **Auth**: WebAuthn via `@simplewebauthn/browser@^13.2.2` (primary: security keys/Touch ID; fallback: email + password)
-- **Monitoring**: Sentry (`@sentry/nuxt`)
-- **Testing**: Vitest + Vue Test Utils + happy-dom
-- **Security**: CSRF protection, CSP headers configured in `nuxt.config.ts`
+## Commands
 
-### User Frontend (`frontend/`)
-- **Framework**: Nuxt 4 (Vue 3 + SSR), `compatibilityDate: '2025-07-15'`
-- **Port**: 3000 (HMR: 24677)
-- **Modules**: `@nuxtjs/tailwindcss`, `@pinia/nuxt`, `nuxt-headlessui` (prefix: `Headless`), `@nuxtjs/supabase`
-- **Auth**: Supabase social OAuth (Google, GitHub, Discord) via `@supabase/supabase-js`
-- **Monitoring**: Sentry (`@sentry/nuxt`)
-- **Testing**: Vitest + Vue Test Utils + happy-dom; Playwright for e2e (`test:e2e`)
-- **Linting**: ESLint with typescript-eslint, eslint-plugin-vue
-
-### Backend API (`backend/`)
-- Runtime: Node.js 24+, Framework: Fastify 5
-- Database: PostgreSQL via [`postgres-js`](https://github.com/porsager/postgres) — direct queries against Supabase Postgres. Schema source of truth lives in `supabase/migrations/`. The Fastify instance is decorated with a `sql` client (`fastify.sql`) configured with `transform: postgres.camel` so DB columns are returned as camelCase
-- Sessions: `@fastify/session` + `connect-redis` (Redis-backed)
-- Task Queue: Bull (Redis-backed)
-- WebAuthn: `@simplewebauthn/server` (admin auth)
-- Monitoring: Sentry (`@sentry/node`, `@sentry/profiling-node`)
-- Routes: `src/routes/products.js`, `src/routes/categories.js`, `src/routes/blog-posts.js`, and seven admin routes: `src/routes/admin/auth.js`, `categories.js`, `products.js`, `reviews.js`, `webauthn.js`, `blog-posts.js`, `product-variants.js`
-- Health check: `GET /health` (verifies Postgres + Redis)
-
-### Infrastructure
-- Docker Compose: PostgreSQL 16 (`yourplug-postgres`) + Redis 7 (`yourplug-redis`)
-- Production: Railway (all three services — see `RAILWAY.md`), Supabase (managed Postgres + Auth + Edge Functions), Sentry (monitoring).
-- CI/CD: GitHub Actions (`ci.yml`, `test.yml`, `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `eslint.yml`)
-
-## Directory Deep-Dive
-
-### Admin Frontend (`admin-frontend/`)
-
-```
-admin-frontend/
-├── app/
-│   ├── components/
-│   │   └── DarkModeToggle.vue
-│   ├── composables/
-│   │   ├── useCsrf.ts           # CSRF token management
-│   │   ├── useDarkMode.ts       # Dark/light mode toggle
-│   │   ├── useRateLimit.ts      # Client-side rate limiter (5/min, 5-min lockout)
-│   │   └── useSupabaseAdmin.ts  # Supabase admin utilities
-│   ├── layouts/
-│   │   └── default.vue
-│   ├── middleware/
-│   │   └── auth.ts              # Route guard for authenticated pages
-│   ├── pages/
-│   │   ├── index.vue            # Dashboard
-│   │   ├── login.vue            # WebAuthn / password login
-│   │   ├── products/index.vue   # Product management
-│   │   ├── categories.vue       # Category management
-│   │   ├── reviews.vue          # Review moderation
-│   │   ├── diagnostic.vue       # Diagnostic tools
-│   │   └── test-webauthn.vue    # WebAuthn testing page
-│   ├── stores/
-│   │   └── auth.ts              # Pinia auth store
-│   ├── types/
-│   │   ├── database.types.ts    # Supabase-generated DB types
-│   │   └── supabase.ts          # Supabase client types
-│   └── utils/
-│       └── security.ts          # Security helpers
-├── tests/
-│   ├── auth.test.ts             # WebAuthn + password auth tests (174+ total)
-│   ├── darkMode.test.ts
-│   └── security.test.ts
-├── nuxt.config.ts
-├── tailwind.config.js
-├── vitest.config.ts
-├── playwright.config.ts         # E2E config
-├── sentry.client.config.ts
-├── sentry.server.config.ts
-└── railway.json                 # Railway deploy config
-```
-
-### User Frontend (`frontend/`)
-
-```
-frontend/
-├── app/
-│   ├── components/
-│   │   ├── ProductCard.vue
-│   │   ├── ProductCardSimple.vue
-│   │   ├── ProductGrid.vue
-│   │   ├── SearchBar.vue
-│   │   ├── Pagination.vue
-│   │   ├── DarkModeToggle.vue
-│   │   ├── SocialAuth.vue            # Supabase OAuth buttons (Google, GitHub, Discord)
-│   │   ├── feedback/
-│   │   │   ├── AppToast.vue
-│   │   │   ├── AppToastContainer.vue
-│   │   │   ├── AppModal.vue
-│   │   │   └── AppAlert.vue
-│   │   └── filters/
-│   │       ├── ProductFilters.vue    # Main filter container
-│   │       ├── CategoryFilter.vue
-│   │       ├── PriceRangeFilter.vue
-│   │       ├── RatingFilter.vue
-│   │       └── SortingControls.vue
-│   ├── composables/
-│   │   ├── useDarkMode.ts
-│   │   ├── useAuth.ts                # Supabase OAuth sign-in / sign-out
-│   │   ├── useToast.ts               # Toast notification system
-│   │   └── useSupabaseProducts.ts    # Supabase product fetching
-│   ├── layouts/
-│   │   └── default.vue
-│   ├── pages/
-│   │   ├── index.vue                 # Product catalog home
-│   │   ├── login.vue                 # OAuth sign-in
-│   │   ├── confirm.vue               # OAuth redirect handler
-│   │   ├── products/[id].vue         # Product detail (dynamic route)
-│   │   ├── seasonal/[season].vue     # Seasonal product page
-│   │   └── search-demo.vue           # Search demonstration
-│   ├── stores/
-│   │   ├── filters.ts   # Filter state (category, platform, price, rating, sort)
-│   │   └── products.ts  # Product catalog
-│   ├── types/
-│   │   ├── index.ts
-│   │   ├── filters.ts
-│   │   ├── database.types.ts
-│   │   └── supabase.ts
-│   └── utils/
-│       └── seasons.ts                # Season name + date helpers
-├── tests/
-│   ├── ProductCard.test.ts
-│   ├── ProductCardSimple.test.ts
-│   ├── SearchBar.test.ts
-│   ├── darkMode.test.ts
-│   ├── filters.test.ts
-│   ├── stores.test.ts
-│   ├── types.test.ts
-│   ├── useToast.test.ts
-│   └── components/
-├── nuxt.config.ts
-├── tailwind.config.js
-├── vitest.config.ts
-├── playwright.config.ts             # E2E config
-├── eslint.config.ts
-├── tsconfig.json
-└── railway.json                     # Railway deploy config
-```
-
-### Backend API (`backend/`)
-
-```
-backend/
-├── src/
-│   ├── index.js               # Server entry (Fastify, binds 0.0.0.0:$PORT)
-│   ├── app.js                 # Plugin/route registration
-│   ├── lib/
-│   │   ├── __tests__/         # Unit tests for lib modules (e.g. sentry.test.js)
-│   │   ├── sql.js             # postgres-js client singleton (camel transform)
-│   │   ├── redis.js           # ioredis client
-│   │   ├── sessionStore.js    # connect-redis store
-│   │   └── sentry.js
-│   ├── middleware/adminAuth.js
-│   ├── routes/
-│   │   ├── products.js
-│   │   ├── categories.js
-│   │   └── admin/
-│   │       ├── auth.js
-│   │       ├── categories.js
-│   │       ├── products.js
-│   │       ├── reviews.js
-│   │       ├── webauthn.js
-│   │       ├── blog-posts.js
-│   │       └── product-variants.js
-│   ├── schemas/
-│   │   ├── review.js          # Fastify JSON schema
-│   │   └── category.js        # Fastify JSON schema
-│   └── utils/cleanupExpiredChallenges.js
-├── tests/                     # Vitest unit tests
-├── package.json
-├── railway.json
-└── vitest.config.js
-```
-
-### DHgate MCP Server (`mcp-dhgate/`)
-
-MCP server for scraping DHgate product data. Has its own `src/` with `index.ts`, `tools/`, `types.ts`, `utils/`, `api/`, and `config.ts`. Configured in `.mcp.json` via `DeepGraph Vue MCP` alongside this tool.
-
-### Supabase (`supabase/`)
-
-- `config.toml` — local Supabase CLI config
-- `migrations/` — SQL migrations (`001_initial_schema.sql`, `002_clicks_ledger.sql`, `003_reviews.sql`, `004_admin_webauthn.sql`, `008_user_profiles.sql`, `009_product_variants.sql`, `010_blog_posts.sql`, `011_security_fixes.sql`)
-- `functions/track-click/` — Edge Function that records affiliate-link clicks into the clicks ledger
-
-## Development Setup
-
-### Initial Setup
-1. Copy `.env.example` to `.env` and fill in values
-2. Start infrastructure:
-   ```bash
-   docker-compose up -d
-   docker-compose ps   # verify healthy
-   ```
-
-### Frontend Development
+### Bootstrap
 
 ```bash
-# Admin Panel (http://localhost:3002)
-cd admin-frontend && pnpm install && pnpm dev
-
-# User Frontend (http://localhost:3000)
-cd frontend && pnpm install && pnpm dev
+./setup                       # install all workspaces, create .env, start Docker infra
+./setup --no-docker           # skip starting Postgres/Redis
+./setup --workspace backend   # set up a single workspace
+./setup --check               # verify prerequisites only, change nothing
 ```
 
-Both frontends can run concurrently — they use separate HMR ports (24678 and 24677).
-
-### Backend Development
+### Per-workspace dev/build/test (run inside `frontend/`, `admin-frontend/`, `marketplace/`, or `backend/`)
 
 ```bash
-cd backend
 pnpm install
-pnpm dev                    # Start Fastify with --watch (default :3001)
+pnpm dev                # backend: Fastify with --watch; others: nuxt dev
+pnpm build               # frontends only: nuxt build
+pnpm test                # vitest run (all unit tests)
+pnpm test:watch          # vitest watch mode
+pnpm test:ui             # vitest UI
+pnpm test:coverage       # vitest run --coverage
 ```
 
-`DATABASE_URL` should point at Supabase Postgres (production: pooler URL with `?sslmode=require`; local dev: docker-compose Postgres). Schema migrations live in `supabase/migrations/` and are applied via `scripts/migrate.sh` — the backend has no migration runner of its own.
-
-### Running Tests
+Run a single test file or test name with vitest directly, e.g.:
 
 ```bash
-# Admin Frontend / User Frontend / Backend
-cd <workspace>
-pnpm test              # Run all unit tests (Vitest)
-pnpm test:watch        # Watch mode
-pnpm test:ui           # Vitest UI
-pnpm test:coverage     # Coverage report
+pnpm vitest run tests/filters.test.ts
+pnpm vitest run -t "some test name"
+```
 
-# Frontends only — Playwright E2E
+Frontend and admin-frontend also have Playwright e2e (`marketplace` does not):
+
+```bash
 pnpm test:e2e
 pnpm test:e2e:ui
 ```
 
-### Database Management
-```bash
-# PostgreSQL (local Docker)
-docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
+There is no `pnpm lint` script in any workspace. Lint by invoking ESLint directly (flat config, `eslint.config.ts`), e.g. as CI does:
 
-# Redis CLI
+```bash
+pnpm exec eslint .
+```
+
+Backend has an additional long-running worker process (Bull/Redis job queue — see Background Jobs below):
+
+```bash
+cd backend && pnpm worker
+```
+
+### Database
+
+```bash
+docker exec -it yourplug-postgres psql -U yourplug -d yourplug_db
 docker exec -it yourplug-redis redis-cli -a dev_redis_password
 
-# Apply Supabase migrations to the hosted project
+# Apply Supabase migrations to the hosted project (backend has no migration runner of its own)
 SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/migrate.sh
 
-# Local Postgres backup (retains 30 days by default)
-./scripts/backup-db.sh
+./scripts/backup-db.sh   # local Postgres backup, retains 30 days by default
 ```
 
-### Common Docker Commands
+### Docker infra
+
 ```bash
-docker-compose up -d          # Start services
-docker-compose down           # Stop services
-docker-compose logs -f [svc]  # View logs
-docker-compose restart        # Restart services
-docker-compose down -v        # Remove volumes (⚠️ deletes all data)
+docker-compose up -d / down / logs -f [svc] / restart
+docker-compose down -v   # ⚠️ deletes all data
 ```
 
-## Testing & Quality Assurance
+## Architecture
 
-### Test Infrastructure
-- **Framework**: Vitest
-- **DOM**: happy-dom
-- **Component testing**: @vue/test-utils
-- **Coverage**: v8 provider, reports: text/json/html
-- **Path aliases**: `~/`, `@/` (admin also has `#app`)
+### Backend (`backend/`)
 
-### Test Coverage Stats
-- **174+ Tests**: WebAuthn + password auth, input validation, frontend stores, components
-- **52 Security Bugs Identified**: Documented in `VALIDATION_BUGS_FOUND.md`
-- **95% Critical Path Coverage**: All major authentication flows
+Fastify 5 on Node 24+. `fastify.sql` is a `postgres-js` client (`src/lib/sql.js`) configured with `transform: postgres.camel`, so all query results come back camelCase even though the DB columns are snake_case — write raw `sql\`...\`` template queries directly in route handlers, there is no ORM. Schema source of truth is `supabase/migrations/`; the backend has no migration runner itself (`scripts/migrate.sh` applies them to Supabase).
 
-### Key Test Files
+Route groups:
+- `src/routes/products.js`, `categories.js`, `blog-posts.js` — public catalog/content API
+- `src/routes/admin/*` — auth (session + WebAuthn), categories, products, reviews, blog-posts, product-variants, consignment moderation — all gated by `src/middleware/adminAuth.js`
+- `src/routes/consignment/{listings,offers,seller}.js` — public/authenticated Plug Market API (listings browse, offers, seller onboarding/dashboard)
+- `src/routes/stripe-webhooks.js` — Stripe Connect webhook handler
 
-| File | Description |
-|------|-------------|
-| `admin-frontend/tests/auth.test.ts` | WebAuthn + password auth validation (174+ tests) |
-| `admin-frontend/tests/security.test.ts` | Input sanitization, XSS, CSRF |
-| `frontend/tests/filters.test.ts` | Filter store and UI |
-| `frontend/tests/SearchBar.test.ts` | Search component (17.9 KB) |
-| `frontend/tests/ProductCard.test.ts` | Product card component |
-| `frontend/tests/useToast.test.ts` | Toast composable |
-| `frontend/tests/stores.test.ts` | General store tests |
-| `frontend/tests/types.test.ts` | Type safety validation |
+Sessions are Redis-backed (`@fastify/session` + `connect-redis`, `src/lib/sessionStore.js`). WebAuthn (admin-only) uses `@simplewebauthn/server`. Monitoring is Sentry (`@sentry/node`, `@sentry/profiling-node`, init in `src/instrument.js` — loaded via `--import` in both `dev`/`start`/`worker` scripts, not a normal import).
 
-### Testing Requirements for New Features
-- Vitest tests with >80% coverage
-- Input validation tests for all user inputs
-- Error handling tests for API calls
-- SSR safety checks (no browser-only code running server-side)
+**Background jobs**: `src/workers/index.js` is a *separate process* (`pnpm worker`) built on `bull`, connected to the same Redis instance. It currently schedules a recurring `cleanup-expired-challenges` job (removes expired WebAuthn challenges). Running `pnpm dev`/`pnpm start` does **not** start the worker — it must be run separately in production (see `RAILWAY.md`).
+
+**Plug Market / consignment marketplace**: sellers onboard via Stripe Connect Express accounts (`src/lib/stripe.js`, `seller_profiles.stripe_account_id`). Listings go through a moderation pipeline (`listing_status`: `DRAFT` → `PENDING_MODERATION` → `APPROVED`/`REJECTED` → `SOLD`/`ARCHIVED`; separate `moderation_decision` enum) — see `supabase/migrations/012_consignment_marketplace.sql` for the full schema (listings, offers, payment status). Listing images go through `src/lib/imageStorage.js` / `imageFreshness.js` / `moderation.js`.
+
+### Frontends (`frontend/`, `admin-frontend/`, `marketplace/`)
+
+All three are Nuxt 4 (Vue 3 + SSR) with Pinia, `@nuxtjs/tailwindcss`, `@nuxtjs/supabase`, and Sentry (`@sentry/nuxt`), sharing one Tailwind design system (see Design System below). Composables live in `app/composables/` and stores in `app/stores/`, both auto-imported by Nuxt.
+
+| Workspace | Port | HMR port | Auth model |
+|---|---|---|---|
+| `frontend` | 3000 | 24677 | Supabase OAuth (Google/GitHub/Discord) |
+| `admin-frontend` | 3002 | 24678 | WebAuthn primary, password fallback |
+| `marketplace` | 3003 | 24676 | Supabase OAuth session; route guard in `app/middleware/auth.ts` redirects to `/login` if no session |
+
+`marketplace` calls the backend's `consignment` API using bearer tokens: `useAuthHeaders()` pulls the Supabase session's `access_token` and returns an `Authorization: Bearer ...` header, consumed by `useListings`, `useOffers`, `useSeller`, `useSellerAccount`.
+
+`admin-frontend` auth: WebAuthn via `@simplewebauthn/browser` (client) / `@simplewebauthn/server` (backend), with a password fallback (`POST /api/admin/auth/login`, bcrypt) for devices without WebAuthn. Auth store (`app/stores/auth.ts`) exposes `loginWithSecurityKey()`, `loginWithPassword()`, `checkSession()`, `logout()`. `useCsrf` attaches a CSRF token to every mutating request (rotated on login). `useRateLimit` client-side throttles login attempts (5/min, 5-min lockout, shared bucket across both login modes). CSP headers are set in `nuxt.config.ts`.
+
+`frontend` filter store (`app/stores/filters.ts`) maps to URL query params via `toQueryParams()`/`initFromQuery()` for shareable filtered links (category, platform, price 0–500, rating, sort — default `createdAt desc`).
+
+### DHgate MCP Server (`mcp-dhgate/`)
+
+Standalone MCP server (TypeScript) for scraping DHgate product data — `src/index.ts`, `tools/`, `api/`, `types.ts`. Wired into `.mcp.json` alongside the DeepGraph Vue MCP and Supabase MCP servers used by this tool.
+
+### Supabase (`supabase/`)
+
+Migrations run in numeric order and are the schema source of truth (currently 001–013, spanning core schema, admin WebAuthn, reviews, user profiles, product variants, blog posts, security fixes, and the consignment marketplace). `functions/track-click/` is an Edge Function recording affiliate-link clicks into the clicks ledger.
+
+## CI
+
+- `ci.yml` — security audit, unit tests, and build verification, each a matrix across `frontend`/`admin-frontend`/`marketplace`/`mcp-dhgate`; a separate `backend-test` job (spins up real Postgres 16 + Redis 7 service containers, applies all `supabase/migrations/*.sql` plus stubbed `auth`/`storage` schemas, then runs backend vitest); and e2e (Playwright, `frontend`/`admin-frontend` only, gated behind repo var `E2E_ENABLED`). This absorbed the old `test.yml`, which no longer exists.
+- `eslint.yml` — SARIF lint scan, currently `frontend` only.
+- `nightly-e2e.yml` — unconditional nightly Playwright run for `frontend`/`admin-frontend`.
+- `deploy-backend.yml`, `claude.yml`, `claude-code-review.yml`, `dependabot-auto-merge.yml`.
+
+`marketplace` is covered by `ci.yml`'s security-audit, unit-test, and build-verification matrices, but has no Playwright e2e job and isn't included in the `eslint.yml` SARIF scan (frontend-only).
 
 ## Design System
 
-Both frontends share an identical Tailwind config with:
-
-### Colors
-- `brand`: Deep red (`#8B1E2D`) — primary brand color
-- `accent`: Skin tone (`#D6A77A`) — secondary accent
-- `surface`: Light/dark background variants
-- `ink`: Text color variants
-- `status`: `error`, `warning`, `success`, `info`
-
-### Typography
-- Font: **Dosis** (variable weight 200–800, loaded via Google Fonts)
-
-### Dark Mode
-- Implemented via `class` strategy (`dark:` prefix in Tailwind)
-- Managed by `useDarkMode` composable in both frontends
-- Toggle component: `DarkModeToggle.vue`
-
-### UI Components (User Frontend)
-- Headless UI components prefixed with `Headless` (e.g., `<HeadlessDialog>`)
-- Feedback components: `AppToast`, `AppModal`, `AppAlert`, `AppToastContainer`
-
-## State Management (Pinia)
-
-### Admin Frontend Stores
-
-| Store | File | Purpose |
-|-------|------|---------|
-| `auth` | `stores/auth.ts` | WebAuthn session, user state |
-
-### User Frontend Stores
-
-| Store | File | Purpose |
-|-------|------|---------|
-| `filters` | `stores/filters.ts` | Category, platform, price range, rating, sort |
-| `products` | `stores/products.ts` | Product catalog data |
-
-**Filter store** maps to URL query params via `toQueryParams()` and `initFromQuery()`. Price range: 0–500. Sort: `createdAt` (default), `desc` (default order).
-
-## Authentication
-
-### Admin Frontend — WebAuthn + Password fallback
-
-Primary login is WebAuthn (security keys, Touch ID, Windows Hello) via `@simplewebauthn/browser` (client) and `@simplewebauthn/server` (backend). A password toggle on the login page falls back to `POST /api/admin/auth/login` (bcrypt) for devices that can't use WebAuthn.
-
-- Login page: `/login` — defaults to WebAuthn; "Use password instead" toggle reveals password input
-- Auth middleware: `app/middleware/auth.ts` — guards all protected routes
-- Auth store: `app/stores/auth.ts` — `loginWithSecurityKey()`, `loginWithPassword()`, `checkSession()`, `logout()`
-- CSRF protection: `useCsrf` composable (token on every mutating request, rotated on login)
-- Client rate limiting: `useRateLimit` (5 attempts / minute, 5-minute lockout; shared bucket for both login modes)
-- Supabase backed: `useSupabaseAdmin` composable
-- Backend routes: `backend/src/routes/admin/webauthn.js` (WebAuthn), `backend/src/routes/admin/auth.js` (password + session)
-- CSP headers configured in `nuxt.config.ts` to prevent XSS
-
-### User Frontend — Supabase OAuth
-
-Supabase social login via `@supabase/supabase-js`:
-- Providers: Google, GitHub, Discord (configurable in Supabase dashboard)
-- Composable: `useAuth` (`signInWithOAuth`, `signOut`, reactive `user`)
-- Component: `SocialAuth.vue`
-- Pages: `/login` initiates OAuth, `/confirm` handles the redirect
+Shared Tailwind config across all three frontends:
+- Colors: `brand` (#8B1E2D, deep red), `accent` (#D6A77A, skin tone), `surface`/`ink` light-dark variants, `status` (error/warning/success/info)
+- Fonts: **Excon** for headers (`h1`–`h6`, `font-heading`), **General Sans** for body (`font-sans`) — both via [Fontshare](https://www.fontshare.com/)
+- Dark mode: `class` strategy, `dark:` prefix, managed by `useDarkMode` composable + `DarkModeToggle.vue`
+- Headless UI components prefixed `Headless` (via `nuxt-headlessui`) in `frontend`
 
 ## Environment Variables
 
-Key variables (see `.env.example` for full list):
+See `.env.example` for the full list. Notable ones beyond the obvious Supabase/DB/Redis vars:
 
 | Variable | Description |
 |----------|-------------|
-| `NUXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NUXT_PUBLIC_SUPABASE_KEY` | Supabase anon key |
-| `SUPABASE_SECRET_KEY` | Supabase service role key (admin only — never expose client) |
-| `NUXT_PUBLIC_SITE_URL` | Public site URL (canonical links, OG, sitemap) |
-| `NUXT_PUBLIC_API_BASE` | Backend API base — set this in both frontends; exposed via Nuxt runtime config (`useRuntimeConfig().public.apiBase`) |
-| `API_BASE_URL` | Backend API base for server-side / backend-internal use (default: `http://localhost:3001`); not visible to the browser |
-| `DATABASE_URL` | PostgreSQL connection string for the backend (`postgres-js`). Use the Supabase pooler URL (`?sslmode=require`) in production |
-| `REDIS_URL` / `REDIS_PASSWORD` | Redis connection (default password: `dev_redis_password`) |
-| `SESSION_SECRET` | Backend session secret (32+ chars; required in production) |
-| `FRONTEND_URL` / `ADMIN_URL` | Backend CORS allowlist |
+| `NUXT_PUBLIC_API_BASE` | Backend API base exposed to the browser (`useRuntimeConfig().public.apiBase`) |
+| `API_BASE_URL` | Backend API base for server-side use only (default `http://localhost:3001`) |
+| `SESSION_SECRET` | Backend session secret, 32+ chars, required in production |
 | `RP_ID` | WebAuthn relying party ID (e.g. `admin.yourdomain.com`) |
-| `SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry DSNs (server / client) |
-| `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_REF` | Required for `scripts/migrate.sh` |
-| `DHGATE_API_KEY` | DHgate affiliate API key |
-| `ALIEXPRESS_API_KEY` | AliExpress affiliate API key |
-| `AMAZON_ASSOCIATES_TAG` | Amazon Associates tag |
-| `WISH_API_KEY` | Wish affiliate API key |
+| `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_CONNECT_CLIENT_ID` | Plug Market Stripe Connect config |
+| `MARKETPLACE_URL` | Marketplace frontend base URL (default `http://localhost:3003`) |
+| `DHGATE_API_KEY` / `ALIEXPRESS_API_KEY` / `AMAZON_ASSOCIATES_TAG` / `WISH_API_KEY` | Affiliate program credentials |
 | `DUB_API_KEY` / `DUB_WORKSPACE_ID` | Dub.co affiliate link tracking |
+| `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_REF` | Required by `scripts/migrate.sh` |
 
-## Code Style Rules
+## Code Style
 
-### Formatting
-- No semicolons
-- Single quotes
-- No unnecessary curly braces
-- 2-space indentation
+- No semicolons, single quotes, no unnecessary curly braces, 2-space indentation
 - Import order: external → internal → types
-
-### Vue / Nuxt Conventions
-- Use `defineNuxtConfig` for config (not raw Nuxt options)
-- Use `useRuntimeConfig()` to access env vars in components
-- Avoid browser-only code at module level (SSR will fail); guard with `process.client` or `onMounted`
-- Composables live in `app/composables/` — auto-imported by Nuxt
-- Stores live in `app/stores/` — auto-imported via `@pinia/nuxt`
-- Types live in `app/types/`
-
-### Security
-- Never commit real secrets — use `.env` (gitignored)
-- All user inputs must be validated and sanitized
-- CSRF tokens required for state-mutating requests (admin frontend)
-- FTC disclosure required on all affiliate links and sponsored content
+- Use `defineNuxtConfig` (not raw Nuxt options); access env vars via `useRuntimeConfig()`
+- Never run browser-only code at module level — SSR will fail; guard with `process.client` or `onMounted` (a `useRateLimit`-at-module-scope regression caused exactly this — see the audit-history note at the top of `TECH_DEBT.md`)
+- CSRF tokens required for state-mutating admin-frontend requests
+- FTC disclosure required on all affiliate links and sponsored/marketplace content
 
 ## Documentation Files
 
 | File | Description |
 |------|-------------|
-| `README.md` | Main project overview |
-| `AGENTS.md` | This file — AI assistant guidance |
+| `README.md` | Project overview / quick start |
+| `CLAUDE.md` | Equivalent guidance file for Claude Code — keep in sync with this file when structure changes |
 | `ADMIN_PANEL_SETUP.md` | WebAuthn setup and admin panel guide |
-| `RAILWAY.md` | Railway deployment for backend + both frontends |
+| `RAILWAY.md` | Railway deployment for backend (incl. worker), frontend, admin-frontend |
+| `TECH_DEBT.md` | Prioritized tech-debt audit — check before touching flagged areas (e.g. cache invalidation, request-body validation) |
 | `TEST_COVERAGE_SUMMARY.md` | Test metrics and results |
-| `VALIDATION_BUGS_FOUND.md` | Security vulnerabilities documented |
-| `SECURITY.md` | Security overview |
-| `SECURITY_GUIDE.md` | Detailed security guide |
+| `VALIDATION_BUGS_FOUND.md` | Documented security/validation bugs |
+| `SECURITY.md` / `SECURITY_GUIDE.md` | Security overview and detailed guide |
 | `TOUCHID_DEBUG.md` | Touch ID debugging reference |
-| `SearchBar_Component_Report.md` | SearchBar component analysis |
-| `SEARCHBAR_BASELINE_TEST_RESULTS.md` | SearchBar baseline test results |
 | `frontend/FILTERING_SYSTEM.md` | Product filter architecture |
-| `frontend/FILTERING_IMPLEMENTATION_REPORT.md` | Filter implementation details |
 
 ## Legal Compliance
 
-All affiliate links and sponsored content must include FTC-compliant disclosures stating that the site receives monetary compensation from affiliate programs.
+All affiliate links and sponsored/marketplace content must include FTC-compliant disclosures stating that the site receives monetary compensation.
