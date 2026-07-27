@@ -9,5 +9,15 @@
   "devDependencies": {
     "supabase": "^2.103.0",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@>=5.0.0 <5.0.8": "5.0.8"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-mh99-v99m-4gvg"
+      ]
+    }
   }
 }
