@@ -38,6 +38,15 @@
 
 ---
 
+### 4. `GHSA-mh99-v99m-4gvg` (brace-expansion) is suppressed via `auditConfig.ignoreGhsas`
+**Category:** Dependencies/Security · **Priority:** revisit when upstream advisory data is corrected
+
+`frontend`, `admin-frontend`, and `marketplace` each carry `pnpm.auditConfig.ignoreGhsas: ["GHSA-mh99-v99m-4gvg"]`. The genuinely-vulnerable mainline `brace-expansion` (5.0.6/5.0.7) **is** fixed — every workspace pins it to `5.0.8` via `brace-expansion@>=5.0.0 <5.0.8` overrides. The ignore exists solely because the advisory's npm-audit range is flattened to `<=5.0.7`, which also flags the already-patched maintenance lines `1.1.16` and `2.1.2` that `minimatch@3/5/9` still require (those lines' real fixes were `1.1.12`/`2.0.2`). Those older minimatch versions cannot move to `5.x` — its ESM-first CJS build breaks their `require('brace-expansion')` call (`expand is not a function`).
+
+**Caveat:** `ignoreGhsas` is workspace-wide and version-unaware, so it would also silence a *genuinely* vulnerable future `brace-expansion` under this GHSA. The `>=5.0.0 <5.0.8` override is the real guard for the mainline; keep it. Remove the ignore once the upstream advisory range is corrected (or once nothing in the tree pulls `minimatch@<10`). To re-check whether the suppression still masks anything, run per workspace: `pnpm why brace-expansion` and confirm no `<5.0.8` mainline resolution survives.
+
+---
+
 ### 4. Documentation drift: SECURITY.md, CLAUDE.md
 **Category:** Docs · **Priority:** 35 / 24
 
