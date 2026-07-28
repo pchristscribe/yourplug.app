@@ -114,6 +114,7 @@ Disclosure text is hardcoded independently in the site footer, product detail pa
 | 16 | `backend-security-reference/` not in workspace/CI — can silently drift from the real security code it models | 12 |
 | 17 | ~~`connect-redis` dead dependency in `backend/package.json` (unused — hand-rolled `RedisSessionStore` used instead)~~ **Fixed** | 10 |
 | 18 | ~~`ProductCardSimple.vue` confirmed unused outside its own test file~~ **Fixed** — deleted along with its test file; confirmed no dynamic (`:is=`) references anywhere | 10 |
+| 19 | `pnpm.auditConfig.ignoreGhsas: ["GHSA-mh99-v99m-4gvg"]` in `frontend`/`admin-frontend`/`marketplace` suppresses brace-expansion false positives. The real mainline vuln **is** fixed via the `brace-expansion@>=5.0.0 <5.0.8` → `5.0.8` override; the ignore only covers the advisory's over-broad `<=5.0.7` range flagging the already-patched `1.1.16`/`2.1.2` lines that `minimatch@3/5/9` require (they break on 5.x's ESM-first `require()`). The ignore is workspace-wide/version-unaware, so remove it once upstream corrects the range or nothing pulls `minimatch@<10`; re-check with `pnpm why brace-expansion` (no `<5.0.8` mainline should survive). | 8 |
 
 ---
 
