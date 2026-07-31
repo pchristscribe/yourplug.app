@@ -52,7 +52,7 @@
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.62.0",
     "@types/domexception": "^4.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
     "@typescript-eslint/parser": "^8.65.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/coverage-v8": "^4.1.10",
