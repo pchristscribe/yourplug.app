@@ -17,6 +17,10 @@
 </template>
 
 <script setup lang="ts">
+// Explicit import (rather than Nuxt auto-import) so the component also
+// works under plain vitest/SSR test environments
+import { ref } from 'vue'
+
 const props = defineProps<{ show: boolean }>()
 const { goToOnboarding } = useSellerAccount()
 const loading = ref(false)
