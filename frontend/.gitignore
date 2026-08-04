@@ -8,10 +8,9 @@ dist
 
 # Node dependencies
 node_modules
-node_modules/*
 
 # Logs
-logs[B
+logs
 *.log
 
 # Misc
