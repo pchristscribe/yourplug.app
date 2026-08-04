@@ -1,3 +1,14 @@
+declare const process: {
+  env: {
+    NODE_ENV?: string
+    NUXT_PUBLIC_SUPABASE_URL?: string
+    NUXT_PUBLIC_SUPABASE_KEY?: string
+    SUPABASE_SECRET_KEY?: string
+    API_BASE_URL?: string
+    SENTRY_AUTH_TOKEN?: string
+  }
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-11-29',
   devtools: { enabled: true },
@@ -98,6 +109,7 @@ export default defineNuxtConfig({
   },
 
   sourcemap: {
+    server: true,
     client: 'hidden'
   }
 })
