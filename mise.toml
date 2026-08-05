@@ -1,2 +1,5 @@
 [tools]
-"github:railwayapp/railpack" = "0.30.0"
+"github:railwayapp/railpack" = "0.35.0"
+
+[env]
+NODE_ENV = "production"

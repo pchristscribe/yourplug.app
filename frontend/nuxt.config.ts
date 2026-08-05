@@ -98,7 +98,6 @@ export default defineNuxtConfig({
       },
     },
   },
-
   vite: {
     server: {
       hmr: {
@@ -114,6 +113,7 @@ export default defineNuxtConfig({
   },
 
   sourcemap: {
+    server: true,
     client: 'hidden'
   }
 })
