@@ -19,10 +19,10 @@ export default defineConfig({
       // product-variants, consignment) and src/lib (stripe, supabase,
       // imageStorage) — raise these as those gain tests.
       thresholds: {
-        lines: 65,
-        functions: 65,
-        branches: 55,
-        statements: 65,
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
 
         // The consignment surface handles listings, images and money, so it
         // is held near its real numbers rather than the global bar.

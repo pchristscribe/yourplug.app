@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, useId } from 'vue'
 import type { Product } from '~/types'
 
 interface Props {
@@ -22,6 +22,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+// Unique per-instance id so multiple SearchBars (e.g. desktop + mobile) don't
+// collide on the dropdown id / aria-controls target.
+const resultsId = `search-results-${useId()}`
 
 // State
 const searchQuery = ref('')
@@ -265,7 +269,7 @@ const formatPrice = (price: number, currency: string) => {
         :aria-label="placeholder"
         :aria-expanded="showDropdown"
         aria-autocomplete="list"
-        aria-controls="search-results"
+        :aria-controls="resultsId"
         role="combobox"
         @keydown="handleKeyDown"
         @focus="handleFocus"
@@ -326,7 +330,7 @@ const formatPrice = (price: number, currency: string) => {
     >
       <div
         v-if="showDropdown"
-        id="search-results"
+        :id="resultsId"
         ref="dropdownRef"
         class="absolute z-50 mt-1 max-h-96 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg"
         role="listbox"

@@ -6,6 +6,12 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # pinia 4 not yet supported by @sentry/vue peer range (2.x || 3.x)
+      - dependency-name: "pinia"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@pinia/nuxt"
+        update-types: ["version-update:semver-major"]
     groups:
       nuxt-ecosystem:
         patterns: ["nuxt*", "@nuxt/*", "@nuxtjs/*", "@pinia/*", "pinia"]
@@ -20,6 +26,12 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    ignore:
+      # pinia 4 not yet supported by @sentry/vue peer range (2.x || 3.x)
+      - dependency-name: "pinia"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@pinia/nuxt"
+        update-types: ["version-update:semver-major"]
     groups:
       nuxt-ecosystem:
         patterns: ["nuxt*", "@nuxt/*", "@nuxtjs/*", "@pinia/*", "pinia"]
