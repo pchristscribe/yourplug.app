@@ -2,7 +2,7 @@
   "name": "frontend",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.18.0+sha512.33d83c77da82f49fba836925c6f1b841181ec3132b670639bd012f7075f5c7cf634c5f870147c19aae7478fac01df09d8892e880454896edd23ee9b33757563c",
   "engines": {
     "node": ">=24"
   },
@@ -21,19 +21,19 @@
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.9",
-    "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "^10.66.0",
-    "nuxt": "^4.4.8",
+    "@pinia/nuxt": "^1.0.1",
+    "@sentry/nuxt": "^10.68.0",
+    "@supabase/auth-js": "^2.111.0",
+    "@supabase/sentry-js-integration": "^0.3.0",
+    "@supabase/shared-types": "^0.1.93",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
+    "@vercel/analytics": "^2.0.1",
+    "nuxt": "^4.5.1",
     "nuxt-headlessui": "^1.2.2",
-    "pinia": "^3.0.4",
+    "pinia": "^4.0.2",
     "vue": "^3.5.39",
     "vue-router": "^5.1.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": ">=7.3.5",
-      "shell-quote@<=1.8.4": ">=1.9.0"
-    }
   },
   "devDependencies": {
     "@eslint/css": "^1.4.0",
@@ -42,21 +42,21 @@
     "@eslint/markdown": "^8.0.3",
     "@microsoft/eslint-formatter-sarif": "3.1.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@playwright/test": "^1.61.0",
+    "@playwright/test": "^1.62.0",
     "@types/domexception": "^4.0.3",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
     "@vue/test-utils": "^2.4.11",
-    "baseline-browser-mapping": "^2.10.43",
-    "eslint": "^10.7.0",
+    "baseline-browser-mapping": "^2.11.8",
+    "eslint": "^10.8.0",
     "eslint-plugin-vue": "^10.9.2",
-    "globals": "^17.7.0",
-    "happy-dom": "^20.11.0",
+    "globals": "^17.8.0",
+    "happy-dom": "^20.11.1",
     "jiti": "^2.7.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10",
-    "vue-tsc": "^3.3.7"
+    "vue-tsc": "^3.3.8"
   }
 }

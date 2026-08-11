@@ -14,11 +14,20 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Set just below the measured actuals so coverage can only ratchet
+      // upward. The remaining gaps are src/routes/admin (blog-posts,
+      // product-variants, consignment) and src/lib (stripe, supabase,
+      // imageStorage) — raise these as those gain tests.
       thresholds: {
         lines: 70,
         functions: 70,
         branches: 70,
         statements: 70,
+
+        // The consignment surface handles listings, images and money, so it
+        // is held near its real numbers rather than the global bar.
+        'src/routes/consignment/**': { lines: 90, functions: 85, branches: 85, statements: 90 },
+        'src/schemas/**': { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
     setupFiles: ['./tests/setup.js'],

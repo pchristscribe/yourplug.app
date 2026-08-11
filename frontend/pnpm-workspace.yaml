@@ -2,3 +2,8 @@ allowBuilds:
   '@parcel/watcher': true
   '@sentry/cli': true
   esbuild: true
+
+overrides:
+  'brace-expansion@>=4.0.0 <5.0.9': '>=5.0.9'
+  'brace-expansion@>=2.0.0 <2.1.4': '>=2.1.4'
+  'minimatch@5.1.9>brace-expansion': '>=5.0.9'
