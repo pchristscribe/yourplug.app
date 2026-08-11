@@ -158,3 +158,119 @@ describe('runFullModeration failure recovery', () => {
     expect(recovery).toBeTruthy()
   })
 })
+
+// Query-aware tagged-template mock for the multi-step moderation pipeline.
+function pipelineSql({ listing, images = [] }) {
+  const sql = vi.fn((strings) => {
+    const q = Array.isArray(strings) ? strings.join(' ') : String(strings)
+    if (q.includes('select') && q.includes('from consignment_listings')) return Promise.resolve(listing ? [listing] : [])
+    if (q.includes('select') && q.includes('from consignment_images')) return Promise.resolve(images)
+    return Promise.resolve([])
+  })
+  sql.json = v => v
+  return sql
+}
+
+describe('moderateImage', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    mockCreate.mockReset()
+  })
+
+  it('returns APPROVED and marks the image as passing', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', isStockPhoto: false, matchesDescription: true }) }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    })
+    const updates = []
+    const sql = vi.fn((strings, ...values) => {
+      const q = Array.isArray(strings) ? strings.join(' ') : String(strings)
+      if (q.includes('update consignment_images')) updates.push(values)
+      return Promise.resolve([])
+    })
+    sql.json = v => v
+
+    const { moderateImage } = await import('../src/lib/moderation.js')
+    const result = await moderateImage(sql, { id: 'i1', listingId: 'l1', publicUrl: 'https://img.test/1.jpg' }, { title: 'T', category: 'TOY' })
+    expect(result.decision).toBe('APPROVED')
+    expect(updates.length).toBe(1)
+    expect(updates[0][0]).toBe(true) // moderation_passed
+  })
+
+  it('flags an image when the model returns malformed JSON', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ text: 'not json' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    })
+    const sql = pipelineSql({})
+    const { moderateImage } = await import('../src/lib/moderation.js')
+    const result = await moderateImage(sql, { id: 'i1', listingId: 'l1', publicUrl: 'https://img.test/1.jpg' }, { title: 'T', category: 'TOY' })
+    expect(result.decision).toBe('FLAGGED')
+    expect(result.reason).toMatch(/parse error/i)
+  })
+})
+
+describe('runFullModeration success paths', () => {
+  const listing = { id: 'l1', title: 't', description: '', category: 'OTHER', condition: 'NEW', askingPrice: 1 }
+
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    mockCreate.mockReset()
+  })
+
+  it('APPROVES when text and every image pass', async () => {
+    mockCreate
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', flags: [] }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', isStockPhoto: false, matchesDescription: true }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+
+    const sql = pipelineSql({ listing, images: [{ id: 'i1', listingId: 'l1', publicUrl: 'https://img.test/1.jpg' }] })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    const out = await runFullModeration(sql, 'l1')
+    expect(out.decision).toBe('APPROVED')
+  })
+
+  it('REJECTS when the text check rejects', async () => {
+    mockCreate.mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'REJECTED', reason: 'counterfeit', flags: [] }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+    const sql = pipelineSql({ listing, images: [] })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    const out = await runFullModeration(sql, 'l1')
+    expect(out.decision).toBe('REJECTED')
+    expect(out.reason).toBe('counterfeit')
+  })
+
+  it('FLAGS a borderline listing for human review', async () => {
+    mockCreate.mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'FLAGGED', reason: 'needs review', flags: [] }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+    const sql = pipelineSql({ listing, images: [] })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    const out = await runFullModeration(sql, 'l1')
+    expect(out.decision).toBe('FLAGGED')
+  })
+
+  it('throws when the listing does not exist', async () => {
+    const sql = pipelineSql({ listing: null })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    await expect(runFullModeration(sql, 'missing')).rejects.toThrow(/not found/i)
+  })
+
+  it('REJECTS when the text passes but an image is rejected', async () => {
+    mockCreate
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', flags: [] }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'REJECTED', reason: 'stock photo', isStockPhoto: true, matchesDescription: false }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+    const sql = pipelineSql({ listing, images: [{ id: 'i1', listingId: 'l1', publicUrl: 'https://img.test/1.jpg' }] })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    const out = await runFullModeration(sql, 'l1')
+    expect(out.decision).toBe('REJECTED')
+    expect(out.reason).toBe('stock photo')
+  })
+
+  it('FLAGS when the text passes but an image is flagged', async () => {
+    mockCreate
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'APPROVED', reason: 'ok', flags: [] }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+      .mockResolvedValueOnce({ content: [{ text: JSON.stringify({ decision: 'FLAGGED', reason: 'blurry', isStockPhoto: false, matchesDescription: true }) }], usage: { input_tokens: 1, output_tokens: 1 } })
+    const sql = pipelineSql({ listing, images: [{ id: 'i1', listingId: 'l1', publicUrl: 'https://img.test/1.jpg' }] })
+    const { runFullModeration } = await import('../src/lib/moderation.js')
+    const out = await runFullModeration(sql, 'l1')
+    expect(out.decision).toBe('FLAGGED')
+    expect(out.reason).toBe('blurry')
+  })
+})
