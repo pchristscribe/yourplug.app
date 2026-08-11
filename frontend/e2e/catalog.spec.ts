@@ -8,7 +8,9 @@ test.describe('Product Catalog', () => {
 
   test('search bar is visible on homepage', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('input[type="search"], input[placeholder*="Search" i]')).toBeVisible()
+    // The layout renders two responsive search inputs (desktop + mobile) with the
+    // same placeholder; scope to whichever is currently visible to avoid a strict-mode match.
+    await expect(page.locator('input[type="search"]:visible, input[placeholder*="Search" i]:visible').first()).toBeVisible()
   })
 
   test('product detail route works', async ({ page }) => {

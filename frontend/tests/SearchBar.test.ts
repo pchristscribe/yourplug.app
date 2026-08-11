@@ -88,7 +88,7 @@ describe('SearchBar Component', () => {
 
     it('does not show dropdown initially', () => {
       const wrapper = mount(SearchBar)
-      const dropdown = wrapper.find('#search-results')
+      const dropdown = wrapper.find('[role="listbox"]')
       expect(dropdown.exists()).toBe(false)
     })
   })
@@ -211,7 +211,7 @@ describe('SearchBar Component', () => {
       await vi.runAllTimersAsync()
       await flushPromises()
 
-      const dropdown = wrapper.find('#search-results')
+      const dropdown = wrapper.find('[role="listbox"]')
       expect(dropdown.exists()).toBe(true)
 
       const results = dropdown.findAll('button[role="option"]')
@@ -295,7 +295,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       // Dropdown should be open and show error
-      const dropdown = wrapper.find('#search-results')
+      const dropdown = wrapper.find('[role="listbox"]')
       expect(dropdown.exists()).toBe(true)
       expect(dropdown.text()).toContain('Network error')
     })
@@ -382,12 +382,12 @@ describe('SearchBar Component', () => {
       await vi.runAllTimersAsync()
       await flushPromises()
 
-      expect(wrapper.find('#search-results').exists()).toBe(true)
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(true)
 
       await input.trigger('keydown', { key: 'Escape' })
       await flushPromises()
 
-      expect(wrapper.find('#search-results').exists()).toBe(false)
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
     })
 
     it('does not navigate beyond list boundaries', async () => {
@@ -478,7 +478,7 @@ describe('SearchBar Component', () => {
 
       expect(input.attributes('role')).toBe('combobox')
       expect(input.attributes('aria-autocomplete')).toBe('list')
-      expect(input.attributes('aria-controls')).toBe('search-results')
+      expect(input.attributes('aria-controls')).toMatch(/^search-results-/)
       expect(input.attributes('aria-expanded')).toBe('false')
     })
 
@@ -511,7 +511,7 @@ describe('SearchBar Component', () => {
       await vi.runAllTimersAsync()
       await flushPromises()
 
-      const dropdown = wrapper.find('#search-results')
+      const dropdown = wrapper.find('[role="listbox"]')
       expect(dropdown.attributes('role')).toBe('listbox')
 
       const results = wrapper.findAll('button[role="option"]')
@@ -531,7 +531,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       expect(mockSearchProducts).not.toHaveBeenCalled()
-      expect(wrapper.find('#search-results').exists()).toBe(false)
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
     })
 
     it('handles products without images', async () => {
