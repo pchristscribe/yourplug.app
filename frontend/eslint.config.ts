@@ -15,6 +15,11 @@ export default defineConfig([
       "dist/**",
       "node_modules/**",
       ".claude/**",
+      // Generated test/coverage artifacts — not source, and only present locally
+      // after running tests/e2e (never in a fresh CI checkout).
+      "coverage/**",
+      "playwright-report/**",
+      "test-results/**",
       "package-lock.json",
       "package.json",
       "tsconfig.json"
