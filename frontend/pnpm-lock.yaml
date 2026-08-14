@@ -24,8 +24,8 @@ importers:
         specifier: ^10.68.0
         version: 10.69.0(c7cb92ee10b9c504748b6b4c01e76e5a)
       '@supabase/auth-js':
-        specifier: ^2.111.0
-        version: 2.111.0
+        specifier: ^2.112.3
+        version: 2.112.3
       '@supabase/sentry-js-integration':
         specifier: ^0.3.0
         version: 0.3.0(@supabase/supabase-js@2.111.0)
@@ -1619,6 +1619,10 @@ packages:
 
   '@supabase/auth-js@2.111.0':
     resolution: {integrity: sha512-hbRLgyQZEX0SDyF4LYXpv94qOIQyFATfpT5SIs2V0SisHnisVRkYgiPQWzv80l4S2mO3qof78rmoH9j5zoFsYQ==}
+    engines: {node: '>=22.0.0'}
+
+  '@supabase/auth-js@2.112.3':
+    resolution: {integrity: sha512-NA0rsgAlWZPvbhw8aUdmgfpHVgUAcd8zK5ov43l++o1bLIPXZhRiAlRobhwF5AatQuovpqxsMH50F4oyyV4XZw==}
     engines: {node: '>=22.0.0'}
 
   '@supabase/functions-js@2.111.0':
@@ -7064,6 +7068,10 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@supabase/auth-js@2.111.0':
+    dependencies:
+      tslib: 2.8.1
+
+  '@supabase/auth-js@2.112.3':
     dependencies:
       tslib: 2.8.1
 
