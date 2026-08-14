@@ -51,7 +51,7 @@
     "baseline-browser-mapping": "^2.11.13",
     "eslint": "^10.8.0",
     "eslint-plugin-vue": "^10.9.2",
-    "globals": "^17.8.0",
+    "globals": "^17.9.0",
     "happy-dom": "^20.11.2",
     "jiti": "^2.7.0",
     "typescript": "^6.0.3",
