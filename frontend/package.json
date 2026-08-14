@@ -23,7 +23,7 @@
     "@nuxtjs/supabase": "^2.0.9",
     "@pinia/nuxt": "^1.0.1",
     "@sentry/nuxt": "^10.68.0",
-    "@supabase/auth-js": "^2.111.0",
+    "@supabase/auth-js": "^2.112.3",
     "@supabase/sentry-js-integration": "^0.3.0",
     "@supabase/shared-types": "^0.1.93",
     "@supabase/ssr": "^0.12.4",
