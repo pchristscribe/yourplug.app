@@ -110,7 +110,9 @@ export const useSupabaseProducts = () => {
   const getProduct = async (id: string): Promise<Product> => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, categories(*), affiliate_links(*), reviews(*)')
+      .select(
+        '*, categories(*), affiliate_links(id, product_id, original_url, tracked_url, clicks, conversions, last_clicked_at, created_at, updated_at), reviews(*)'
+      )
       .eq('id', id)
       .single()
 
@@ -124,10 +126,8 @@ export const useSupabaseProducts = () => {
         productId: link.product_id,
         originalUrl: link.original_url,
         trackedUrl: link.tracked_url,
-        dubLinkId: link.dub_link_id ?? undefined,
         clicks: link.clicks,
         conversions: link.conversions,
-        revenue: link.revenue,
         lastClickedAt: link.last_clicked_at ?? undefined,
         createdAt: link.created_at,
         updatedAt: link.updated_at,

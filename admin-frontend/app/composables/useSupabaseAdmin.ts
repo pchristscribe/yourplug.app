@@ -203,6 +203,10 @@ export const useSupabaseAdmin = () => {
 
   // ─── Analytics ───────────────────────────────────────────────────────────
 
+  // NOTE: unused today. `revenue` is no longer readable via the anon-key
+  // client (migration 014 restricts it to service_role) — wire this through
+  // a backend admin route using the service-role Postgres connection before
+  // calling it from a page.
   const getAffiliateStats = async () => {
     const { data, error } = await supabase
       .from('affiliate_links')
