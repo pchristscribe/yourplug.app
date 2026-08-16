@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import DefaultLayout from '../../app/layouts/default.vue'
 
 // ---------------------------------------------------------------------------
 // Nuxt auto-import stubs
 // ---------------------------------------------------------------------------
 vi.stubGlobal('useState', (_key: string, init: () => unknown) => {
-  const { ref } = require('vue')
   return ref(typeof init === 'function' ? init() : undefined)
 })
 vi.stubGlobal('useAuth', () => ({ user: null, signOut: vi.fn() }))

@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -27,26 +27,6 @@ let workflowText = ''
 beforeAll(() => {
   workflowText = readFileSync(WORKFLOW_PATH, 'utf8')
 })
-
-/**
- * Run a shell snippet and return { stdout, exitCode }.
- * stderr is suppressed so test output stays clean.
- */
-function runShell(script, env = {}) {
-  try {
-    const stdout = execSync(`bash -c '${script.replace(/'/g, "'\\''")}'`, {
-      env: { ...process.env, ...env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).toString()
-    return { stdout, exitCode: 0 }
-  } catch (err) {
-    return {
-      stdout: err.stdout?.toString() ?? '',
-      stderr: err.stderr?.toString() ?? '',
-      exitCode: err.status ?? 1,
-    }
-  }
-}
 
 /**
  * Run a multi-line bash script from a temp file so quoting is not an issue.
@@ -117,7 +97,7 @@ describe('deploy-backend.yml – test job', () => {
     beforeAll(() => {
       const servicesStart = workflowText.indexOf('    services:')
       // Grab enough context (up to the env: block of the test job)
-      const servicesEnd = workflowText.indexOf('    env:', servicesStart)
+      const servicesEnd = workflowText.indexOf('\n    env:', servicesStart)
       postgresSection = workflowText.slice(servicesStart, servicesEnd)
     })
 
@@ -161,7 +141,7 @@ describe('deploy-backend.yml – test job', () => {
 
     beforeAll(() => {
       const redisStart = workflowText.indexOf('      redis:')
-      const redisEnd = workflowText.indexOf('    env:', redisStart)
+      const redisEnd = workflowText.indexOf('\n    env:', redisStart)
       redisSection = workflowText.slice(redisStart, redisEnd)
     })
 
@@ -188,7 +168,7 @@ describe('deploy-backend.yml – test job', () => {
     let testJobEnvSection = ''
 
     beforeAll(() => {
-      const envStart = workflowText.indexOf('    env:', workflowText.indexOf('  test:'))
+      const envStart = workflowText.indexOf('\n    env:', workflowText.indexOf('  test:'))
       const envEnd = workflowText.indexOf('    steps:', envStart)
       testJobEnvSection = workflowText.slice(envStart, envEnd)
     })
@@ -236,17 +216,17 @@ describe('deploy-backend.yml – test job', () => {
       testStepsSection = workflowText.slice(stepsStart, deployStart)
     })
 
-    it('uses actions/checkout@v4', () => {
-      expect(testStepsSection).toMatch(/uses:\s*actions\/checkout@v4/)
+    it('uses actions/checkout@v7', () => {
+      expect(testStepsSection).toMatch(/uses:\s*actions\/checkout@v7/)
     })
 
     it('uses pnpm/action-setup@v4', () => {
       expect(testStepsSection).toMatch(/uses:\s*pnpm\/action-setup@v4/)
     })
 
-    it('uses actions/setup-node@v4 with node-version 24', () => {
-      expect(testStepsSection).toMatch(/uses:\s*actions\/setup-node@v4/)
-      expect(testStepsSection).toMatch(/node-version:\s*'24'/)
+    it('uses actions/setup-node@v7 with node-version 26', () => {
+      expect(testStepsSection).toMatch(/uses:\s*actions\/setup-node@v7/)
+      expect(testStepsSection).toMatch(/node-version:\s*'26'/)
     })
 
     it('caches pnpm with dependency path pointing to backend lock file', () => {
@@ -288,8 +268,8 @@ describe('deploy-backend.yml – test job', () => {
     })
 
     it('migration finds sql files sorted with version sort', () => {
-      expect(testStepsSection).toMatch(/find supabase\/migrations -name '\*\.sql'/)
-      expect(testStepsSection).toMatch(/sort -V/)
+      expect(testStepsSection).toMatch(/find supabase\/migrations -name '\*\.sql' -print0/)
+      expect(testStepsSection).toMatch(/sort -zV/)
     })
 
     it('migration applies all sql files in a single transaction (-1 flag)', () => {
@@ -315,17 +295,17 @@ describe('deploy-backend.yml – deploy-backend job', () => {
     expect(deployJobSection).toMatch(/environment:\s*production/)
   })
 
-  it('uses actions/checkout@v4 (not the old @v6)', () => {
+  it('uses actions/checkout@v7 consistently', () => {
     const checkoutMatches = [...deployJobSection.matchAll(/uses:\s*actions\/checkout@(\S+)/g)]
     expect(checkoutMatches.length).toBeGreaterThan(0)
     for (const match of checkoutMatches) {
-      expect(match[1]).toBe('v4')
+      expect(match[1]).toBe('v7')
     }
   })
 
-  it('uses actions/setup-node@v4 with node 24', () => {
-    expect(deployJobSection).toMatch(/uses:\s*actions\/setup-node@v4/)
-    expect(deployJobSection).toMatch(/node-version:\s*'24'/)
+  it('uses actions/setup-node@v7 with node 26', () => {
+    expect(deployJobSection).toMatch(/uses:\s*actions\/setup-node@v7/)
+    expect(deployJobSection).toMatch(/node-version:\s*'26'/)
   })
 
   it('deploys yourplug-api service via Railway CLI 4.66.1', () => {
@@ -374,7 +354,7 @@ describe('deploy-backend.yml – deploy-backend job', () => {
     })
 
     it('health check has a 120-second deadline', () => {
-      expect(healthCheckSection).toMatch(/\d+.*120/)
+      expect(healthCheckSection).toMatch(/deadline=.*\+\s*120/)
     })
 
     it('health check uses curl with --silent --fail --max-time 5', () => {

@@ -25,6 +25,15 @@ function makeRedisMock(overrides = {}) {
     setex: vi.fn().mockResolvedValue('OK'),
     set: vi.fn().mockResolvedValue('OK'),
     del: vi.fn().mockResolvedValue(1),
+    // @fastify/rate-limit's RedisStore calls this.redis.defineCommand(...) at
+    // registration time (ioredis's mechanism for attaching Lua-script-backed
+    // methods) — stub it so the attached command never blocks a request.
+    defineCommand: vi.fn(function defineCommand(name) {
+      this[name] = vi.fn((...args) => {
+        const cb = args[args.length - 1]
+        if (typeof cb === 'function') cb(null, [0, 0])
+      })
+    }),
     ...overrides,
   }
 }
