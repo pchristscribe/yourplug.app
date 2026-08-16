@@ -18,7 +18,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY   — auto-injected by Supabase
 //
 // Deploy:
-//   npx supabase functions deploy track-click --project-ref oqkfirmzkdfkfcvzqipo
+//   npx supabase functions deploy track-click --project-ref vemimrxhcvckyhldunij
 //
 // Local test:
 //   npx supabase functions serve track-click --env-file supabase/functions/.env.local
