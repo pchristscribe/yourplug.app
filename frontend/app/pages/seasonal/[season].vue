@@ -54,7 +54,7 @@ useHead(() => ({
           v-for="s in SEASON_LIST"
           :key="s.slug"
           :to="`/seasonal/${s.slug}`"
-          class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-sm hover:bg-brand hover:text-white hover:border-brand transition-colors"
+          class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-sm hover:bg-brand hover:text-ink-inverse hover:border-brand transition-colors"
         >
           {{ s.label }}
         </NuxtLink>
@@ -63,7 +63,7 @@ useHead(() => ({
 
     <template v-else>
       <!-- Hero -->
-      <header class="bg-gradient-to-r from-brand to-accent rounded-xl p-8 text-white shadow-card">
+      <header class="bg-gradient-to-r from-brand to-accent rounded-card p-8 text-ink-inverse shadow-card">
         <p class="text-sm uppercase tracking-wider opacity-80 mb-1">In season</p>
         <h1 class="text-4xl font-bold mb-2">{{ season.label }} Picks</h1>
         <p class="text-lg opacity-90">{{ season.blurb }}</p>
@@ -77,7 +77,7 @@ useHead(() => ({
           :to="`/seasonal/${s.slug}`"
           class="px-3 py-1.5 rounded-full text-sm border transition-colors"
           :class="s.slug === season.slug
-            ? 'border-brand bg-brand text-white'
+            ? 'border-brand bg-brand text-ink-inverse'
             : 'border-gray-300 dark:border-gray-600 text-ink dark:text-ink-muted hover:border-brand hover:text-brand'"
         >
           {{ s.label }}
