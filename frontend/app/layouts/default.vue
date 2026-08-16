@@ -18,9 +18,6 @@
             <NuxtLink to="/" class="text-ink dark:text-ink-muted hover:text-brand dark:hover:text-brand-hover transition-colors duration-base">
               Products
             </NuxtLink>
-            <NuxtLink to="/categories" class="text-ink dark:text-ink-muted hover:text-brand dark:hover:text-brand-hover transition-colors duration-base">
-              Categories
-            </NuxtLink>
             <NuxtLink :to="`/seasonal/${currentSeason.slug}`" class="text-ink dark:text-ink-muted hover:text-brand dark:hover:text-brand-hover transition-colors duration-base">
               {{ currentSeason.label }}
             </NuxtLink>

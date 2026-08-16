@@ -103,8 +103,8 @@ export default defineNuxtConfig({
   },
 
   sentry: {
-    org: 'yourplug',
-    project: 'admin-frontend-nuxt',
+    org: 'yourplugapp',
+    project: 'admin-frontend',
     authToken: process.env.SENTRY_AUTH_TOKEN
   },
 
