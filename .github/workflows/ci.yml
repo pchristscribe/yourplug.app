@@ -110,7 +110,11 @@ jobs:
           # Stub out Supabase-specific auth/storage schemas so migrations that
           # reference auth.role() (RLS policies) or storage.buckets
           # (013_consignment_storage_bucket.sql) succeed against plain
-          # Postgres in CI.
+          # Postgres in CI. Also create the anon/authenticated/service_role
+          # roles Supabase provisions by default — needed by any migration
+          # that GRANT/REVOKEs directly against those role names (e.g.
+          # 014_rls_and_constraint_hardening.sql's column-level privileges),
+          # as opposed to just calling the auth.*() functions above.
           psql -v ON_ERROR_STOP=1 postgresql://yourplug:test@localhost:5432/yourplug_test \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT 'service_role'::text \$\$;" \
@@ -118,7 +122,9 @@ jobs:
             -c "CREATE OR REPLACE FUNCTION auth.email() RETURNS text LANGUAGE sql STABLE AS \$\$ SELECT ''::text \$\$;" \
             -c "CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY);" \
             -c "CREATE SCHEMA IF NOT EXISTS storage;" \
-            -c "CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);"
+            -c "CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);" \
+            -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated; END IF; IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF; END \$\$;" \
+            -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;"
           # ON_ERROR_STOP is essential: psql exits 0 on SQL errors without it,
           # so a failed migration would silently leave an empty schema and the
           # test job would still report success.

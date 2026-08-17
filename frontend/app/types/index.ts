@@ -56,10 +56,8 @@ export interface AffiliateLink {
   productId: string
   originalUrl: string
   trackedUrl: string
-  dubLinkId?: string
   clicks: number
   conversions: number
-  revenue: number
   lastClickedAt?: string
   createdAt: string
   updatedAt: string
