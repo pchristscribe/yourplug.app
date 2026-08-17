@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.10",
-    "@pinia/nuxt": "^1.0.1",
+    "@pinia/nuxt": "^1.0.2",
     "@sentry/nuxt": "^10.68.0",
     "@supabase/auth-js": "^2.112.3",
     "@supabase/sentry-js-integration": "^0.3.0",
@@ -31,7 +31,7 @@
     "@vercel/analytics": "^2.0.1",
     "nuxt": "^4.5.2",
     "nuxt-headlessui": "^1.2.2",
-    "pinia": "^4.0.2",
+    "pinia": "^4.0.3",
     "vue": "^3.5.41",
     "vue-router": "^5.1.0"
   },
