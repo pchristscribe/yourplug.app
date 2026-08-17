@@ -21,11 +21,11 @@
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.10",
-    "@pinia/nuxt": "^1.0.1",
+    "@pinia/nuxt": "^1.0.2",
     "@sentry/nuxt": "^10.68.0",
     "@simplewebauthn/browser": "^13.2.2",
     "nuxt": "^4.5.2",
-    "pinia": "^4.0.2",
+    "pinia": "^4.0.3",
     "vue": "^3.5.41",
     "vue-router": "^5.2.0"
   },
