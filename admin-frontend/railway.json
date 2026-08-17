@@ -1,6 +1,6 @@
 {
   "build": {
-    "builder": "NIXPACKS",
+    "builder": "RAILPACK",
     "buildCommand": "pnpm install --frozen-lockfile && pnpm run build"
   },
   "deploy": {
