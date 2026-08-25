@@ -319,7 +319,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       const results = wrapper.findAll('button[role="option"]')
-      expect(results[0].classes()).toContain('bg-blue-50')
+      expect(results[0].classes()).toContain('bg-brand-muted')
     })
 
     it('navigates up with arrow key', async () => {
@@ -345,7 +345,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       const results = wrapper.findAll('button[role="option"]')
-      expect(results[0].classes()).toContain('bg-blue-50')
+      expect(results[0].classes()).toContain('bg-brand-muted')
     })
 
     it('selects product with Enter key', async () => {
@@ -408,7 +408,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       const results = wrapper.findAll('button[role="option"]')
-      expect(results.every((r) => !r.classes().includes('bg-blue-50'))).toBe(true)
+      expect(results.every((r) => !r.classes().includes('bg-brand-muted'))).toBe(true)
 
       // Navigate to end
       await input.trigger('keydown', { key: 'ArrowDown' })
@@ -417,7 +417,7 @@ describe('SearchBar Component', () => {
       await flushPromises()
 
       // Should stay at last item
-      expect(results[1].classes()).toContain('bg-blue-50')
+      expect(results[1].classes()).toContain('bg-brand-muted')
     })
   })
 
@@ -548,7 +548,7 @@ describe('SearchBar Component', () => {
       await vi.runAllTimersAsync()
       await flushPromises()
 
-      const placeholder = wrapper.find('.bg-gray-200')
+      const placeholder = wrapper.find('.bg-surface-light')
       expect(placeholder.exists()).toBe(true)
     })
 

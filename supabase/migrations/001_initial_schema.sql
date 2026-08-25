@@ -1,5 +1,5 @@
 -- yourplug App - Initial Schema
--- Supabase Project: oqkfirmzkdfkfcvzqipo
+-- Supabase Project: vemimrxhcvckyhldunij
 
 -- Enable UUID generation
 create extension if not exists "pgcrypto";

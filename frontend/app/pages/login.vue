@@ -17,9 +17,9 @@
 
         <p class="mt-6 text-xs text-center text-ink-subtle dark:text-ink-subtle leading-relaxed">
           By signing in you agree to our
-          <a href="#" class="underline hover:text-brand transition-colors">Terms of Service</a>
+          <NuxtLink to="/terms" class="underline hover:text-brand transition-colors">Terms of Service</NuxtLink>
           and
-          <a href="#" class="underline hover:text-brand transition-colors">Privacy Policy</a>.
+          <NuxtLink to="/privacy" class="underline hover:text-brand transition-colors">Privacy Policy</NuxtLink>.
         </p>
       </div>
 
